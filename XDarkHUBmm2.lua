@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  MM2 Coin Autofarm · [egor745top6] · ИСПРАВЛЕНИЕ СБОРА
+--  MM2 Coin Autofarm · [egor745top6] · ИСПРАВЛЕНО ДЛЯ ЛОББИ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -467,22 +467,8 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ ВЫБРОСА МАРДЕРА
 function throwMurdererToSpace()
     print("🚀 === ВЫБРОС МАРДЕРА ===")
-    
-    -- 🔥 ЗАЩИТА: проверяем что MAX_BAG правильный
-    if MAX_BAG ~= 40 and MAX_BAG ~= 50 then
-        print("⚠️ ОШИБКА: MAX_BAG =", MAX_BAG, "— должен быть 40 или 50!")
-        MAX_BAG = 40
-    end
-    
-    -- 🔥 ЗАЩИТА: проверяем что collected действительно >= MAX_BAG
-    if collected < MAX_BAG then
-        print("⚠️ ОШИБКА: collected =", collected, "но MAX_BAG =", MAX_BAG, "— не должно вызывать выброс!")
-        return
-    end
-    
     deathSound:Play()
     
     local murdererPlayer = nil
@@ -515,78 +501,26 @@ function throwMurdererToSpace()
     local murdererHrp = murdererPlayer.Character.HumanoidRootPart
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
-    local myHrp = character:FindFirstChild("HumanoidRootPart")
-    local myHum = character:FindFirstChild("Humanoid")
-    local isInLobby = (not myHrp or not myHum or myHum.Health <= 0)
-    
-    if isInLobby then
-        print("📍 Мы в лобби! Мгновенный выброс...")
-        
-        if murdererHum then
-            murdererHum.PlatformStand = true
-        end
-        
-        murdererHrp.CFrame = CFrame.new(murdererHrp.Position + Vector3.new(0, 10000, 0))
-        
-        local bodyVel = Instance.new("BodyVelocity")
-        bodyVel.Velocity = Vector3.new(0, 10000, 0)
-        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVel.Parent = murdererHrp
-        Debris:AddItem(bodyVel, 10)
-        
-        for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-        
-        print("🚀", murdererPlayer.Name, "улетел!")
-    else
-        print("🌀 Мы живы! Анимация...")
-        
-        myHrp.CFrame = murdererHrp.CFrame * CFrame.new(3, 0, 0)
-        task.wait(0.1)
-        
-        local radius = 3
-        local totalSpins = 50
-        
-        for i = 1, totalSpins do
-            if not murdererHrp.Parent then break end
-            
-            local angle = math.rad(i * 36)
-            local currentRadius = radius + (i * 0.3)
-            local heightIncrease = i * 50
-            
-            local offset = Vector3.new(
-                math.cos(angle) * currentRadius,
-                heightIncrease,
-                math.sin(angle) * currentRadius
-            )
-            
-            myHrp.CFrame = CFrame.new(murdererHrp.Position + offset, murdererHrp.Position)
-            task.wait(0.02)
-        end
-        
-        if murdererHum then
-            murdererHum.PlatformStand = true
-        end
-        
-        murdererHrp.CFrame = CFrame.new(murdererHrp.Position + Vector3.new(0, 10000, 0))
-        
-        local bodyVel = Instance.new("BodyVelocity")
-        bodyVel.Velocity = Vector3.new(0, 10000, 0)
-        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVel.Parent = murdererHrp
-        Debris:AddItem(bodyVel, 10)
-        
-        for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
-        end
-        
-        print("🚀", murdererPlayer.Name, "улетел!")
+    -- 🔥 МГНОВЕННЫЙ ВЫБРОС (работает даже в лобби!)
+    if murdererHum then
+        murdererHum.PlatformStand = true
     end
+    
+    murdererHrp.CFrame = CFrame.new(murdererHrp.Position + Vector3.new(0, 10000, 0))
+    
+    local bodyVel = Instance.new("BodyVelocity")
+    bodyVel.Velocity = Vector3.new(0, 10000, 0)
+    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVel.Parent = murdererHrp
+    Debris:AddItem(bodyVel, 10)
+    
+    for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+        end
+    end
+    
+    print("🚀", murdererPlayer.Name, "улетел в космос!")
     
     bagFull = false
     collected = 0
@@ -610,7 +544,6 @@ function flyTo(pos, speed)
     return not cancelled
 end
 
--- 🔥 ИСПРАВЛЕННАЯ ФУНКЦИЯ СБОРА МОНЕТ
 function startFarming()
     collected = 0
     startTime = tick()
@@ -641,14 +574,18 @@ function startFarming()
 
             character = player.Character or player.CharacterAdded:Wait()
             rootPart = character:FindFirstChild("HumanoidRootPart")
-            if not rootPart then task.wait(0.5) continue end
+            
+            -- 🔥 ПРОВЕРКА: если мы в лобби (нет rootPart), просто ждём
+            if not rootPart then 
+                task.wait(0.5)
+                continue 
+            end
 
             checkRole()
 
             local closest, shortest = nil, math.huge
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("BasePart") and obj.Name == "Coin_Server" then
-                    -- 🔥 ПРОВЕРКА: монета не в Character другого игрока
                     local isInsideCharacter = false
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p.Character and obj:IsDescendantOf(p.Character) then
@@ -669,7 +606,7 @@ function startFarming()
 
             if closest then
                 local coinPos = closest.Position
-                local coinRef = closest -- Сохраняем ссылку
+                local coinRef = closest
                 
                 if farmStopped then continue end
                 
@@ -679,9 +616,7 @@ function startFarming()
                 if arrived then
                     task.wait(0.3)
                     
-                    -- 🔥 ПРОВЕРКА: монета всё ещё существует и на том же месте?
                     if coinRef.Parent and coinRef:IsDescendantOf(workspace) then
-                        -- Проверяем что монета не в Character другого игрока
                         local isInsideCharacter = false
                         for _, p in ipairs(Players:GetPlayers()) do
                             if p.Character and coinRef:IsDescendantOf(p.Character) then
@@ -693,7 +628,6 @@ function startFarming()
                         if not isInsideCharacter then
                             local distToCoin = (coinRef.Position - rootPart.Position).Magnitude
                             if distToCoin < 5 then
-                                -- 🔥 МОНЕТА РЕАЛЬНО СОБРАНА НАМИ!
                                 collected = collected + 1
                                 counterVal.Text = tostring(collected)
                                 collectSound:Play()
@@ -716,15 +650,12 @@ function startFarming()
                                     stopFarming()
                                 end
                             else
-                                print("⚠️ Монета далеко — пропускаем")
                                 visitedPositions[coinRef] = true
                             end
                         else
-                            print("❌ Монета в Character другого игрока — пропускаем")
                             visitedPositions[coinRef] = true
                         end
                     else
-                        print("❌ Монета исчезла (собрал кто-то другой)")
                         visitedPositions[coinRef] = true
                     end
                 end
@@ -971,5 +902,4 @@ updateRoleUI()
 updateBagUI()
 
 print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("✅ Теперь засчитывает ТОЛЬКО реально собранные монеты!")
-print("🛡️ Защита от случайного выброса в космос!")
+print("📍 В лобби: мардер мгновенно улетает в космос!")
