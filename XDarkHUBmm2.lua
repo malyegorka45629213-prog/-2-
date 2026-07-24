@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  MM2 Coin Autofarm · [egor745top6] · ИСПРАВЛЕНО
+--  MM2 Coin Autofarm · [egor745top6] · ФИНАЛЬНАЯ ВЕРСИЯ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -382,7 +382,7 @@ function stopFarming()
     print("🛑 ФАРМ ОСТАНОВЛЕН!")
 end
 
--- 🔪 УБИЙЦА УБИВАЕТ ВСЕХ
+-- 🔪 УБИЙЦА УБИВАЕТ ВСЕХ (ИСПРАВЛЕНО - ВСЕ ОСТАЮТСЯ НА МЕСТЕ)
 function cinematicMurdererKill()
     print("🔪 === УБИЙЦА УБИВАЕТ ВСЕХ ===")
     killSound:Play()
@@ -421,6 +421,7 @@ function cinematicMurdererKill()
     
     print("🎯 Целей:", #targets)
     
+    -- 🔥 Красная вспышка
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(30, 30, 30)
     flash.Position = hrp.Position
@@ -438,34 +439,57 @@ function cinematicMurdererKill()
     light.Color = Color3.fromRGB(255, 0, 0)
     light.Parent = flash
     
+    -- 🔥 ТЕЛЕПОРТИРУЕМ ВСЕХ ПЕРЕД СОБОЙ И ОТКЛЮЧАЕМ УПРАВЛЕНИЕ
     local myLook = hrp.CFrame.LookVector
     for i, p in ipairs(targets) do
         local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
+        local targetHum = p.Character:FindFirstChild("Humanoid")
         if targetHrp then
-            local offset = myLook * (3 + (i - 1) * 2)
+            -- Расставляем в линию перед собой (очень близко)
+            local offset = myLook * (2 + (i - 1) * 1.5)
             targetHrp.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
+            
+            -- 🔥 ОТКЛЮЧАЕМ УПРАВЛЕНИЕ чтобы не разбегались!
+            if targetHum then
+                targetHum.PlatformStand = true
+                targetHum.WalkSpeed = 0
+                targetHum.JumpPower = 0
+            end
+            
+            -- Отключаем коллизии
+            for _, part in ipairs(p.Character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+            
+            print("📍", p.Name, "поставлен перед нами")
         end
     end
     
-    task.wait(0.3)
+    task.wait(0.5)
     
+    -- 🔥 БЫСТРО УБИВАЕМ ВСЕХ ПО ОЧЕРЕДИ
     for _, p in ipairs(targets) do
         if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
             if targetHrp then
-                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -2)
-                task.wait(0.15)
+                -- Телепорт вплотную к цели
+                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -1.5)
+                task.wait(0.1)
                 
+                -- Активируем нож
                 if myKnife and myKnife.Parent == character then
                     myKnife:Activate()
                     print("🔪 Нож активирован на:", p.Name)
                 end
                 
-                task.wait(0.1)
+                task.wait(0.05)
                 if p.Character and p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
                 
+                -- Эффект удара
                 local hitEffect = Instance.new("Part")
                 hitEffect.Size = Vector3.new(2, 2, 2)
                 hitEffect.Position = targetHrp.Position
@@ -477,12 +501,12 @@ function cinematicMurdererKill()
                 hitEffect.Parent = workspace
                 Debris:AddItem(hitEffect, 0.5)
                 
-                print("💀 Атакован:", p.Name)
+                print("💀 Убит:", p.Name)
             end
         end
     end
     
-    task.wait(0.5)
+    task.wait(0.3)
     
     bagFull = false
     collected = 0
@@ -528,7 +552,10 @@ function throwMurdererToSpace()
     
     -- 🔥 ПРОВЕРКА: мы в лобби или живы?
     local myHrp = character:FindFirstChild("HumanoidRootPart")
-    local isInLobby = (not myHrp or not character:FindFirstChild("Humanoid"))
+    local myHum = character:FindFirstChild("Humanoid")
+    local isInLobby = (not myHrp or not myHum or myHum.Health <= 0)
+    
+    print("📍 isInLobby:", isInLobby, "| myHrp:", myHrp ~= nil, "| myHum:", myHum ~= nil, "| Health:", myHum and myHum.Health or "N/A")
     
     if isInLobby then
         print("📍 Мы в лобби! Мгновенный выброс мардера...")
@@ -1012,5 +1039,5 @@ updateRoleUI()
 updateBagUI()
 
 print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("📍 Если ты в лобби - мардер мгновенно улетает в космос!")
-print("🌀 Если ты жив - анимация вращения вокруг мардера!")
+print("🔪 Murderer: все игроки остаются на месте!")
+print("📍 Лобби: мардер мгновенно улетает в космос!")
