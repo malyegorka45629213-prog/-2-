@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB v7.0 · MM2 Autofarm
+--  XDarkHUB v8.0 · MM2 Autofarm · OPTIMIZED PREMIUM UI
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -94,50 +94,121 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ЦВЕТА
+--  ОПТИМИЗИРОВАННАЯ UI СИСТЕМА
 -- ═══════════════════════════════════════════════════════════
 
-local COL = {
-    bg = Color3.fromRGB(2, 2, 5),
-    panel = Color3.fromRGB(8, 8, 12),
-    card = Color3.fromRGB(14, 14, 20),
-    cardHov = Color3.fromRGB(22, 22, 30),
-    border = Color3.fromRGB(35, 35, 45),
-    text = Color3.fromRGB(250, 248, 255),
-    muted = Color3.fromRGB(100, 100, 115),
-    white = Color3.fromRGB(255, 255, 255),
+local THEME = {
+    colors = {
+        bg = Color3.fromRGB(2, 2, 5),
+        panel = Color3.fromRGB(8, 8, 12),
+        card = Color3.fromRGB(14, 14, 20),
+        cardHov = Color3.fromRGB(22, 22, 30),
+        border = Color3.fromRGB(35, 35, 45),
+        text = Color3.fromRGB(250, 248, 255),
+        muted = Color3.fromRGB(100, 100, 115),
+        white = Color3.fromRGB(255, 255, 255),
+    },
+    accent = {
+        base = Color3.fromRGB(230, 25, 55),
+        dim = Color3.fromRGB(70, 10, 20),
+        light = Color3.fromRGB(255, 85, 105),
+        glow = Color3.fromRGB(255, 45, 65),
+        dark = Color3.fromRGB(45, 6, 15),
+        neon = Color3.fromRGB(255, 30, 60),
+    },
+    sizes = {
+        corner = 14,
+        padding = 16,
+        spacing = 12,
+    }
 }
 
-local ACCENT = {
-    base = Color3.fromRGB(230, 25, 55),
-    dim = Color3.fromRGB(70, 10, 20),
-    light = Color3.fromRGB(255, 85, 105),
-    glow = Color3.fromRGB(255, 45, 65),
-    dark = Color3.fromRGB(45, 6, 15),
-    neon = Color3.fromRGB(255, 30, 60),
-}
+local UI = {}
 
-local function corner(obj, r)
+function UI.corner(obj, r)
     local c = Instance.new("UICorner", obj)
-    c.CornerRadius = UDim.new(0, r)
+    c.CornerRadius = UDim.new(0, r or THEME.sizes.corner)
     return c
 end
 
-local function stroke(obj, color, th, trans)
+function UI.stroke(obj, color, th, trans)
     local s = Instance.new("UIStroke", obj)
-    s.Color = color
+    s.Color = color or THEME.colors.border
     s.Thickness = th or 1
     s.Transparency = trans or 0
     return s
 end
 
-local function tw(obj, props, t, style)
-    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    return TweenService:Create(obj, info, props)
+function UI.gradient(obj, colors, rotation)
+    local g = Instance.new("UIGradient", obj)
+    g.Color = ColorSequence.new(colors or {
+        ColorSequenceKeypoint.new(0, THEME.colors.card),
+        ColorSequenceKeypoint.new(1, THEME.colors.panel),
+    })
+    g.Rotation = rotation or 0
+    return g
 end
 
-local function animate(obj, props, t, style)
-    tw(obj, props, t, style):Play()
+function UI.animate(obj, props, t, style)
+    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    TweenService:Create(obj, info, props):Play()
+end
+
+function UI.createFrame(parent, props)
+    local f = Instance.new("Frame")
+    f.BackgroundColor3 = props.bg or THEME.colors.card
+    f.BackgroundTransparency = props.transparency or 0
+    f.BorderSizePixel = 0
+    f.Size = props.size or UDim2.new(1, 0, 0, 50)
+    f.Position = props.position or UDim2.new(0, 0, 0, 0)
+    f.ZIndex = props.zIndex or 2
+    f.Parent = parent
+    
+    if props.corner then UI.corner(f, props.corner) end
+    if props.stroke then UI.stroke(f, props.stroke.color, props.stroke.thickness, props.stroke.transparency) end
+    if props.gradient then UI.gradient(f, props.gradient.colors, props.gradient.rotation) end
+    
+    return f
+end
+
+function UI.createLabel(parent, props)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = props.transparency or 1
+    l.Size = props.size or UDim2.new(1, 0, 1, 0)
+    l.Position = props.position or UDim2.new(0, 0, 0, 0)
+    l.Text = props.text or ""
+    l.TextColor3 = props.color or THEME.colors.text
+    l.Font = props.font or Enum.Font.GothamBold
+    l.TextSize = props.textSize or 14
+    l.TextXAlignment = props.xAlign or Enum.TextXAlignment.Left
+    l.TextYAlignment = props.yAlign or Enum.TextYAlignment.Center
+    l.ZIndex = props.zIndex or 2
+    l.Parent = parent
+    
+    if props.gradient then UI.gradient(l, props.gradient.colors, props.gradient.rotation) end
+    
+    return l
+end
+
+function UI.createButton(parent, props)
+    local b = Instance.new("TextButton")
+    b.BackgroundColor3 = props.bg or THEME.colors.card
+    b.BackgroundTransparency = props.transparency or 0
+    b.Size = props.size or UDim2.new(1, 0, 0, 50)
+    b.Position = props.position or UDim2.new(0, 0, 0, 0)
+    b.Text = props.text or ""
+    b.TextColor3 = props.textColor or THEME.colors.white
+    b.Font = props.font or Enum.Font.GothamBold
+    b.TextSize = props.textSize or 14
+    b.AutoButtonColor = props.autoColor or false
+    b.ZIndex = props.zIndex or 3
+    b.Parent = parent
+    
+    if props.corner then UI.corner(b, props.corner) end
+    if props.stroke then UI.stroke(b, props.stroke.color, props.stroke.thickness, props.stroke.transparency) end
+    if props.gradient then UI.gradient(b, props.gradient.colors, props.gradient.rotation) end
+    
+    return b
 end
 
 -- Очистка
@@ -158,51 +229,46 @@ killSound.Parent = gui
 deathSound.Parent = gui
 
 -- ═══════════════════════════════════════════════════════════
---  УЛУЧШЕННЫЕ ЧАСТИЦЫ (с анимацией свечения)
+--  ФОН С ЧАСТИЦАМИ
 -- ═══════════════════════════════════════════════════════════
 
-local bgFrame = Instance.new("Frame")
-bgFrame.Size = UDim2.new(1, 0, 1, 0)
-bgFrame.BackgroundColor3 = COL.bg
-bgFrame.BackgroundTransparency = 0.15
-bgFrame.BorderSizePixel = 0
-bgFrame.ZIndex = 0
-bgFrame.Parent = gui
-
-local bgGrad = Instance.new("UIGradient", bgFrame)
-bgGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 2, 8)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(2, 2, 5)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 2, 5)),
+local bgFrame = UI.createFrame(gui, {
+    bg = THEME.colors.bg,
+    transparency = 0.15,
+    size = UDim2.new(1, 0, 1, 0),
+    zIndex = 0,
+    gradient = {
+        colors = {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 2, 8)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(2, 2, 5)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 2, 5)),
+        },
+        rotation = 45
+    }
 })
-bgGrad.Rotation = 45
 
 local particleColors = {
-    ACCENT.base, ACCENT.neon, ACCENT.glow, ACCENT.light,
-    Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 100, 120)
+    THEME.accent.base, THEME.accent.neon, THEME.accent.glow, 
+    THEME.accent.light, Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 100, 120)
 }
 
 for i = 1, 35 do
-    local particle = Instance.new("Frame")
-    local size = math.random(3, 14)
-    particle.Size = UDim2.new(0, size, 0, size)
-    particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    particle.BackgroundColor3 = particleColors[math.random(1, #particleColors)]
-    particle.BackgroundTransparency = math.random(40, 80) / 100
-    particle.BorderSizePixel = 0
-    particle.ZIndex = 0
-    particle.Parent = bgFrame
-    corner(particle, math.random(2, 7))
+    local particle = UI.createFrame(bgFrame, {
+        bg = particleColors[math.random(1, #particleColors)],
+        transparency = math.random(40, 80) / 100,
+        size = UDim2.new(0, math.random(3, 14), 0, math.random(3, 14)),
+        position = UDim2.new(math.random(), 0, math.random(), 0),
+        corner = math.random(2, 7),
+        zIndex = 0
+    })
     
     task.spawn(function()
         while particle.Parent do
-            local targetPos = UDim2.new(math.random(), 0, math.random(), 0)
-            local duration = math.random(12, 28)
-            animate(particle, {
-                Position = targetPos,
+            UI.animate(particle, {
+                Position = UDim2.new(math.random(), 0, math.random(), 0),
                 BackgroundTransparency = math.random(30, 85) / 100
-            }, duration, Enum.EasingStyle.Sine)
-            task.wait(duration)
+            }, math.random(12, 28), Enum.EasingStyle.Sine)
+            task.wait(math.random(12, 28))
         end
     end)
 end
@@ -211,25 +277,23 @@ end
 --  ГЛАВНЫЙ ФРЕЙМ
 -- ═══════════════════════════════════════════════════════════
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 700, 0, 600)
-frame.Position = UDim2.new(0.5, -350, 0.5, -300)
-frame.BackgroundColor3 = COL.bg
-frame.BackgroundTransparency = 0.03
-frame.BorderSizePixel = 0
-frame.ClipsDescendants = true
-frame.ZIndex = 1
-frame.Parent = gui
-corner(frame, 20)
+local frame = UI.createFrame(gui, {
+    bg = THEME.colors.bg,
+    transparency = 0.03,
+    size = UDim2.new(0, 700, 0, 600),
+    position = UDim2.new(0.5, -350, 0.5, -300),
+    corner = 20,
+    stroke = {color = THEME.accent.neon, thickness = 2, transparency = 0.5},
+    zIndex = 1
+})
 
-local outerGlow = stroke(frame, ACCENT.neon, 2, 0.5)
-local innerBorder = stroke(frame, ACCENT.base, 1, 0.2)
+local outerGlow = UI.stroke(frame, THEME.accent.neon, 2, 0.5)
 
 task.spawn(function()
     while frame.Parent do
-        animate(outerGlow, {Transparency = 0.3, Thickness = 3}, 2.5, Enum.EasingStyle.Sine)
+        UI.animate(outerGlow, {Transparency = 0.3, Thickness = 3}, 2.5, Enum.EasingStyle.Sine)
         task.wait(2.5)
-        animate(outerGlow, {Transparency = 0.7, Thickness = 2}, 2.5, Enum.EasingStyle.Sine)
+        UI.animate(outerGlow, {Transparency = 0.7, Thickness = 2}, 2.5, Enum.EasingStyle.Sine)
         task.wait(2.5)
     end
 end)
@@ -238,119 +302,86 @@ end)
 --  ЗАГОЛОВОК
 -- ═══════════════════════════════════════════════════════════
 
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 70)
-titleBar.BackgroundColor3 = COL.panel
-titleBar.BackgroundTransparency = 0.05
-titleBar.BorderSizePixel = 0
-titleBar.Active = true
-titleBar.ZIndex = 2
-titleBar.Parent = frame
-corner(titleBar, 20)
-
-local titleGrad = Instance.new("UIGradient", titleBar)
-titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 12, 25)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 6, 12)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 12, 25)),
+local titleBar = UI.createFrame(frame, {
+    bg = THEME.colors.panel,
+    transparency = 0.05,
+    size = UDim2.new(1, 0, 0, 70),
+    corner = 20,
+    gradient = {
+        colors = {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 12, 25)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 6, 12)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 12, 25)),
+        }
+    },
+    zIndex = 2
 })
+titleBar.Active = true
 
 task.spawn(function()
     local rotation = 0
     while frame.Parent do
         rotation = rotation + 0.4
-        titleGrad.Rotation = rotation
+        titleBar.UIGradient.Rotation = rotation
         task.wait(0.05)
     end
 end)
 
-local logo = Instance.new("Frame")
-logo.Size = UDim2.new(0, 50, 0, 50)
-logo.Position = UDim2.new(0, 20, 0.5, -25)
-logo.BackgroundColor3 = ACCENT.base
-logo.BorderSizePixel = 0
-logo.ZIndex = 3
-logo.Parent = titleBar
-corner(logo, 15)
-
-local logoStroke = stroke(logo, ACCENT.neon, 2, 0.3)
-
-task.spawn(function()
-    while frame.Parent do
-        animate(logo, {Size = UDim2.new(0, 54, 0, 54)}, 1.5, Enum.EasingStyle.Sine)
-        animate(logoStroke, {Transparency = 0.1}, 1.5, Enum.EasingStyle.Sine)
-        task.wait(1.5)
-        animate(logo, {Size = UDim2.new(0, 50, 0, 50)}, 1.5, Enum.EasingStyle.Sine)
-        animate(logoStroke, {Transparency = 0.5}, 1.5, Enum.EasingStyle.Sine)
-        task.wait(1.5)
-    end
-end)
-
-local logoX = Instance.new("TextLabel")
-logoX.Size = UDim2.new(1, 0, 1, 0)
-logoX.BackgroundTransparency = 1
-logoX.Text = "X"
-logoX.Font = Enum.Font.GothamBlack
-logoX.TextSize = 32
-logoX.TextColor3 = COL.white
-logoX.ZIndex = 4
-logoX.Parent = logo
-
-local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(1, -90, 1, 0)
-titleLbl.Position = UDim2.new(0, 85, 0, 0)
-titleLbl.BackgroundTransparency = 1
-titleLbl.Text = "XDarkHUB"
-titleLbl.Font = Enum.Font.GothamBlack
-titleLbl.TextSize = 32
-titleLbl.TextColor3 = ACCENT.light
-titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-titleLbl.ZIndex = 3
-titleLbl.Parent = titleBar
-
-local textGrad = Instance.new("UIGradient", titleLbl)
-textGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, ACCENT.neon),
-    ColorSequenceKeypoint.new(0.5, COL.white),
-    ColorSequenceKeypoint.new(1, ACCENT.neon),
+local logo = UI.createFrame(titleBar, {
+    bg = THEME.accent.base,
+    size = UDim2.new(0, 50, 0, 50),
+    position = UDim2.new(0, 20, 0.5, -25),
+    corner = 15,
+    stroke = {color = THEME.accent.neon, thickness = 2, transparency = 0.3},
+    zIndex = 3
 })
 
 task.spawn(function()
-    local offset = 0
     while frame.Parent do
-        offset = offset + 0.01
-        if offset > 1 then offset = 0 end
-        textGrad.Offset = Vector2.new(offset, 0)
-        task.wait(0.05)
+        UI.animate(logo, {Size = UDim2.new(0, 54, 0, 54)}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
+        UI.animate(logo, {Size = UDim2.new(0, 50, 0, 50)}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
     end
 end)
 
-local versionLbl = Instance.new("TextLabel")
-versionLbl.Size = UDim2.new(0, 140, 1, 0)
-versionLbl.Position = UDim2.new(1, -150, 0, 0)
-versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v7.0 · PREMIUM"
-versionLbl.Font = Enum.Font.GothamBold
-versionLbl.TextSize = 12
-versionLbl.TextColor3 = ACCENT.light
-versionLbl.TextXAlignment = Enum.TextXAlignment.Right
-versionLbl.TextTransparency = 0.3
-versionLbl.ZIndex = 3
-versionLbl.Parent = titleBar
+UI.createLabel(logo, {
+    text = "X",
+    color = THEME.colors.white,
+    font = Enum.Font.GothamBlack,
+    textSize = 32,
+    xAlign = Enum.TextXAlignment.Center,
+    zIndex = 4
+})
 
-local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -50, 0, 2)
-sep.Position = UDim2.new(0, 25, 0, 70)
-sep.BorderSizePixel = 0
-sep.ZIndex = 2
-sep.Parent = frame
-corner(sep, 1)
+UI.createLabel(titleBar, {
+    text = "XDarkHUB",
+    color = THEME.accent.light,
+    font = Enum.Font.GothamBlack,
+    textSize = 32,
+    size = UDim2.new(1, -90, 1, 0),
+    position = UDim2.new(0, 85, 0, 0),
+    xAlign = Enum.TextXAlignment.Left,
+    gradient = {
+        colors = {
+            ColorSequenceKeypoint.new(0, THEME.accent.neon),
+            ColorSequenceKeypoint.new(0.5, THEME.colors.white),
+            ColorSequenceKeypoint.new(1, THEME.accent.neon),
+        }
+    },
+    zIndex = 3
+})
 
-local sepGrad = Instance.new("UIGradient", sep)
-sepGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(2, 2, 5)),
-    ColorSequenceKeypoint.new(0.5, ACCENT.neon),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(2, 2, 5)),
+UI.createLabel(titleBar, {
+    text = "v8.0 · PREMIUM",
+    color = THEME.accent.light,
+    font = Enum.Font.GothamBold,
+    textSize = 12,
+    size = UDim2.new(0, 140, 1, 0),
+    position = UDim2.new(1, -150, 0, 0),
+    xAlign = Enum.TextXAlignment.Right,
+    transparency = 0.7,
+    zIndex = 3
 })
 
 -- Перетаскивание
@@ -377,15 +408,16 @@ end
 --  КОНТЕЙНЕР
 -- ═══════════════════════════════════════════════════════════
 
-local container = Instance.new("Frame")
-container.Size = UDim2.new(1, 0, 1, -75)
-container.Position = UDim2.new(0, 0, 0, 75)
-container.BackgroundTransparency = 1
-container.Parent = frame
+local container = UI.createFrame(frame, {
+    transparency = 1,
+    size = UDim2.new(1, 0, 1, -75),
+    position = UDim2.new(0, 0, 0, 75),
+    zIndex = 1
+})
 
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-animate(frame, {
+UI.animate(frame, {
     Size = UDim2.new(0, 700, 0, 600),
     Position = UDim2.new(0.5, -350, 0.5, -300)
 }, 0.7, Enum.EasingStyle.Back)
@@ -394,26 +426,25 @@ animate(frame, {
 --  ПАНЕЛИ
 -- ═══════════════════════════════════════════════════════════
 
-local leftPanel = Instance.new("Frame")
-leftPanel.Size = UDim2.new(0, 190, 1, 0)
-leftPanel.BackgroundColor3 = COL.panel
-leftPanel.BackgroundTransparency = 0.05
-leftPanel.BorderSizePixel = 0
-leftPanel.ZIndex = 2
-leftPanel.Parent = container
-
-local leftGrad = Instance.new("UIGradient", leftPanel)
-leftGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 10, 15)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 5, 8)),
+local leftPanel = UI.createFrame(container, {
+    bg = THEME.colors.panel,
+    transparency = 0.05,
+    size = UDim2.new(0, 190, 1, 0),
+    gradient = {
+        colors = {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 10, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 5, 8)),
+        }
+    },
+    zIndex = 2
 })
 
-local rightPanel = Instance.new("Frame")
-rightPanel.Size = UDim2.new(1, -190, 1, 0)
-rightPanel.Position = UDim2.new(0, 190, 0, 0)
-rightPanel.BackgroundTransparency = 1
-rightPanel.ZIndex = 2
-rightPanel.Parent = container
+local rightPanel = UI.createFrame(container, {
+    transparency = 1,
+    size = UDim2.new(1, -190, 1, 0),
+    position = UDim2.new(0, 190, 0, 0),
+    zIndex = 2
+})
 
 -- ═══════════════════════════════════════════════════════════
 --  ВКЛАДКИ
@@ -424,41 +455,38 @@ local tabContents = {}
 local currentTab = nil
 
 local function createTab(name, icon, order)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -28, 0, 56)
-    btn.Position = UDim2.new(0, 14, 0, 20 + (order - 1) * 62)
-    btn.BackgroundColor3 = COL.card
-    btn.BackgroundTransparency = 0.05
-    btn.Text = ""
-    btn.BorderSizePixel = 0
-    btn.ZIndex = 3
-    btn.Parent = leftPanel
-    corner(btn, 15)
-    local btnStroke = stroke(btn, COL.border, 1)
+    local btn = UI.createButton(leftPanel, {
+        bg = THEME.colors.card,
+        transparency = 0.05,
+        size = UDim2.new(1, -28, 0, 56),
+        position = UDim2.new(0, 14, 0, 20 + (order - 1) * 62),
+        corner = 15,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 3
+    })
 
-    local iconLbl = Instance.new("TextLabel")
-    iconLbl.Size = UDim2.new(0, 50, 1, 0)
-    iconLbl.BackgroundTransparency = 1
-    iconLbl.Text = icon
-    iconLbl.Font = Enum.Font.GothamBold
-    iconLbl.TextSize = 26
-    iconLbl.TextColor3 = ACCENT.light
-    iconLbl.ZIndex = 3
-    iconLbl.Parent = btn
+    UI.createLabel(btn, {
+        text = icon,
+        color = THEME.accent.light,
+        font = Enum.Font.GothamBold,
+        textSize = 26,
+        size = UDim2.new(0, 50, 1, 0),
+        xAlign = Enum.TextXAlignment.Center,
+        zIndex = 3
+    })
 
-    local textLbl = Instance.new("TextLabel")
-    textLbl.Size = UDim2.new(1, -54, 1, 0)
-    textLbl.Position = UDim2.new(0, 54, 0, 0)
-    textLbl.BackgroundTransparency = 1
-    textLbl.Text = name
-    textLbl.Font = Enum.Font.GothamBold
-    textLbl.TextSize = 15
-    textLbl.TextColor3 = COL.text
-    textLbl.TextXAlignment = Enum.TextXAlignment.Left
-    textLbl.ZIndex = 3
-    textLbl.Parent = btn
+    UI.createLabel(btn, {
+        text = name,
+        color = THEME.colors.text,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        size = UDim2.new(1, -54, 1, 0),
+        position = UDim2.new(0, 54, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 3
+    })
 
-    tabs[name] = {button = btn, icon = iconLbl, text = textLbl, stroke = btnStroke}
+    tabs[name] = {button = btn}
     return btn
 end
 
@@ -468,7 +496,7 @@ local function createTabContent(name)
     content.BackgroundTransparency = 1
     content.BorderSizePixel = 0
     content.ScrollBarThickness = 4
-    content.ScrollBarImageColor3 = ACCENT.base
+    content.ScrollBarImageColor3 = THEME.accent.base
     content.CanvasSize = UDim2.new(0, 0, 0, 0)
     content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     content.ScrollingEnabled = true
@@ -492,24 +520,20 @@ end
 
 local function switchTab(name)
     for n, tab in pairs(tabs) do
-        animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.05}, 0.3)
-        animate(tab.stroke, {Color = COL.border}, 0.3)
-        tab.icon.TextColor3 = ACCENT.light
-        tab.text.TextColor3 = COL.text
+        UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.05}, 0.3)
+        tab.button.UIStroke.Color = THEME.colors.border
     end
     
     if tabs[name] then
-        animate(tabs[name].button, {BackgroundColor3 = ACCENT.dark, BackgroundTransparency = 0}, 0.3)
-        animate(tabs[name].stroke, {Color = ACCENT.neon}, 0.3)
-        tabs[name].icon.TextColor3 = ACCENT.neon
-        tabs[name].text.TextColor3 = COL.white
+        UI.animate(tabs[name].button, {BackgroundColor3 = THEME.accent.dark, BackgroundTransparency = 0}, 0.3)
+        tabs[name].button.UIStroke.Color = THEME.accent.neon
     end
     
     for n, content in pairs(tabContents) do
         if n == name then
             content.Visible = true
             content.Position = UDim2.new(0, 70, 0, 0)
-            animate(content, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back)
+            UI.animate(content, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back)
         else
             content.Visible = false
         end
@@ -532,14 +556,12 @@ for name, tab in pairs(tabs) do
     tab.button.MouseButton1Click:Connect(function() switchTab(name) end)
     tab.button.MouseEnter:Connect(function()
         if not (currentTab == name) then
-            animate(tab.button, {BackgroundColor3 = COL.cardHov}, 0.2)
-            animate(tab.stroke, {Color = ACCENT.light}, 0.2)
+            UI.animate(tab.button, {BackgroundColor3 = THEME.colors.cardHov}, 0.2)
         end
     end)
     tab.button.MouseLeave:Connect(function()
         if not (currentTab == name) then
-            animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.05}, 0.2)
-            animate(tab.stroke, {Color = COL.border}, 0.2)
+            UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.05}, 0.2)
         end
     end)
 end
@@ -549,132 +571,122 @@ end
 -- ═══════════════════════════════════════════════════════════
 
 local function sectionTitle(parent, order, text)
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 28)
-    l.BackgroundTransparency = 1
-    l.Text = text
-    l.TextColor3 = ACCENT.light
-    l.Font = Enum.Font.GothamBold
-    l.TextSize = 13
-    l.TextXAlignment = Enum.TextXAlignment.Left
-    l.LayoutOrder = order
-    l.ZIndex = 2
-    l.Parent = parent
+    UI.createLabel(parent, {
+        text = text,
+        color = THEME.accent.light,
+        font = Enum.Font.GothamBold,
+        textSize = 13,
+        size = UDim2.new(1, 0, 0, 28),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    }).LayoutOrder = order
 end
 
 local function statRow(parent, order, name)
-    local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 38)
-    row.BackgroundColor3 = COL.card
-    row.BackgroundTransparency = 0.02
-    row.BorderSizePixel = 0
+    local row = UI.createFrame(parent, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        size = UDim2.new(1, 0, 0, 38),
+        corner = 13,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
     row.LayoutOrder = order
-    row.ZIndex = 2
-    row.Parent = parent
-    corner(row, 13)
-    stroke(row, COL.border, 1)
 
-    local n = Instance.new("TextLabel")
-    n.Size = UDim2.new(0.6, 0, 1, 0)
-    n.Position = UDim2.new(0, 18, 0, 0)
-    n.BackgroundTransparency = 1
-    n.Text = name
-    n.TextColor3 = COL.muted
-    n.Font = Enum.Font.Gotham
-    n.TextSize = 13
-    n.TextXAlignment = Enum.TextXAlignment.Left
-    n.ZIndex = 2
-    n.Parent = row
+    UI.createLabel(row, {
+        text = name,
+        color = THEME.colors.muted,
+        font = Enum.Font.Gotham,
+        textSize = 13,
+        size = UDim2.new(0.6, 0, 1, 0),
+        position = UDim2.new(0, 18, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    })
 
-    local v = Instance.new("TextLabel")
-    v.Size = UDim2.new(0.4, -18, 1, 0)
-    v.Position = UDim2.new(0.6, 0, 0, 0)
-    v.BackgroundTransparency = 1
-    v.Text = "0"
-    v.TextColor3 = ACCENT.light
-    v.Font = Enum.Font.GothamBold
-    v.TextSize = 14
-    v.TextXAlignment = Enum.TextXAlignment.Right
-    v.ZIndex = 2
-    v.Parent = row
+    local v = UI.createLabel(row, {
+        text = "0",
+        color = THEME.accent.light,
+        font = Enum.Font.GothamBold,
+        textSize = 14,
+        size = UDim2.new(0.4, -18, 1, 0),
+        position = UDim2.new(0.6, 0, 0, 0),
+        xAlign = Enum.TextXAlignment.Right,
+        zIndex = 2
+    })
     return v
 end
 
 local function toggleCard(parent, order, label, onToggle)
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 54)
-    card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.02
-    card.BorderSizePixel = 0
+    local card = UI.createFrame(parent, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        size = UDim2.new(1, 0, 0, 54),
+        corner = 15,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
     card.LayoutOrder = order
-    card.ZIndex = 2
-    card.Parent = parent
-    corner(card, 15)
-    local cs = stroke(card, COL.border, 1)
 
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -120, 1, 0)
-    t.Position = UDim2.new(0, 22, 0, 0)
-    t.BackgroundTransparency = 1
-    t.Text = label
-    t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 15
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.ZIndex = 2
-    t.Parent = card
+    UI.createLabel(card, {
+        text = label,
+        color = THEME.colors.text,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        size = UDim2.new(1, -120, 1, 0),
+        position = UDim2.new(0, 22, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    })
 
-    local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 64, 0, 30)
-    pill.Position = UDim2.new(1, -74, 0.5, -15)
-    pill.BackgroundColor3 = COL.border
-    pill.BorderSizePixel = 0
-    pill.ZIndex = 2
-    pill.Parent = card
-    corner(pill, 15)
-    local ps = stroke(pill, COL.border, 1)
+    local pill = UI.createFrame(card, {
+        bg = THEME.colors.border,
+        size = UDim2.new(0, 64, 0, 30),
+        position = UDim2.new(1, -74, 0.5, -15),
+        corner = 15,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
 
-    local pl = Instance.new("TextLabel")
-    pl.Size = UDim2.new(1, 0, 1, 0)
-    pl.BackgroundTransparency = 1
-    pl.Text = "OFF"
-    pl.TextColor3 = COL.muted
-    pl.Font = Enum.Font.GothamBold
-    pl.TextSize = 11
-    pl.ZIndex = 2
-    pl.Parent = pill
+    local pl = UI.createLabel(pill, {
+        text = "OFF",
+        color = THEME.colors.muted,
+        font = Enum.Font.GothamBold,
+        textSize = 11,
+        xAlign = Enum.TextXAlignment.Center,
+        zIndex = 2
+    })
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.ZIndex = 3
-    btn.Parent = card
+    local btn = UI.createButton(card, {
+        transparency = 1,
+        size = UDim2.new(1, 0, 1, 0),
+        zIndex = 3
+    })
 
     local state = false
 
     btn.MouseButton1Click:Connect(function()
         state = not state
         if state then
-            animate(card, {BackgroundColor3 = ACCENT.dim}, 0.3)
-            animate(cs, {Color = ACCENT.base}, 0.3)
-            animate(pill, {BackgroundColor3 = ACCENT.base}, 0.3)
-            animate(ps, {Color = ACCENT.neon}, 0.3)
+            UI.animate(card, {BackgroundColor3 = THEME.accent.dim}, 0.3)
+            card.UIStroke.Color = THEME.accent.base
+            UI.animate(pill, {BackgroundColor3 = THEME.accent.base}, 0.3)
+            pill.UIStroke.Color = THEME.accent.neon
             pl.Text = "ON"
-            animate(pl, {TextColor3 = COL.white}, 0.3)
+            UI.animate(pl, {TextColor3 = THEME.colors.white}, 0.3)
         else
-            animate(card, {BackgroundColor3 = COL.card}, 0.3)
-            animate(cs, {Color = COL.border}, 0.3)
-            animate(pill, {BackgroundColor3 = COL.border}, 0.3)
-            animate(ps, {Color = COL.border}, 0.3)
+            UI.animate(card, {BackgroundColor3 = THEME.colors.card}, 0.3)
+            card.UIStroke.Color = THEME.colors.border
+            UI.animate(pill, {BackgroundColor3 = THEME.colors.border}, 0.3)
+            pill.UIStroke.Color = THEME.colors.border
             pl.Text = "OFF"
-            animate(pl, {TextColor3 = COL.muted}, 0.3)
+            UI.animate(pl, {TextColor3 = THEME.colors.muted}, 0.3)
         end
         if onToggle then onToggle(state) end
     end)
 
-    btn.MouseEnter:Connect(function() if not state then animate(card, {BackgroundColor3 = COL.cardHov}, 0.2) end end)
-    btn.MouseLeave:Connect(function() if not state then animate(card, {BackgroundColor3 = COL.card}, 0.2) end end)
+    btn.MouseEnter:Connect(function() if not state then UI.animate(card, {BackgroundColor3 = THEME.colors.cardHov}, 0.2) end end)
+    btn.MouseLeave:Connect(function() if not state then UI.animate(card, {BackgroundColor3 = THEME.colors.card}, 0.2) end end)
 end
 
 -- ═══════════════════════════════════════════════════════════
@@ -704,116 +716,108 @@ local bagVal = statRow(farmContent, 9, "Bag Full")
 
 -- Лимит
 do
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 54)
-    card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.02
-    card.BorderSizePixel = 0
+    local card = UI.createFrame(farmContent, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        size = UDim2.new(1, 0, 0, 54),
+        corner = 15,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
     card.LayoutOrder = 10
-    card.ZIndex = 2
-    card.Parent = farmContent
-    corner(card, 15)
-    stroke(card, COL.border, 1)
 
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -130, 1, 0)
-    t.Position = UDim2.new(0, 22, 0, 0)
-    t.BackgroundTransparency = 1
-    t.Text = "🎯 Bag Limit:"
-    t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 15
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.ZIndex = 2
-    t.Parent = card
+    UI.createLabel(card, {
+        text = "🎯 Bag Limit:",
+        color = THEME.colors.text,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        size = UDim2.new(1, -130, 1, 0),
+        position = UDim2.new(0, 22, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    })
 
-    local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 85, 0, 34)
-    pill.Position = UDim2.new(1, -95, 0.5, -17)
-    pill.BackgroundColor3 = ACCENT.base
-    pill.BorderSizePixel = 0
-    pill.ZIndex = 2
-    pill.Parent = card
-    corner(pill, 13)
-    stroke(pill, ACCENT.neon, 1)
+    local pill = UI.createFrame(card, {
+        bg = THEME.accent.base,
+        size = UDim2.new(0, 85, 0, 34),
+        position = UDim2.new(1, -95, 0.5, -17),
+        corner = 13,
+        stroke = {color = THEME.accent.neon, thickness = 1},
+        zIndex = 2
+    })
 
-    local pillLabel = Instance.new("TextLabel")
-    pillLabel.Size = UDim2.new(1, 0, 1, 0)
-    pillLabel.BackgroundTransparency = 1
-    pillLabel.Text = tostring(MAX_BAG) .. " 🪙"
-    pillLabel.TextColor3 = COL.white
-    pillLabel.Font = Enum.Font.GothamBold
-    pillLabel.TextSize = 15
-    pillLabel.ZIndex = 2
-    pillLabel.Parent = pill
+    local pillLabel = UI.createLabel(pill, {
+        text = tostring(MAX_BAG) .. " 🪙",
+        color = THEME.colors.white,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        xAlign = Enum.TextXAlignment.Center,
+        zIndex = 2
+    })
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.ZIndex = 3
-    btn.Parent = card
+    local btn = UI.createButton(card, {
+        transparency = 1,
+        size = UDim2.new(1, 0, 1, 0),
+        zIndex = 3
+    })
+    
     btn.MouseButton1Click:Connect(function()
         if MAX_BAG == 40 then MAX_BAG = 50 else MAX_BAG = 40 end
         pillLabel.Text = tostring(MAX_BAG) .. " 🪙"
-        animate(pill, {Size = UDim2.new(0, 95, 0, 38)}, 0.15)
+        UI.animate(pill, {Size = UDim2.new(0, 95, 0, 38)}, 0.15)
         task.wait(0.15)
-        animate(pill, {Size = UDim2.new(0, 85, 0, 34)}, 0.15)
+        UI.animate(pill, {Size = UDim2.new(0, 85, 0, 34)}, 0.15)
         notify("XDarkHUB", "🎯 Лимит: " .. MAX_BAG, 2)
     end)
 end
 
 -- Скорость
 do
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 54)
-    card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.02
-    card.BorderSizePixel = 0
+    local card = UI.createFrame(farmContent, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        size = UDim2.new(1, 0, 0, 54),
+        corner = 15,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
     card.LayoutOrder = 11
-    card.ZIndex = 2
-    card.Parent = farmContent
-    corner(card, 15)
-    stroke(card, COL.border, 1)
 
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -130, 1, 0)
-    t.Position = UDim2.new(0, 22, 0, 0)
-    t.BackgroundTransparency = 1
-    t.Text = "⚡ Farm Speed"
-    t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 15
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.ZIndex = 2
-    t.Parent = card
+    UI.createLabel(card, {
+        text = "⚡ Farm Speed",
+        color = THEME.colors.text,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        size = UDim2.new(1, -130, 1, 0),
+        position = UDim2.new(0, 22, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    })
 
-    local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 64, 0, 30)
-    pill.Position = UDim2.new(1, -74, 0.5, -15)
-    pill.BackgroundColor3 = ACCENT.dim
-    pill.BorderSizePixel = 0
-    pill.ZIndex = 2
-    pill.Parent = card
-    corner(pill, 15)
-    stroke(pill, ACCENT.base, 1)
+    local pill = UI.createFrame(card, {
+        bg = THEME.accent.dim,
+        size = UDim2.new(0, 64, 0, 30),
+        position = UDim2.new(1, -74, 0.5, -15),
+        corner = 15,
+        stroke = {color = THEME.accent.base, thickness = 1},
+        zIndex = 2
+    })
 
-    local speedPillLbl = Instance.new("TextLabel")
-    speedPillLbl.Size = UDim2.new(1, 0, 1, 0)
-    speedPillLbl.BackgroundTransparency = 1
-    speedPillLbl.Text = tostring(flySpeed)
-    speedPillLbl.TextColor3 = ACCENT.light
-    speedPillLbl.Font = Enum.Font.GothamBold
-    speedPillLbl.TextSize = 13
-    speedPillLbl.ZIndex = 2
-    speedPillLbl.Parent = pill
+    local speedPillLbl = UI.createLabel(pill, {
+        text = tostring(flySpeed),
+        color = THEME.accent.light,
+        font = Enum.Font.GothamBold,
+        textSize = 13,
+        xAlign = Enum.TextXAlignment.Center,
+        zIndex = 2
+    })
 
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.ZIndex = 3
-    btn.Parent = card
+    local btn = UI.createButton(card, {
+        transparency = 1,
+        size = UDim2.new(1, 0, 1, 0),
+        zIndex = 3
+    })
+    
     btn.MouseButton1Click:Connect(function()
         flySpeed = flySpeed + 5
         if flySpeed > 50 then flySpeed = 10 end
@@ -839,29 +843,28 @@ end)
 
 -- Test Fling
 do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 56)
-    btn.BackgroundColor3 = ACCENT.base
-    btn.Text = "🚀 TEST FLING"
-    btn.TextColor3 = COL.white
-    btn.Font = Enum.Font.GothamBlack
-    btn.TextSize = 16
-    btn.AutoButtonColor = false
-    btn.LayoutOrder = 14
-    btn.ZIndex = 2
-    btn.Parent = farmContent
-    corner(btn, 15)
-    stroke(btn, ACCENT.neon, 2)
-    
-    local btnGrad = Instance.new("UIGradient", btn)
-    btnGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, ACCENT.neon),
-        ColorSequenceKeypoint.new(1, ACCENT.dark),
+    local btn = UI.createButton(farmContent, {
+        bg = THEME.accent.base,
+        text = "🚀 TEST FLING",
+        textColor = THEME.colors.white,
+        font = Enum.Font.GothamBlack,
+        textSize = 16,
+        size = UDim2.new(1, 0, 0, 56),
+        corner = 15,
+        stroke = {color = THEME.accent.neon, thickness = 2},
+        gradient = {
+            colors = {
+                ColorSequenceKeypoint.new(0, THEME.accent.neon),
+                ColorSequenceKeypoint.new(1, THEME.accent.dark),
+            },
+            rotation = 90
+        },
+        zIndex = 2
     })
-    btnGrad.Rotation = 90
+    btn.LayoutOrder = 14
     
-    btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = ACCENT.neon}, 0.2) end)
-    btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = ACCENT.base}, 0.2) end)
+    btn.MouseEnter:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.accent.neon}, 0.2) end)
+    btn.MouseLeave:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.accent.base}, 0.2) end)
     btn.MouseButton1Click:Connect(function()
         notify("XDarkHUB", "🔍 Запускаю тест флинга...", 2)
         throwMurdererToSpace()
@@ -870,22 +873,22 @@ end
 
 -- Reset
 do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 48)
-    btn.BackgroundColor3 = COL.card
-    btn.BackgroundTransparency = 0.02
-    btn.Text = "🔄 Reset & Resume"
-    btn.TextColor3 = ACCENT.light
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 15
-    btn.AutoButtonColor = false
+    local btn = UI.createButton(farmContent, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        text = "🔄 Reset & Resume",
+        textColor = THEME.accent.light,
+        font = Enum.Font.GothamBold,
+        textSize = 15,
+        size = UDim2.new(1, 0, 0, 48),
+        corner = 15,
+        stroke = {color = THEME.accent.base, thickness = 1},
+        zIndex = 2
+    })
     btn.LayoutOrder = 15
-    btn.ZIndex = 2
-    btn.Parent = farmContent
-    corner(btn, 15)
-    stroke(btn, ACCENT.base, 1)
-    btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = COL.cardHov}, 0.2) end)
-    btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = COL.card}, 0.2) end)
+    
+    btn.MouseEnter:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.colors.cardHov}, 0.2) end)
+    btn.MouseLeave:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.colors.card}, 0.2) end)
     btn.MouseButton1Click:Connect(function()
         collected = 0
         startTime = tick()
@@ -904,41 +907,37 @@ end
 for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     local content = tabContents[name]
     
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 60)
-    title.BackgroundTransparency = 1
-    title.Text = name == "Sheriff" and "⭐ SHERIFF" or name == "Murderer" and "🔪 MURDERER" or "🎯 PLAYER"
-    title.TextColor3 = ACCENT.light
-    title.Font = Enum.Font.GothamBlack
-    title.TextSize = 24
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.LayoutOrder = 1
-    title.ZIndex = 2
-    title.Parent = content
+    UI.createLabel(content, {
+        text = name == "Sheriff" and "⭐ SHERIFF" or name == "Murderer" and "🔪 MURDERER" or "🎯 PLAYER",
+        color = THEME.accent.light,
+        font = Enum.Font.GothamBlack,
+        textSize = 24,
+        size = UDim2.new(1, 0, 0, 60),
+        xAlign = Enum.TextXAlignment.Left,
+        zIndex = 2
+    }).LayoutOrder = 1
     
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 160)
-    card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.02
-    card.BorderSizePixel = 0
+    local card = UI.createFrame(content, {
+        bg = THEME.colors.card,
+        transparency = 0.02,
+        size = UDim2.new(1, 0, 0, 160),
+        corner = 18,
+        stroke = {color = THEME.colors.border, thickness = 1},
+        zIndex = 2
+    })
     card.LayoutOrder = 2
-    card.ZIndex = 2
-    card.Parent = content
-    corner(card, 18)
-    stroke(card, COL.border, 1)
     
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -30, 1, 0)
-    lbl.Position = UDim2.new(0, 15, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "🚧 Coming Soon...\n\nЭта функция будет добавлена в следующей версии."
-    lbl.TextColor3 = COL.muted
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 15
-    lbl.TextWrapped = true
-    lbl.TextYAlignment = Enum.TextYAlignment.Top
-    lbl.ZIndex = 2
-    lbl.Parent = card
+    UI.createLabel(card, {
+        text = "🚧 Coming Soon...\n\nЭта функция будет добавлена в следующей версии.",
+        color = THEME.colors.muted,
+        font = Enum.Font.Gotham,
+        textSize = 15,
+        size = UDim2.new(1, -30, 1, 0),
+        position = UDim2.new(0, 15, 0, 0),
+        xAlign = Enum.TextXAlignment.Left,
+        yAlign = Enum.TextYAlignment.Top,
+        zIndex = 2
+    })
 end
 
 -- ═══════════════════════════════════════════════════════════
@@ -968,7 +967,7 @@ function updateBagUI()
         bagVal.TextColor3 = Color3.fromRGB(255, 200, 0)
     else
         bagVal.Text = collected .. "/" .. MAX_BAG
-        bagVal.TextColor3 = ACCENT.light
+        bagVal.TextColor3 = THEME.accent.light
     end
 end
 
@@ -1132,7 +1131,7 @@ function throwMurdererToSpace()
     flash.Anchored = true
     flash.CanCollide = false
     flash.Material = Enum.Material.Neon
-    flash.Color = ACCENT.neon
+    flash.Color = THEME.accent.neon
     flash.Transparency = 0.3
     flash.Parent = workspace
     Debris:AddItem(flash, 4)
@@ -1140,7 +1139,7 @@ function throwMurdererToSpace()
     local light = Instance.new("PointLight")
     light.Brightness = 35
     light.Range = 80
-    light.Color = ACCENT.neon
+    light.Color = THEME.accent.neon
     light.Parent = flash
     
     notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетает в космос!", 3)
@@ -1287,35 +1286,32 @@ function startFarming()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════
---  КНОПКА МЕНЮ (СКРЫТИЕ ВМЕСТЕ С ФРЕЙМОМ)
--- ═══════════════════════════════════════════════════════════
-
-local menuButton = Instance.new("TextButton")
-menuButton.Size = UDim2.new(0, 80, 0, 80)
-menuButton.Position = UDim2.new(0, 25, 1, -105)
-menuButton.BackgroundColor3 = ACCENT.base
-menuButton.Text = "X"
-menuButton.TextColor3 = COL.white
-menuButton.TextSize = 44
-menuButton.Font = Enum.Font.GothamBlack
-menuButton.ZIndex = 10
-menuButton.Parent = gui
-corner(menuButton, 40)
-stroke(menuButton, ACCENT.neon, 3, 0.4)
-
-local menuGrad = Instance.new("UIGradient", menuButton)
-menuGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, ACCENT.neon),
-    ColorSequenceKeypoint.new(1, ACCENT.dark),
+-- Кнопка меню
+local menuButton = UI.createButton(gui, {
+    bg = THEME.accent.base,
+    text = "X",
+    textColor = THEME.colors.white,
+    font = Enum.Font.GothamBlack,
+    textSize = 44,
+    size = UDim2.new(0, 80, 0, 80),
+    position = UDim2.new(0, 25, 1, -105),
+    corner = 40,
+    stroke = {color = THEME.accent.neon, thickness = 3, transparency = 0.4},
+    gradient = {
+        colors = {
+            ColorSequenceKeypoint.new(0, THEME.accent.neon),
+            ColorSequenceKeypoint.new(1, THEME.accent.dark),
+        },
+        rotation = 45
+    },
+    zIndex = 10
 })
-menuGrad.Rotation = 45
 
 task.spawn(function()
     while menuButton.Parent do
-        animate(menuButton, {Size = UDim2.new(0, 85, 0, 85)}, 1.2, Enum.EasingStyle.Sine)
+        UI.animate(menuButton, {Size = UDim2.new(0, 85, 0, 85)}, 1.2, Enum.EasingStyle.Sine)
         task.wait(1.2)
-        animate(menuButton, {Size = UDim2.new(0, 80, 0, 80)}, 1.2, Enum.EasingStyle.Sine)
+        UI.animate(menuButton, {Size = UDim2.new(0, 80, 0, 80)}, 1.2, Enum.EasingStyle.Sine)
         task.wait(1.2)
     end
 end)
@@ -1343,11 +1339,10 @@ do
     end)
 end
 
--- 🔥 ИСПРАВЛЕНИЕ: скрываем ВСЁ меню вместе с фоном
 menuButton.MouseButton1Click:Connect(function()
     local isVisible = frame.Visible
     frame.Visible = not isVisible
-    bgFrame.Visible = not isVisible  -- Скрываем частицы тоже!
+    bgFrame.Visible = not isVisible
 end)
 
 function updateESP()
@@ -1409,6 +1404,6 @@ updateRoleUI()
 updateBagUI()
 switchTab("Auto Farm")
 
-notify("XDarkHUB", "✅ v7.0 загружен!", 3)
-notify("XDarkHUB", "🎨 Улучшенные частицы", 3)
+notify("XDarkHUB", "✅ v8.0 OPTIMIZED загружен!", 3)
+notify("XDarkHUB", "🎨 Оптимизированный UI", 3)
 notify("XDarkHUB", "🚀 Классический флинг!", 4)
