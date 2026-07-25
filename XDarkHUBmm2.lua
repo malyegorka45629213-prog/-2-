@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v17 · BODY FLING                          ║
--- ║   ПЕРСОНАЖ РАСКРУЧИВАЕТСЯ И ВЫКИДЫВАЕТ МАРДЕРА ТЕЛОМ                       ║
+-- ║                         XDarkHUB v18 · HYPER FLING                          ║
+-- ║   ОЧЕНЬ БЫСТРАЯ РАСКРУТКА + МОЩНЫЙ ВЫКИД МАРДЕРА                            ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -30,9 +30,7 @@ local espEnabled = false
 local espHighlights = {}
 local MAX_BAG = 40
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ЗВУКИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗВУКИ
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -49,9 +47,7 @@ local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  УВЕДОМЛЕНИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- УВЕДОМЛЕНИЯ
 local function notify(title, text, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -60,9 +56,7 @@ local function notify(title, text, duration)
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  РОЛИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- РОЛИ
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -82,9 +76,7 @@ local function getPlayerRole(p)
     return "Innocent"
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  УМНАЯ СИСТЕМА МОНЕТ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- УМНАЯ СИСТЕМА МОНЕТ
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
@@ -106,8 +98,7 @@ local function getPlayerCoins(p)
 end
 
 local function getCollectedCoins()
-    local currentCoins = getPlayerCoins(player)
-    return currentCoins - initialCoins
+    return getPlayerCoins(player) - initialCoins
 end
 
 local function checkRole()
@@ -116,9 +107,7 @@ local function checkRole()
     isSheriff = (r == "Sheriff")
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ЦВЕТА
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЦВЕТА
 local C = {
     bg = Color3.fromRGB(8, 8, 12),
     panel = Color3.fromRGB(12, 12, 18),
@@ -139,9 +128,7 @@ local A = {
     soft = Color3.fromRGB(190, 45, 70),
 }
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI HELPERS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- UI HELPERS
 local function crn(o, r)
     local c = Instance.new("UICorner", o)
     c.CornerRadius = UDim.new(0, r or 8)
@@ -164,9 +151,7 @@ local function ani(o, p, t, s)
     TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ОЧИСТКА + GUI
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ОЧИСТКА + GUI
 do
     local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
     if old then old:Destroy() end
@@ -182,9 +167,7 @@ killSound.Parent = gui
 deathSound.Parent = gui
 clickSnd.Parent = gui
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФОН С ЧАСТИЦАМИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФОН С ЧАСТИЦАМИ
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C.bg
@@ -233,9 +216,7 @@ for i = 1, 28 do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ГЛАВНЫЙ ФРЕЙМ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ГЛАВНЫЙ ФРЕЙМ
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 640, 0, 540)
 frame.Position = UDim2.new(0.5, -320, 0.5, -270)
@@ -264,9 +245,7 @@ ani(frame, {
     Position = UDim2.new(0.5, -320, 0.5, -270)
 }, 0.6, Enum.EasingStyle.Back)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ЗАГОЛОВОК
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗАГОЛОВОК
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 54)
 tBar.BackgroundColor3 = C.panel
@@ -328,7 +307,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v17]"
+vLbl.Text = "[v18]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -354,9 +333,7 @@ do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕЙНЕР
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КОНТЕЙНЕР
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -56)
 ctr.Position = UDim2.new(0, 0, 0, 56)
@@ -387,9 +364,7 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ВКЛАДКИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ВКЛАДКИ
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -533,9 +508,7 @@ for n, t in pairs(tabs) do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI КОМПОНЕНТЫ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- UI КОМПОНЕНТЫ
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 24)
@@ -710,9 +683,7 @@ local function togC(par, ord, label, onTog)
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕНТ ВКЛАДОК
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КОНТЕНТ ВКЛАДОК
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
 togC(espC, 2, "ESP Roles", function(s)
@@ -971,9 +942,7 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     lbl.Parent = cd
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФУНКЦИИ UI
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФУНКЦИИ UI
 function updateRoleUI()
     checkRole()
     if isMurderer then
@@ -1007,9 +976,7 @@ function stopFarming()
     updateBagUI()
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  🔪 УБИЙЦА УБИВАЕТ ВСЕХ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- 🔪 УБИЙЦА УБИВАЕТ ВСЕХ
 function cinematicMurdererKill()
     notify("XDarkHUB", "Kill All", 3)
     killSound:Play()
@@ -1115,10 +1082,10 @@ function cinematicMurdererKill()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🚀 BODY FLING - ПЕРСОНАЖ РАСКРУЧИВАЕТСЯ И ВЫКИДЫВАЕТ МАРДЕРА
+--  🚀 HYPER FLING - ОЧЕНЬ БЫСТРАЯ РАСКРУТКА + ВЫКИД МАРДЕРА
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "Body Fling Start", 3)
+    notify("XDarkHUB", "HYPER FLING!", 3)
     deathSound:Play()
     
     -- Поиск мардера
@@ -1156,24 +1123,23 @@ function throwMurdererToSpace()
     
     character = player.Character
     rootPart = character:FindFirstChild("HumanoidRootPart")
-    
     if not rootPart then return end
     
     local startPos = rootPart.Position
-    local radius = 4
-    local totalCycles = 15  -- Количество циклов раскрутки
+    local radius = 3
+    local totalCycles = 25  -- 🔥 25 циклов (было 15)
+    local spinsPerCycle = 60  -- 🔥 60 оборотов за цикл (было 20)
     
-    -- 🔥 ЦИКЛ РАСКРУТКИ И ВЫКИДЫВАНИЯ
+    -- 🔥 ЦИКЛ ОЧЕНЬ БЫСТРОЙ РАСКРУТКИ
     for cycle = 1, totalCycles do
         if not mh.Parent or not rootPart.Parent then break end
         
-        -- 🔥 БЫСТРАЯ РАСКРУТКА ВОКРУГ МАРДЕРА
-        local spins = 20  -- Обороты за цикл
-        for i = 1, spins do
+        -- 🔥 СУПЕР БЫСТРАЯ РАСКРУТКА (60 оборотов за цикл)
+        for i = 1, spinsPerCycle do
             if not mh.Parent or not rootPart.Parent then break end
             
-            local angle = math.rad(i * 36)
-            local height = i * 0.5
+            local angle = math.rad(i * 18)  -- 🔥 18 градусов (было 36) = 2x быстрее
+            local height = math.sin(i * 0.3) * 2  -- 🔥 Волнообразная высота
             
             local offset = Vector3.new(
                 math.cos(angle) * radius,
@@ -1182,87 +1148,93 @@ function throwMurdererToSpace()
             )
             
             rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
-            task.wait(0.01)
+            task.wait(0.001)  -- 🔥 Минимальная задержка (было 0.01) = 10x быстрее
         end
         
-        -- 🔥 ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ + ВЫКИДЫВАНИЕ
-        rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -1)
+        -- 🔥 МОЩНЫЙ ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ
+        rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -0.8)
         
-        -- 🔥 ДАЁМ МАРДЕРУ ОГРОМНЫЙ ИМПУЛЬС ВВЕРХ
+        -- 🔥 ОГРОМНЫЙ ИМПУЛЬС МАРДЕРУ
         local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 3000, 0)
+        bv.Velocity = Vector3.new(0, 8000, 0)  -- 🔥 8000 (было 3000)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bv.P = math.huge
         bv.Parent = mh
-        Debris:AddItem(bv, 2)
+        Debris:AddItem(bv, 0.5)
         
-        -- 🔥 ВРАЩЕНИЕ МАРДЕРА
+        -- 🔥 БЫСТРОЕ ВРАЩЕНИЕ МАРДЕРА
         local ba = Instance.new("BodyAngularVelocity")
-        ba.AngularVelocity = Vector3.new(500, 500, 500)
+        ba.AngularVelocity = Vector3.new(2000, 2000, 2000)  -- 🔥 2000 (было 500)
         ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
         ba.P = math.huge
         ba.Parent = mh
-        Debris:AddItem(ba, 2)
+        Debris:AddItem(ba, 0.5)
         
-        -- 🔥 КРАСНЫЙ ЭФФЕКТ
+        -- 🔥 КРАСНЫЙ ЭФФЕКТ ПРИ КАЖДОМ УДАРЕ
         local hit = Instance.new("Part")
-        hit.Size = Vector3.new(3, 3, 3)
+        hit.Size = Vector3.new(4, 4, 4)
         hit.Position = mh.Position
         hit.Anchored = true
         hit.CanCollide = false
         hit.Material = Enum.Material.Neon
         hit.Color = A.neo
-        hit.Transparency = 0.2
+        hit.Transparency = 0.1
         hit.Parent = workspace
-        Debris:AddItem(hit, 0.5)
+        Debris:AddItem(hit, 0.3)
         
-        task.wait(0.1)
+        local lt = Instance.new("PointLight")
+        lt.Brightness = 20
+        lt.Range = 30
+        lt.Color = A.neo
+        lt.Parent = hit
+        
+        task.wait(0.05)
         
         -- 🔥 ПРОВЕРКА: мардер улетел достаточно далеко?
         local distance = (mh.Position - startPos).Magnitude
-        if distance > 100 then
+        if distance > 150 then
             notify("XDarkHUB", "Flinged!", 2)
             break
         end
     end
     
-    -- 🔥 ФИНАЛЬНЫЙ МОЩНЫЙ ВЫКИД
+    -- 🔥 ФИНАЛЬНЫЙ СУПЕР МОЩНЫЙ ВЫКИД
     local finalBv = Instance.new("BodyVelocity")
-    finalBv.Velocity = Vector3.new(0, 50000, 0)
+    finalBv.Velocity = Vector3.new(0, 100000, 0)  -- 🔥 100000 (было 50000)
     finalBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     finalBv.P = math.huge
     finalBv.Parent = mh
-    Debris:AddItem(finalBv, 15)
+    Debris:AddItem(finalBv, 20)
     
     local finalBa = Instance.new("BodyAngularVelocity")
-    finalBa.AngularVelocity = Vector3.new(3000, 3000, 3000)
+    finalBa.AngularVelocity = Vector3.new(5000, 5000, 5000)  -- 🔥 5000 (было 3000)
     finalBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     finalBa.P = math.huge
     finalBa.Parent = mh
-    Debris:AddItem(finalBa, 15)
+    Debris:AddItem(finalBa, 20)
     
     -- 🔥 БОЛЬШАЯ КРАСНАЯ ВСПЫШКА
     local fl = Instance.new("Part")
-    fl.Size = Vector3.new(50, 50, 50)
+    fl.Size = Vector3.new(60, 60, 60)
     fl.Position = mh.Position
     fl.Anchored = true
     fl.CanCollide = false
     fl.Material = Enum.Material.Neon
     fl.Color = A.neo
-    fl.Transparency = 0.2
+    fl.Transparency = 0.15
     fl.Parent = workspace
-    Debris:AddItem(fl, 4)
+    Debris:AddItem(fl, 5)
     
     local lt = Instance.new("PointLight")
-    lt.Brightness = 50
-    lt.Range = 120
+    lt.Brightness = 60
+    lt.Range = 150
     lt.Color = A.neo
     lt.Parent = fl
     
-    -- 🔥 КРАСНЫЙ СЛЕД ЗА МАРДЕРОМ
+    -- 🔥 ДЛИННЫЙ КРАСНЫЙ СЛЕД ЗА МАРДЕРОМ
     task.spawn(function()
-        for i = 1, 150 do
-            task.wait(0.03)
+        for i = 1, 200 do
+            task.wait(0.02)
             if not mh.Parent then break end
             local trail = Instance.new("Part")
             trail.Size = Vector3.new(3, 3, 3)
@@ -1271,9 +1243,9 @@ function throwMurdererToSpace()
             trail.CanCollide = false
             trail.Material = Enum.Material.Neon
             trail.Color = A.neo
-            trail.Transparency = 0.2
+            trail.Transparency = 0.15
             trail.Parent = workspace
-            Debris:AddItem(trail, 3)
+            Debris:AddItem(trail, 4)
         end
     end)
     
@@ -1285,9 +1257,7 @@ function throwMurdererToSpace()
     counterV.Text = "0"
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФАРМ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФАРМ
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     
@@ -1422,9 +1392,7 @@ function startFarming()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КНОПКА МЕНЮ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КНОПКА МЕНЮ
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 60, 0, 60)
 mBtn.Position = UDim2.new(0, 20, 1, -80)
@@ -1479,9 +1447,7 @@ mBtn.MouseButton1Click:Connect(function()
     bgF.Visible = not v
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ESP
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ESP
 function updateESP()
     for _, h in pairs(espHighlights) do
         if h then h:Destroy() end
@@ -1519,9 +1485,7 @@ task.spawn(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  СИСТЕМНЫЕ СОБЫТИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- СИСТЕМНЫЕ СОБЫТИЯ
 player.CharacterAdded:Connect(function(ch)
     character = ch
     rootPart = ch:WaitForChild("HumanoidRootPart")
@@ -1548,12 +1512,10 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ИНИЦИАЛИЗАЦИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ИНИЦИАЛИЗАЦИЯ
 updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v17 Loaded", 3)
-notify("XDarkHUB", "Body Fling System", 3)
+notify("XDarkHUB", "v18 Loaded", 3)
+notify("XDarkHUB", "HYPER FLING System", 3)
