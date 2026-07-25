@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  MM2 Coin Autofarm · [egor745top6] · ПРАВИЛЬНЫЙ ФЛИНГ
+--  XDarkHUB · MM2 Coin Autofarm · ЧЁРНАЯ ТЕМА
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -71,20 +71,21 @@ local function checkRole()
     isSheriff = (role == "Sheriff")
 end
 
+-- 🔥 ЧЁРНАЯ ТЕМА XDarkHUB
 local COL = {
-    bg = Color3.fromRGB(15, 10, 25),
-    card = Color3.fromRGB(28, 18, 45),
-    cardHov = Color3.fromRGB(38, 25, 60),
-    off = Color3.fromRGB(40, 30, 55),
-    border = Color3.fromRGB(60, 40, 80),
-    text = Color3.fromRGB(230, 220, 245),
-    muted = Color3.fromRGB(140, 120, 170),
-    white = Color3.fromRGB(255, 255, 255),
+    bg = Color3.fromRGB(8, 8, 12),          -- Почти чёрный фон
+    card = Color3.fromRGB(18, 18, 24),       -- Тёмно-серая карточка
+    cardHov = Color3.fromRGB(28, 28, 36),    -- Серый при наведении
+    off = Color3.fromRGB(35, 35, 45),        -- Выключенный
+    border = Color3.fromRGB(45, 45, 55),     -- Граница
+    text = Color3.fromRGB(240, 240, 245),    -- Белый текст
+    muted = Color3.fromRGB(120, 120, 135),   -- Приглушённый
+    white = Color3.fromRGB(255, 255, 255),   -- Белый
 }
 local ACCENT = {
-    base = Color3.fromRGB(155, 60, 255),
-    dim = Color3.fromRGB(60, 20, 100),
-    light = Color3.fromRGB(200, 140, 255),
+    base = Color3.fromRGB(180, 30, 50),      -- Тёмно-красный (XDarkHUB стиль)
+    dim = Color3.fromRGB(80, 15, 25),        -- Тёмный красный
+    light = Color3.fromRGB(255, 80, 100),    -- Светло-красный
 }
 
 local function corner(obj, r)
@@ -122,47 +123,92 @@ collectSound.Parent = gui
 killSound.Parent = gui
 deathSound.Parent = gui
 
+-- 🔥 ГЛАВНЫЙ ФРЕЙМ
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 340, 0, 520)
-frame.Position = UDim2.new(0.5, -170, 0.5, -260)
+frame.Size = UDim2.new(0, 360, 0, 540)
+frame.Position = UDim2.new(0.5, -180, 0.5, -270)
 frame.BackgroundColor3 = COL.bg
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
 frame.Parent = gui
-corner(frame, 14)
-stroke(frame, COL.border, 1.5)
+corner(frame, 16)
+stroke(frame, ACCENT.base, 2)
 
+-- 🔥 ВЕРХНЯЯ ПАНЕЛЬ С НАЗВАНИЕМ XDarkHUB
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 42)
-titleBar.BackgroundTransparency = 1
+titleBar.Size = UDim2.new(1, 0, 0, 50)
+titleBar.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+titleBar.BorderSizePixel = 0
 titleBar.Active = true
 titleBar.ZIndex = 2
 titleBar.Parent = frame
+corner(titleBar, 16)
 
-local dotColors = {Color3.fromRGB(255, 95, 86), Color3.fromRGB(255, 189, 46), Color3.fromRGB(39, 201, 63)}
-for i = 1, 3 do
-    local d = Instance.new("Frame")
-    d.Size = UDim2.new(0, 12, 0, 12)
-    d.Position = UDim2.new(0, 14 + (i - 1) * 20, 0, 15)
-    d.BackgroundColor3 = dotColors[i]
-    d.BorderSizePixel = 0
-    d.ZIndex = 3
-    d.Parent = titleBar
-    corner(d, 6)
-end
+-- Градиент на верхней панели
+local titleGrad = Instance.new("UIGradient", titleBar)
+titleGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 28)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 12)),
+})
+titleGrad.Rotation = 0
 
+-- 🔥 НАЗВАНИЕ XDarkHUB (КРАСИВЫЙ ШРИФТ)
 local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(1, -40, 1, 0)
-titleLbl.Position = UDim2.new(0, 40, 0, 0)
+titleLbl.Size = UDim2.new(1, -60, 1, 0)
+titleLbl.Position = UDim2.new(0, 50, 0, 0)
 titleLbl.BackgroundTransparency = 1
-titleLbl.Text = "[egor745top6] Coin Farm"
-titleLbl.TextColor3 = COL.text
-titleLbl.Font = Enum.Font.GothamBold
-titleLbl.TextSize = 14
+titleLbl.Text = "XDarkHUB"
+titleLbl.Font = Enum.Font.GothamBlack  -- Самый жирный и красивый
+titleLbl.TextSize = 22
 titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-titleLbl.ZIndex = 2
+titleLbl.ZIndex = 3
 titleLbl.Parent = titleBar
 
+-- Градиент на тексте
+local textGrad = Instance.new("UIGradient", titleLbl)
+textGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 100)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 80, 100)),
+})
+textGrad.Rotation = 0
+
+-- Обводка текста
+local titleStroke = Instance.new("UIStroke", titleLbl)
+titleStroke.Color = ACCENT.base
+titleStroke.Thickness = 1
+titleStroke.Transparency = 0.3
+
+-- 🔥 ЛОГО (красный квадрат с X)
+local logo = Instance.new("Frame")
+logo.Size = UDim2.new(0, 32, 0, 32)
+logo.Position = UDim2.new(0, 12, 0.5, -16)
+logo.BackgroundColor3 = ACCENT.base
+logo.BorderSizePixel = 0
+logo.ZIndex = 3
+logo.Parent = titleBar
+corner(logo, 8)
+
+local logoX = Instance.new("TextLabel")
+logoX.Size = UDim2.new(1, 0, 1, 0)
+logoX.BackgroundTransparency = 1
+logoX.Text = "X"
+logoX.Font = Enum.Font.GothamBlack
+logoX.TextSize = 22
+logoX.TextColor3 = COL.white
+logoX.ZIndex = 4
+logoX.Parent = logo
+
+-- Линия под заголовком
+local sep = Instance.new("Frame")
+sep.Size = UDim2.new(1, -20, 0, 1)
+sep.Position = UDim2.new(0, 10, 0, 50)
+sep.BackgroundColor3 = ACCENT.base
+sep.BorderSizePixel = 0
+sep.ZIndex = 2
+sep.Parent = frame
+
+-- Перетаскивание
 do
     local dragging, dragStart, startPos = false, nil, nil
     titleBar.InputBegan:Connect(function(i)
@@ -182,9 +228,10 @@ do
     end)
 end
 
+-- Scrolling Frame
 local body = Instance.new("ScrollingFrame")
-body.Size = UDim2.new(1, 0, 1, -42)
-body.Position = UDim2.new(0, 0, 0, 42)
+body.Size = UDim2.new(1, 0, 1, -55)
+body.Position = UDim2.new(0, 0, 0, 55)
 body.BackgroundTransparency = 1
 body.BorderSizePixel = 0
 body.ScrollBarThickness = 4
@@ -199,16 +246,17 @@ do
     local p = Instance.new("UIPadding", body)
     p.PaddingLeft = UDim.new(0, 14)
     p.PaddingRight = UDim.new(0, 14)
-    p.PaddingTop = UDim.new(0, 8)
+    p.PaddingTop = UDim.new(0, 10)
     p.PaddingBottom = UDim.new(0, 14)
     local l = Instance.new("UIListLayout", body)
     l.SortOrder = Enum.SortOrder.LayoutOrder
     l.Padding = UDim.new(0, 8)
 end
 
+-- 🔥 КНОПКА С ЧЁРНОЙ ТЕМОЙ
 local function toggleCard(order, label, onToggle)
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 44)
+    card.Size = UDim2.new(1, 0, 0, 46)
     card.BackgroundColor3 = COL.card
     card.BorderSizePixel = 0
     card.LayoutOrder = order
@@ -219,11 +267,11 @@ local function toggleCard(order, label, onToggle)
 
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(1, -90, 1, 0)
-    t.Position = UDim2.new(0, 14, 0, 0)
+    t.Position = UDim2.new(0, 16, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = label
     t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamSemibold
+    t.Font = Enum.Font.GothamBold
     t.TextSize = 14
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
@@ -263,7 +311,7 @@ local function toggleCard(order, label, onToggle)
             tw(card, {BackgroundColor3 = ACCENT.dim})
             tw(cs, {Color = ACCENT.base})
             tw(pill, {BackgroundColor3 = ACCENT.base})
-            tw(ps, {Color = ACCENT.base})
+            tw(ps, {Color = ACCENT.light})
             pl.Text = "ON"
             tw(pl, {TextColor3 = COL.white})
         else
@@ -326,10 +374,10 @@ end
 
 local function sectionLabel(order, text)
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 18)
+    l.Size = UDim2.new(1, 0, 0, 20)
     l.BackgroundTransparency = 1
     l.Text = text
-    l.TextColor3 = COL.muted
+    l.TextColor3 = ACCENT.light
     l.Font = Enum.Font.GothamBold
     l.TextSize = 11
     l.TextXAlignment = Enum.TextXAlignment.Left
@@ -372,7 +420,7 @@ function updateBagUI()
         bagVal.TextColor3 = Color3.fromRGB(255, 200, 0)
     else
         bagVal.Text = collected .. "/" .. MAX_BAG
-        bagVal.TextColor3 = Color3.fromRGB(100, 100, 100)
+        bagVal.TextColor3 = Color3.fromRGB(150, 150, 160)
     end
 end
 
@@ -394,11 +442,9 @@ function cinematicMurdererKill()
     if not hrp or not hum then return end
     
     local myKnife = character:FindFirstChild("Knife") or character:FindFirstChild("MurdererSword")
-    
     if not myKnife then
         myKnife = player:FindFirstChild("Backpack") and (player.Backpack:FindFirstChild("Knife") or player.Backpack:FindFirstChild("MurdererSword"))
     end
-    
     if not myKnife then
         myKnife = Instance.new("Tool")
         myKnife.Name = "Knife"
@@ -442,9 +488,7 @@ function cinematicMurdererKill()
             if targetHrp then
                 hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -1.5)
                 task.wait(0.1)
-                if myKnife and myKnife.Parent == character then
-                    myKnife:Activate()
-                end
+                if myKnife and myKnife.Parent == character then myKnife:Activate() end
                 task.wait(0.05)
                 if p.Character and p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
@@ -459,16 +503,21 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 ПРАВИЛЬНЫЙ ФЛИНГ — WeldConstraint + Velocity
+-- 🔥 ПРАВИЛЬНЫЙ ФЛИНГ С ОТЛАДКОЙ
 function throwMurdererToSpace()
-    print("🚀 === ПРАВИЛЬНЫЙ ФЛИНГ ===")
+    print("🚀 ========================================")
+    print("🚀 === ФЛИНГ МАРДЕРА В КОСМОС ===")
+    print("🚀 ========================================")
     deathSound:Play()
     
+    -- 🔥 Ищем мардера
     local murdererPlayer = nil
+    print("🔍 Ищем мардера среди игроков...")
+    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local role = getPlayerRole(p)
-            print("  Игрок:", p.Name, "→ Роль:", role)
+            print("  👤", p.Name, "→", role)
             if role == "Murderer" then
                 murdererPlayer = p
                 print("  ✅ НАЙДЕН:", p.Name)
@@ -477,8 +526,16 @@ function throwMurdererToSpace()
         end
     end
     
-    if not murdererPlayer or not murdererPlayer.Character then
-        print("❌ Мардер не найден!")
+    if not murdererPlayer then
+        print("❌ МАРДЕР НЕ НАЙДЕН!")
+        bagFull = false
+        collected = 0
+        counterVal.Text = "0"
+        return
+    end
+    
+    if not murdererPlayer.Character then
+        print("❌ У мардера нет Character!")
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -487,7 +544,7 @@ function throwMurdererToSpace()
     
     local murdererHrp = murdererPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not murdererHrp then
-        print("❌ Нет HRP у мардера!")
+        print("❌ У мардера нет HumanoidRootPart!")
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -496,78 +553,86 @@ function throwMurdererToSpace()
     
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
+    print("✅ Мардер найден:", murdererPlayer.Name)
+    print("📍 Позиция мардера:", murdererHrp.Position)
+    
     -- 🔥 Отключаем управление мардеру
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
         murdererHum.JumpPower = 0
         murdererHum.AutoRotate = false
+        print("✅ Управление отключено")
     end
     
     -- 🔥 Отключаем коллизии мардера
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
+    print("✅ Коллизии отключены")
     
-    -- 🔥 Убираем все существующие BodyVelocity/Angular у мардера
+    -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") then
+        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    print("🌀 Создаём флинг-часть с WeldConstraint...")
-    
-    -- 🔥 Создаём флинг-часть (НЕВИДИМАЯ)
+    -- 🔥 СОЗДАЁМ ФЛИНГ-ЧАСТЬ
     local flingPart = Instance.new("Part")
-    flingPart.Name = "FlingPart"
-    flingPart.Size = Vector3.new(2, 2, 2)
-    flingPart.Position = murdererHrp.Position + Vector3.new(0, 2, 0)
+    flingPart.Name = "XDarkHUB_Fling"
+    flingPart.Size = Vector3.new(4, 4, 4)
+    flingPart.Position = murdererHrp.Position + Vector3.new(0, 3, 0)
     flingPart.Anchored = false
     flingPart.CanCollide = false
-    flingPart.Transparency = 1 -- Полностью невидимая!
+    flingPart.Transparency = 1
     flingPart.Massless = true
+    flingPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
     flingPart.Parent = workspace
+    print("✅ Флинг-часть создана")
     
-    -- 🔥 WeldConstraint (НЕ Weld!) - позволяет двигаться
+    -- 🔥 WeldConstraint (НЕ Weld!)
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = flingPart
     weld.Part1 = murdererHrp
     weld.Parent = flingPart
+    print("✅ WeldConstraint создан")
     
-    -- 🔥 BodyVelocity на флинг-части (ОГРОМНАЯ скорость вверх)
+    -- 🔥 ОГРОМНЫЙ BodyVelocity на флинг-части
     local flingVel = Instance.new("BodyVelocity")
-    flingVel.Velocity = Vector3.new(0, 10000, 0) -- 10000 вверх!
+    flingVel.Velocity = Vector3.new(0, 15000, 0)
     flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     flingVel.P = math.huge
     flingVel.Parent = flingPart
+    print("✅ BodyVelocity 15000 добавлен")
     
-    -- 🔥 BodyAngularVelocity на флинг-части (быстрое вращение)
+    -- 🔥 Быстрое вращение
     local flingAng = Instance.new("BodyAngularVelocity")
-    flingAng.AngularVelocity = Vector3.new(500, 500, 500) -- Очень быстрое вращение
+    flingAng.AngularVelocity = Vector3.new(800, 800, 800)
     flingAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     flingAng.P = math.huge
     flingAng.Parent = flingPart
+    print("✅ BodyAngularVelocity 800 добавлен")
     
-    -- 🔥 Фиолетовая вспышка
+    -- 🔥 Красный эффект (XDarkHUB стиль)
     local flash = Instance.new("Part")
-    flash.Size = Vector3.new(20, 20, 20)
+    flash.Size = Vector3.new(25, 25, 25)
     flash.Position = murdererHrp.Position
     flash.Anchored = true
     flash.CanCollide = false
     flash.Material = Enum.Material.Neon
-    flash.Color = Color3.fromRGB(155, 60, 255)
-    flash.Transparency = 0.5
+    flash.Color = ACCENT.base
+    flash.Transparency = 0.4
     flash.Parent = workspace
     Debris:AddItem(flash, 3)
     
     local light = Instance.new("PointLight")
-    light.Brightness = 20
-    light.Range = 50
-    light.Color = Color3.fromRGB(155, 60, 255)
+    light.Brightness = 25
+    light.Range = 60
+    light.Color = ACCENT.base
     light.Parent = flash
     
-    -- 🔥 Фиолетовый след
+    -- 🔥 Красный след
     task.spawn(function()
         for i = 1, 50 do
             task.wait(0.05)
@@ -578,7 +643,7 @@ function throwMurdererToSpace()
                 trail.Anchored = true
                 trail.CanCollide = false
                 trail.Material = Enum.Material.Neon
-                trail.Color = Color3.fromRGB(155, 60, 255)
+                trail.Color = ACCENT.base
                 trail.Transparency = 0.3
                 trail.Parent = workspace
                 Debris:AddItem(trail, 1.5)
@@ -591,6 +656,7 @@ function throwMurdererToSpace()
     Debris:AddItem(flingAng, 10)
     
     print("🚀", murdererPlayer.Name, "улетает в космос!")
+    print("🚀 ========================================")
     
     bagFull = false
     collected = 0
@@ -754,8 +820,9 @@ local espToggle = toggleCard(3, "ESP Roles", function(state)
     updateESP()
 end)
 
+-- 🔥 КНОПКА СКОРОСТИ (ЧЁРНАЯ ТЕМА)
 local speedCard = Instance.new("Frame")
-speedCard.Size = UDim2.new(1, 0, 0, 44)
+speedCard.Size = UDim2.new(1, 0, 0, 46)
 speedCard.BackgroundColor3 = COL.card
 speedCard.BorderSizePixel = 0
 speedCard.LayoutOrder = 4
@@ -766,11 +833,11 @@ stroke(speedCard, COL.border, 1)
 do
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(1, -90, 1, 0)
-    t.Position = UDim2.new(0, 14, 0, 0)
+    t.Position = UDim2.new(0, 16, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = "Farm Speed"
     t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamSemibold
+    t.Font = Enum.Font.GothamBold
     t.TextSize = 14
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
@@ -809,9 +876,10 @@ speedBtn.MouseButton1Click:Connect(function()
     speedPillLbl.Text = tostring(flySpeed)
 end)
 
+-- 🔥 КНОПКА ЛИМИТА
 do
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 44)
+    card.Size = UDim2.new(1, 0, 0, 46)
     card.BackgroundColor3 = COL.card
     card.BorderSizePixel = 0
     card.LayoutOrder = 13
@@ -822,11 +890,11 @@ do
 
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(0.6, 0, 1, 0)
-    t.Position = UDim2.new(0, 14, 0, 0)
+    t.Position = UDim2.new(0, 16, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = "Bag Limit:"
     t.TextColor3 = COL.text
-    t.Font = Enum.Font.GothamSemibold
+    t.Font = Enum.Font.GothamBold
     t.TextSize = 14
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
@@ -867,12 +935,13 @@ do
     end)
 end
 
+-- 🔥 КНОПКА СБРОСА
 do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 38)
+    btn.Size = UDim2.new(1, 0, 0, 40)
     btn.BackgroundColor3 = COL.card
     btn.Text = "Reset & Resume"
-    btn.TextColor3 = COL.text
+    btn.TextColor3 = ACCENT.light
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 13
     btn.AutoButtonColor = false
@@ -880,7 +949,7 @@ do
     btn.ZIndex = 2
     btn.Parent = body
     corner(btn, 10)
-    stroke(btn, COL.border, 1)
+    stroke(btn, ACCENT.base, 1)
     btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3 = COL.cardHov}) end)
     btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3 = COL.card}) end)
     btn.MouseButton1Click:Connect(function()
@@ -896,14 +965,15 @@ do
     end)
 end
 
+-- 🔥 КНОПКА 💎 (КРАСНАЯ ВМЕСТО ФИОЛЕТОВОЙ)
 local menuButton = Instance.new("TextButton")
 menuButton.Size = UDim2.new(0, 65, 0, 65)
 menuButton.Position = UDim2.new(0, 15, 1, -85)
 menuButton.BackgroundColor3 = ACCENT.base
-menuButton.Text = "💎"
+menuButton.Text = "X"
 menuButton.TextColor3 = COL.white
-menuButton.TextSize = 28
-menuButton.Font = Enum.Font.GothamBold
+menuButton.TextSize = 32
+menuButton.Font = Enum.Font.GothamBlack
 menuButton.ZIndex = 10
 menuButton.Parent = gui
 corner(menuButton, 32)
@@ -973,5 +1043,9 @@ end)
 updateRoleUI()
 updateBagUI()
 
-print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("🌀 ПРАВИЛЬНЫЙ ФЛИНГ: WeldConstraint + BodyVelocity 10000!")
+print("========================================")
+print("✅ XDarkHUB загружен!")
+print("🎨 Чёрная тема с красным акцентом")
+print("🚀 Флинг мардера через WeldConstraint")
+print("📍 Открой консоль (F9) для отладки")
+print("========================================")
