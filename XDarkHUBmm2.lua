@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v15 · PREMIUM                             ║
--- ║   УМНАЯ СИСТЕМА МОНЕТ + РАБОЧИЙ ФЛИНГ ДЛЯ ВСЕХ                             ║
+-- ║                         XDarkHUB v17 · BODY FLING                          ║
+-- ║   ПЕРСОНАЖ РАСКРУЧИВАЕТСЯ И ВЫКИДЫВАЕТ МАРДЕРА ТЕЛОМ                       ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -19,7 +19,7 @@ local visitedPositions = {}
 local isActive = false
 local flySpeed = 16
 local collected = 0
-local initialCoins = 0  -- 🔥 Начальное количество монет
+local initialCoins = 0
 local startTime = 0
 local antiAFK = false
 local isMurderer = false
@@ -83,12 +83,11 @@ local function getPlayerRole(p)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🔥 УМНАЯ СИСТЕМА МОНЕТ
+--  УМНАЯ СИСТЕМА МОНЕТ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
-        -- Ищем значение с монетами по имени
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 local name = v.Name:lower()
@@ -97,7 +96,6 @@ local function getPlayerCoins(p)
                 end
             end
         end
-        -- Если не нашли по имени, берём первое числовое значение
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 return v.Value
@@ -107,7 +105,6 @@ local function getPlayerCoins(p)
     return 0
 end
 
--- 🔥 Получить РАЗНИЦУ монет (сколько собрали)
 local function getCollectedCoins()
     local currentCoins = getPlayerCoins(player)
     return currentCoins - initialCoins
@@ -331,7 +328,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v15]"
+vLbl.Text = "[v17]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -1118,12 +1115,13 @@ function cinematicMurdererKill()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🚀 ФЛИНГ МАРДЕРА (РАБОЧИЙ ДЛЯ ВСЕХ)
+--  🚀 BODY FLING - ПЕРСОНАЖ РАСКРУЧИВАЕТСЯ И ВЫКИДЫВАЕТ МАРДЕРА
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "Fling Start", 3)
+    notify("XDarkHUB", "Body Fling Start", 3)
     deathSound:Play()
     
+    -- Поиск мардера
     local mp = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and getPlayerRole(p) == "Murderer" then
@@ -1142,6 +1140,7 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", mp.Name, 2)
     
+    -- Отключение управления мардеру
     local mhu = mp.Character:FindFirstChild("Humanoid")
     if mhu then
         mhu.PlatformStand = true
@@ -1150,64 +1149,101 @@ function throwMurdererToSpace()
         mhu.AutoRotate = false
     end
     
+    -- Отключение коллизий мардера
     for _, pt in ipairs(mp.Character:GetDescendants()) do
         if pt:IsA("BasePart") then pt.CanCollide = false end
-    end
-    
-    for _, v in ipairs(mh:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
-            v:Destroy()
-        end
     end
     
     character = player.Character
     rootPart = character:FindFirstChild("HumanoidRootPart")
     
-    if rootPart then
-        local startPos = rootPart.Position
-        local radius = 5
-        local totalSpins = 60
+    if not rootPart then return end
+    
+    local startPos = rootPart.Position
+    local radius = 4
+    local totalCycles = 15  -- Количество циклов раскрутки
+    
+    -- 🔥 ЦИКЛ РАСКРУТКИ И ВЫКИДЫВАНИЯ
+    for cycle = 1, totalCycles do
+        if not mh.Parent or not rootPart.Parent then break end
         
-        task.spawn(function()
-            for i = 1, 80 do
-                if not mh.Parent then break end
-                local angle = math.rad(i * 20)
-                local trail = Instance.new("Part")
-                trail.Size = Vector3.new(1.5, 1.5, 1.5)
-                trail.Position = mh.Position + Vector3.new(
-                    math.cos(angle) * radius,
-                    math.random(-2, 2),
-                    math.sin(angle) * radius
-                )
-                trail.Anchored = true
-                trail.CanCollide = false
-                trail.Material = Enum.Material.Neon
-                trail.Color = A.neo
-                trail.Transparency = 0.2
-                trail.Parent = workspace
-                Debris:AddItem(trail, 1.5)
-                task.wait(0.02)
-            end
-        end)
-        
-        for i = 1, totalSpins do
+        -- 🔥 БЫСТРАЯ РАСКРУТКА ВОКРУГ МАРДЕРА
+        local spins = 20  -- Обороты за цикл
+        for i = 1, spins do
             if not mh.Parent or not rootPart.Parent then break end
-            local angle = math.rad(i * 24)
-            local height = i * 1.5
+            
+            local angle = math.rad(i * 36)
+            local height = i * 0.5
+            
             local offset = Vector3.new(
                 math.cos(angle) * radius,
                 height,
                 math.sin(angle) * radius
             )
+            
             rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
-            task.wait(0.02)
+            task.wait(0.01)
         end
         
-        rootPart.CFrame = CFrame.new(startPos)
+        -- 🔥 ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ + ВЫКИДЫВАНИЕ
+        rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -1)
+        
+        -- 🔥 ДАЁМ МАРДЕРУ ОГРОМНЫЙ ИМПУЛЬС ВВЕРХ
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(0, 3000, 0)
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.P = math.huge
+        bv.Parent = mh
+        Debris:AddItem(bv, 2)
+        
+        -- 🔥 ВРАЩЕНИЕ МАРДЕРА
+        local ba = Instance.new("BodyAngularVelocity")
+        ba.AngularVelocity = Vector3.new(500, 500, 500)
+        ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        ba.P = math.huge
+        ba.Parent = mh
+        Debris:AddItem(ba, 2)
+        
+        -- 🔥 КРАСНЫЙ ЭФФЕКТ
+        local hit = Instance.new("Part")
+        hit.Size = Vector3.new(3, 3, 3)
+        hit.Position = mh.Position
+        hit.Anchored = true
+        hit.CanCollide = false
+        hit.Material = Enum.Material.Neon
+        hit.Color = A.neo
+        hit.Transparency = 0.2
+        hit.Parent = workspace
+        Debris:AddItem(hit, 0.5)
+        
+        task.wait(0.1)
+        
+        -- 🔥 ПРОВЕРКА: мардер улетел достаточно далеко?
+        local distance = (mh.Position - startPos).Magnitude
+        if distance > 100 then
+            notify("XDarkHUB", "Flinged!", 2)
+            break
+        end
     end
     
+    -- 🔥 ФИНАЛЬНЫЙ МОЩНЫЙ ВЫКИД
+    local finalBv = Instance.new("BodyVelocity")
+    finalBv.Velocity = Vector3.new(0, 50000, 0)
+    finalBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    finalBv.P = math.huge
+    finalBv.Parent = mh
+    Debris:AddItem(finalBv, 15)
+    
+    local finalBa = Instance.new("BodyAngularVelocity")
+    finalBa.AngularVelocity = Vector3.new(3000, 3000, 3000)
+    finalBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    finalBa.P = math.huge
+    finalBa.Parent = mh
+    Debris:AddItem(finalBa, 15)
+    
+    -- 🔥 БОЛЬШАЯ КРАСНАЯ ВСПЫШКА
     local fl = Instance.new("Part")
-    fl.Size = Vector3.new(40, 40, 40)
+    fl.Size = Vector3.new(50, 50, 50)
     fl.Position = mh.Position
     fl.Anchored = true
     fl.CanCollide = false
@@ -1218,50 +1254,15 @@ function throwMurdererToSpace()
     Debris:AddItem(fl, 4)
     
     local lt = Instance.new("PointLight")
-    lt.Brightness = 40
-    lt.Range = 100
+    lt.Brightness = 50
+    lt.Range = 120
     lt.Color = A.neo
     lt.Parent = fl
     
-    -- 🔥 СОЗДАЁМ FLING-ЧАСТЬ С ОГРОМНОЙ МАССОЙ
-    local flingPart = Instance.new("Part")
-    flingPart.Name = "FlingPart"
-    flingPart.Size = Vector3.new(15, 15, 15)
-    flingPart.Position = mh.Position
-    flingPart.Anchored = false
-    flingPart.CanCollide = false
-    flingPart.Transparency = 1
-    flingPart.Massless = false
-    flingPart.CustomPhysicalProperties = PhysicalProperties.new(1000, 0.3, 0.5, 100, 10000)
-    flingPart.Parent = workspace
-    
-    -- WeldConstraint к мардеру
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = flingPart
-    weld.Part1 = mh
-    weld.Parent = flingPart
-    
-    -- BodyVelocity на часть (ОГРОМНАЯ СИЛА)
-    local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(0, 50000, 0)
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.P = math.huge
-    bv.Parent = flingPart
-    
-    -- BodyAngularVelocity (быстрое вращение)
-    local ba = Instance.new("BodyAngularVelocity")
-    ba.AngularVelocity = Vector3.new(3000, 3000, 3000)
-    ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    ba.P = math.huge
-    ba.Parent = flingPart
-    
-    Debris:AddItem(flingPart, 20)
-    Debris:AddItem(bv, 20)
-    Debris:AddItem(ba, 20)
-    
+    -- 🔥 КРАСНЫЙ СЛЕД ЗА МАРДЕРОМ
     task.spawn(function()
-        for i = 1, 100 do
-            task.wait(0.05)
+        for i = 1, 150 do
+            task.wait(0.03)
             if not mh.Parent then break end
             local trail = Instance.new("Part")
             trail.Size = Vector3.new(3, 3, 3)
@@ -1276,7 +1277,10 @@ function throwMurdererToSpace()
         end
     end)
     
-    notify("XDarkHUB", mp.Name .. " Flung", 3)
+    -- 🔥 ВОЗВРАТ ПЕРСОНАЖА НА МЕСТО
+    rootPart.CFrame = CFrame.new(startPos)
+    
+    notify("XDarkHUB", mp.Name .. " Flung!", 3)
     initialCoins = getPlayerCoins(player)
     counterV.Text = "0"
 end
@@ -1304,7 +1308,6 @@ function flyTo(pos, spd)
 end
 
 function startFarming()
-    -- 🔥 СОХРАНЯЕМ НАЧАЛЬНОЕ КОЛИЧЕСТВО МОНЕТ
     initialCoins = getPlayerCoins(player)
     startTime = tick()
     visitedPositions = {}
@@ -1552,5 +1555,5 @@ updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v15 Loaded", 3)
-notify("XDarkHUB", "Smart Coins System", 3)
+notify("XDarkHUB", "v17 Loaded", 3)
+notify("XDarkHUB", "Body Fling System", 3)
