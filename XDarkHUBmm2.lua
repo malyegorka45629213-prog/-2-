@@ -169,10 +169,10 @@ local function findNearestPlayer()
 end
 
 local function getPredictedPosition(targetPlayer)
-    local p = targetPlayer
-    pcall(function() p = targetPlayer.Character end)
-    local playerHRP = p:FindFirstChild("UpperTorso") or p:FindFirstChild("HumanoidRootPart")
-    local playerHum = p:FindFirstChild("Humanoid")
+    local player = targetPlayer
+    pcall(function() player = targetPlayer.Character end)
+    local playerHRP = player:FindFirstChild("UpperTorso") or player:FindFirstChild("HumanoidRootPart")
+    local playerHum = player:FindFirstChild("Humanoid")
     if not playerHRP or not playerHum then return Vector3.new(0,0,0) end
     local velocity = playerHRP.AssemblyLinearVelocity
     local playerMoveDirection = playerHum.MoveDirection
@@ -338,23 +338,20 @@ function miniFling(playerToFling)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ESP ФУНКЦИИ (ИСПРАВЛЕНО: gui -> guiUI)
+--  ESP ФУНКЦИИ (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local espHighlights = {}
 
 local function reloadESP()
     if not playerESP then return end
-    for key, h in pairs(espHighlights) do 
-        if h and h:IsA("Highlight") then 
-            h:Destroy() 
-        end 
-    end
+    for _, h in pairs(espHighlights) do if h then h:Destroy() end end
     espHighlights = {}
     
-    for _, pl in ipairs(Players:GetPlayers()) do
+    local listplayers = Players:GetChildren()
+    for _, pl in ipairs(listplayers) do
         if pl == localplayer and hideMeEsp then continue end
-        local ch = pl.Character
-        if ch and ch:FindFirstChild("HumanoidRootPart") then
+        if pl.Character ~= nil then
+            local ch = pl.Character
             task.spawn(function()
                 local color
                 if pl == findMurderer() then
@@ -372,7 +369,7 @@ local function reloadESP()
                 h.OutlineTransparency = 0
                 h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                 h.Adornee = ch
-                h.Parent = guiUI
+                h.Parent = gui
                 espHighlights[ch] = h
             end)
         end
@@ -380,10 +377,9 @@ local function reloadESP()
 end
 
 local function reloadTrapESP()
-    for key, obj in pairs(espHighlights) do
+    for _, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Trap") then
             obj:Destroy()
-            espHighlights[key] = nil
         end
     end
     if not trapDetection then return end
@@ -398,17 +394,16 @@ local function reloadTrapESP()
             h.OutlineTransparency = 0
             h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             h.Adornee = v
-            h.Parent = guiUI
+            h.Parent = gui
             espHighlights[v] = h
         end
     end
 end
 
 local function reloadGunESP()
-    for key, obj in pairs(espHighlights) do
+    for _, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Gun") then
             obj:Destroy()
-            espHighlights[key] = nil
         end
     end
     if not gunDropESP then return end
@@ -423,7 +418,7 @@ local function reloadGunESP()
         h.OutlineTransparency = 0
         h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         h.Adornee = gun
-        h.Parent = guiUI
+        h.Parent = gui
         espHighlights[gun] = h
     end
 end
@@ -814,7 +809,7 @@ pcall(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLOATING BUTTONS SYSTEM (КРАСИВЫЕ ПОЛУПРОЗРАЧНЫЕ С ЭФФЕКТОМ)
+--  FLOATING BUTTONS SYSTEM
 -- ═══════════════════════════════════════════════════════════════════════════════
 local floatingButtons = {}
 
@@ -826,67 +821,58 @@ local function createFloatingButton(name, text, color, callback, position)
     
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 160, 0, 55)
+    button.Size = UDim2.new(0, 150, 0, 50)
     button.Position = position or UDim2.new(0, 125, 0, 90)
-    button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    button.BackgroundTransparency = 0.4  -- Полупрозрачный
+    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextScaled = true
     button.Font = Enum.Font.GothamBold
     button.AutoButtonColor = false
     button.ClipsDescendants = true
-    button.Parent = guiUI
+    button.Parent = gui
     
     local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 10)
     
-    -- Неоновая обводка
     local stroke = Instance.new("UIStroke", button)
-    stroke.Color = Color3.fromRGB(255, 50, 80)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    
-    -- Красивый градиент внутри
-    local grad = Instance.new("UIGradient", button)
-    grad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 80)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 30, 100)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 150, 255))
-    }
-    grad.Rotation = 45
-    grad.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.7),
-        NumberSequenceKeypoint.new(0.5, 0.85),
-        NumberSequenceKeypoint.new(1, 0.7)
-    }
-    
-    -- Анимация свечения
-    task.spawn(function()
-        local rot = 45
-        while button.Parent do
-            rot = rot + 0.5
-            grad.Rotation = rot
-            task.wait(0.05)
-        end
-    end)
     
     button.MouseButton1Click:Connect(function()
         clickSnd:Play()
         callback()
     end)
     
-    -- Эффект при наведении
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
-    end)
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
+    -- Ripple effect
+    button.MouseButton1Down:Connect(function(x, y)
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 145, 0, 48)}):Play()
+        local ripple = Instance.new("Frame")
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 1
+        ripple.Position = UDim2.fromOffset(x - button.AbsolutePosition.X, y - button.AbsolutePosition.Y)
+        ripple.Size = UDim2.fromOffset(50, 50)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.Parent = button
+        local rippleCorner = Instance.new("UICorner", ripple)
+        rippleCorner.CornerRadius = UDim.new(1, 0)
+        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.6,
+            Size = UDim2.fromOffset(150, 150)
+        }):Play()
+        task.spawn(function()
+            task.wait(0.5)
+            if ripple and ripple.Parent then ripple:Destroy() end
+        end)
     end)
     
-    -- Перетаскивание
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 150, 0, 50)}):Play()
+        end
+    end)
+    
+    -- Draggable
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -917,10 +903,10 @@ local function createFloatingButton(name, text, color, callback, position)
         end
     end)
     
-    -- Анимация появления
+    -- Animate appearance
     button.Size = UDim2.new(0, 0, 0, 0)
     TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 160, 0, 55)
+        Size = UDim2.new(0, 150, 0, 50)
     }):Play()
     
     floatingButtons[name] = button
@@ -964,7 +950,7 @@ local A_COL = {
 local function crn(o, r) local c = Instance.new("UICorner", o) c.CornerRadius = UDim.new(0, r or 8) end
 local function stk(o, c, t, tr) local s = Instance.new("UIStroke", o) s.Color = c s.Thickness = t or 1 s.Transparency = tr or 0 end
 local function grd(o, cs, rot) local g = Instance.new("UIGradient", o) g.Color = ColorSequence.new(cs) g.Rotation = rot or 0 end
-local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play end
+local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play() end
 
 do local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui") if old then old:Destroy() end end
 
@@ -1714,8 +1700,9 @@ togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
 --  UI UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
-    isMurderer = (findMurderer() == localplayer)
-    isSheriff = (findSheriff() == localplayer)
+    local r = getPlayerRole(player)
+    isMurderer = (r == "Murderer")
+    isSheriff = (r == "Sheriff")
 end
 
 local function getPlayerCoins(p)
