@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v28 · FULL EDITION                          ║
--- ║   БОЛЬШОЕ МЕНЮ · ESP ПЕСТ · TELEPORT · FLING · AUTOFARM                      ║
+-- ║                         XDarkHUB v29 · ENGLISH EDITION                       ║
+-- ║   FIXED PEST TP · SHERIFF TAB · TRANSPARENT BUTTON                          ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -31,7 +31,7 @@ local pestESPEnabled = false
 local espHighlights = {}
 local MAX_BAG = 40
 
--- ЗВУКИ
+-- SOUNDS
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -45,7 +45,7 @@ local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
 
--- УВЕДОМЛЕНИЯ
+-- NOTIFICATIONS
 local function notify(title, text, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -54,7 +54,7 @@ local function notify(title, text, duration)
     end)
 end
 
--- ПОИСК РОЛЕЙ
+-- FIND ROLES
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -95,6 +95,26 @@ local function findSheriff()
     return nil
 end
 
+-- FIXED: FIND PEST (TRAP) CORRECTLY
+local function findPest()
+    -- Search for Trap objects in workspace
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "Trap" and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+    -- Also check in Map folder
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "Trap" then
+            if obj:FindFirstChild("HumanoidRootPart") then
+                return obj.HumanoidRootPart
+            end
+            return obj
+        end
+    end
+    return nil
+end
+
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
@@ -122,7 +142,7 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLING (ИЗ YARHM - РАБОЧИЙ)
+--  FLING FROM YARHM (WORKING)
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
@@ -293,7 +313,7 @@ function flingSheriff()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ЦВЕТА
+--  COLORS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local C = {
     bg = Color3.fromRGB(8, 8, 12),
@@ -337,7 +357,7 @@ local function ani(o, p, t, s)
     TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
--- ОЧИСТКА
+-- CLEANUP
 do
     local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
     if old then old:Destroy() end
@@ -353,7 +373,7 @@ killSound.Parent = gui
 deathSound.Parent = gui
 clickSnd.Parent = gui
 
--- ФОН С ЧАСТИЦАМИ
+-- BACKGROUND WITH PARTICLES
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C.bg
@@ -402,7 +422,7 @@ for i = 1, 28 do
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  БОЛЬШОЙ ГЛАВНЫЙ ФРЕЙМ (800x600)
+--  MAIN FRAME
 -- ═══════════════════════════════════════════════════════════════════════════════
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
@@ -432,7 +452,7 @@ ani(frame, {
     Position = UDim2.new(0.5, -400, 0.5, -300)
 }, 0.6, Enum.EasingStyle.Back)
 
--- ЗАГОЛОВОК
+-- HEADER
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 60)
 tBar.BackgroundColor3 = C.panel
@@ -492,7 +512,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 80, 1, 0)
 vLbl.Position = UDim2.new(1, -90, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v28]"
+vLbl.Text = "[v29]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 12
 vLbl.TextColor3 = C.mut
@@ -500,7 +520,7 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- ПЕРЕТАСКИВАНИЕ
+-- DRAGGING
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -519,7 +539,7 @@ do
     end)
 end
 
--- КОНТЕЙНЕР
+-- CONTAINER
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -65)
 ctr.Position = UDim2.new(0, 0, 0, 65)
@@ -550,7 +570,7 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- ВКЛАДКИ
+-- TABS
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -670,6 +690,7 @@ local function switchTab(name)
     currentTab = name
 end
 
+-- TABS (ENGLISH)
 createTab("Sheriff", "⭐", 1)
 createTab("Murderer", "🔪", 2)
 createTab("ESP", "👁️", 3)
@@ -684,7 +705,7 @@ for n, t in pairs(tabs) do
     end)
 end
 
--- UI КОМПОНЕНТЫ
+-- UI COMPONENTS
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 26)
@@ -840,12 +861,17 @@ local function togC(par, ord, label, onTog)
     btn.MouseLeave:Connect(function() if not st then cd.BackgroundTransparency = 1 end end)
 end
 
--- КОНТЕНТ ВКЛАДОК
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- ESP TAB
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
 togC(espC, 2, "ESP Roles", function(s) espEnabled = s; updateESP(); notify("XDarkHUB", "ESP: " .. (s and "ON" or "OFF"), 2) end)
 togC(espC, 3, "Pest ESP", function(s) pestESPEnabled = s; updatePestESP(); notify("XDarkHUB", "Pest ESP: " .. (s and "ON" or "OFF"), 2) end)
 
+-- FARM TAB
 local fC = tabContents["Farm"]
 secT(fC, 1, "STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -857,7 +883,7 @@ local roleV = statR(fC, 7, "Status")
 secT(fC, 8, "BAG")
 local bagV = statR(fC, 9, "State")
 
--- КНОПКИ FLING
+-- FLING MURDERER BUTTON
 do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 52)
@@ -879,6 +905,7 @@ do
     b.MouseButton1Click:Connect(function() clickSnd:Play(); throwMurdererToSpace() end)
 end
 
+-- FLING SHERIFF BUTTON
 do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 52)
@@ -903,42 +930,149 @@ end
 togC(fC, 12, "Auto Farm", function(s) isActive = s; if s then startFarming(); notify("XDarkHUB", "Farm ON", 2) else notify("XDarkHUB", "Farm OFF", 2) end end)
 togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
 
--- ЗАГЛУШКИ
-for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
-    local c = tabContents[name]
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, 0, 0, 35)
-    t.BackgroundTransparency = 1
-    t.Text = name:upper()
-    t.TextColor3 = A.soft
-    t.Font = Enum.Font.GothamBlack
-    t.TextSize = 20
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.LayoutOrder = 1
-    t.ZIndex = 2
-    t.Parent = c
-    local cd = Instance.new("Frame")
-    cd.Size = UDim2.new(1, 0, 0, 120)
-    cd.BackgroundTransparency = 1
-    cd.LayoutOrder = 2
-    cd.ZIndex = 2
-    cd.Parent = c
-    crn(cd, 10)
-    stk(cd, C.bdr, 1, 0.5)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -25, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "Coming Soon"
-    lbl.TextColor3 = C.mut
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 15
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.ZIndex = 2
-    lbl.Parent = cd
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  SHERIFF TAB (WITH TP TO PEST)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local sheriffC = tabContents["Sheriff"]
+secT(sheriffC, 1, "SHERIFF TOOLS")
+
+-- TP TO PEST BUTTON (TRANSPARENT WITH EFFECTS)
+local pestTPButton = nil
+local pestParticles = {}
+local pestInnerEffects = {}
+
+function createPestTPButton()
+    if pestTPButton then pestTPButton:Destroy() end
+    for _, p in ipairs(pestParticles) do if p and p.Parent then p:Destroy() end end
+    pestParticles = {}
+    for _, e in ipairs(pestInnerEffects) do if e and e.Parent then e:Destroy() end end
+    pestInnerEffects = {}
+    
+    -- TRANSPARENT BUTTON WITH GRADIENT
+    pestTPButton = Instance.new("TextButton")
+    pestTPButton.Size = UDim2.new(1, 0, 0, 60)
+    pestTPButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    pestTPButton.BackgroundTransparency = 0.4  -- Semi-transparent
+    pestTPButton.Text = "🎯 TELEPORT TO PEST"
+    pestTPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    pestTPButton.Font = Enum.Font.GothamBlack
+    pestTPButton.TextSize = 16
+    pestTPButton.BorderSizePixel = 0
+    pestTPButton.ZIndex = 2
+    pestTPButton.Active = true
+    pestTPButton.Parent = sheriffC
+    crn(pestTPButton, 12)
+    stk(pestTPButton, Color3.fromRGB(255, 100, 100), 2, 0.3)
+    
+    -- GRADIENT INSIDE
+    local btnGrad = Instance.new("UIGradient", pestTPButton)
+    btnGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 0, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 0, 0))
+    })
+    btnGrad.Rotation = 45
+    table.insert(pestInnerEffects, btnGrad)
+    
+    -- ANIMATED GRADIENT
+    task.spawn(function()
+        local offset = 0
+        while pestTPButton and pestTPButton.Parent do
+            offset = offset + 0.01
+            if offset > 1 then offset = 0 end
+            btnGrad.Offset = Vector2.new(offset, 0)
+            task.wait(0.05)
+        end
+    end)
+    
+    -- INNER PARTICLES (RED DOTS MOVING INSIDE)
+    for i = 1, 6 do
+        local particle = Instance.new("Frame")
+        particle.Size = UDim2.new(0, 4, 0, 4)
+        particle.BackgroundColor3 = Color3.fromRGB(255, 200, 200)
+        particle.BackgroundTransparency = 0.3
+        particle.BorderSizePixel = 0
+        particle.ZIndex = 3
+        particle.Parent = pestTPButton
+        crn(particle, 2)
+        table.insert(pestParticles, particle)
+        
+        -- ANIMATE PARTICLES INSIDE BUTTON
+        task.spawn(function()
+            while particle and particle.Parent do
+                local targetPos = UDim2.new(math.random(10, 90) / 100, 0, math.random(20, 80) / 100, 0)
+                ani(particle, {Position = targetPos, BackgroundTransparency = math.random(20, 60) / 100}, math.random(2, 4), Enum.EasingStyle.Sine)
+                task.wait(math.random(2, 4))
+            end
+        end)
+    end
+    
+    -- PULSE ANIMATION
+    task.spawn(function()
+        while pestTPButton and pestTPButton.Parent do
+            ani(pestTPButton, {BackgroundTransparency = 0.3}, 0.8, Enum.EasingStyle.Sine)
+            task.wait(0.8)
+            ani(pestTPButton, {BackgroundTransparency = 0.5}, 0.8, Enum.EasingStyle.Sine)
+            task.wait(0.8)
+        end
+    end)
+    
+    -- CLICK HANDLER
+    pestTPButton.MouseButton1Click:Connect(function()
+        clickSnd:Play()
+        teleportToPest()
+    end)
+    
+    notify("XDarkHUB", "Pest TP button created!", 3)
 end
 
--- ФУНКЦИИ UI
+function teleportToPest()
+    local pest = findPest()
+    if not pest then
+        notify("XDarkHUB", "No pest found!", 2)
+        return
+    end
+    
+    character = player.Character
+    rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        notify("XDarkHUB", "No character!", 2)
+        return
+    end
+    
+    -- Get pest position
+    local pestPos
+    if pest:IsA("BasePart") then
+        pestPos = pest.Position
+    elseif pest.Parent and pest.Parent:FindFirstChild("HumanoidRootPart") then
+        pestPos = pest.Parent.HumanoidRootPart.Position
+    else
+        pestPos = pest.Position
+    end
+    
+    -- Teleport to pest
+    rootPart.CFrame = CFrame.new(pestPos + Vector3.new(0, 5, 0))
+    notify("XDarkHUB", "Teleported to Pest!", 2)
+    
+    -- Teleport effect
+    local effect = Instance.new("Part")
+    effect.Size = Vector3.new(5, 5, 5)
+    effect.Position = rootPart.Position
+    effect.Anchored = true
+    effect.CanCollide = false
+    effect.Material = Enum.Material.Neon
+    effect.Color = Color3.fromRGB(255, 0, 0)
+    effect.Transparency = 0.3
+    effect.Parent = workspace
+    Debris:AddItem(effect, 1)
+end
+
+-- Create button initially
+createPestTPButton()
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  UI FUNCTIONS
+-- ═══════════════════════════════════════════════════════════════════════════════
 function updateRoleUI()
     checkRole()
     if isMurderer then roleV.Text = "Murderer"; roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -1010,15 +1144,6 @@ end
 
 -- PEST ESP
 local pestHighlight = nil
-function findPest()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name:lower():find("pest") or obj.Name:lower():find("trap") then
-            return obj
-        end
-    end
-    return nil
-end
-
 function updatePestESP()
     if pestHighlight then pestHighlight:Destroy(); pestHighlight = nil end
     if not pestESPEnabled then return end
@@ -1030,103 +1155,27 @@ function updatePestESP()
         pestHighlight.FillTransparency = 0.5
         pestHighlight.OutlineTransparency = 0
         pestHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        pestHighlight.Parent = pest
-        createPestTeleportButton(pest)
-    end
-end
-
--- TELEPORT TO PEST BUTTON
-local pestButton = nil
-local pestParticles = {}
-
-function createPestTeleportButton(pest)
-    if pestButton then pestButton:Destroy(); pestButton = nil end
-    for _, particle in ipairs(pestParticles) do
-        if particle and particle.Parent then particle:Destroy() end
-    end
-    pestParticles = {}
-    
-    pestButton = Instance.new("TextButton")
-    pestButton.Size = UDim2.new(0, 100, 0, 100)
-    pestButton.Position = UDim2.new(0.5, 0, 0.5, 0)
-    pestButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    pestButton.Text = "TELEPORT\nTO PEST"
-    pestButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    pestButton.Font = Enum.Font.GothamBlack
-    pestButton.TextSize = 16
-    pestButton.TextWrapped = true
-    pestButton.ZIndex = 100
-    pestButton.Parent = gui
-    crn(pestButton, 12)
-    stk(pestButton, Color3.fromRGB(255, 100, 100), 3)
-    
-    task.spawn(function()
-        while pestButton and pestButton.Parent do
-            ani(pestButton, {Size = UDim2.new(0, 105, 0, 105)}, 0.5, Enum.EasingStyle.Sine)
-            task.wait(0.5)
-            ani(pestButton, {Size = UDim2.new(0, 100, 0, 100)}, 0.5, Enum.EasingStyle.Sine)
-            task.wait(0.5)
+        if pest:IsA("BasePart") then
+            pestHighlight.Adornee = pest
+        elseif pest.Parent then
+            pestHighlight.Adornee = pest.Parent
         end
-    end)
-    
-    for i = 1, 10 do
-        local particle = Instance.new("Frame")
-        particle.Size = UDim2.new(0, 5, 0, 5)
-        particle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        particle.BorderSizePixel = 0
-        particle.ZIndex = 99
-        particle.Parent = gui
-        crn(particle, 3)
-        table.insert(pestParticles, particle)
-        task.spawn(function()
-            local angle = (i / 10) * math.pi * 2
-            local radius = 60
-            while particle and particle.Parent do
-                local x = math.cos(angle) * radius
-                local y = math.sin(angle) * radius
-                particle.Position = UDim2.new(0.5, x, 0.5, y)
-                angle = angle + 0.05
-                task.wait(0.02)
-            end
-        end)
+        pestHighlight.Parent = gui
+        notify("XDarkHUB", "Pest highlighted!", 2)
     end
-    
-    pestButton.MouseButton1Click:Connect(function()
-        clickSnd:Play()
-        teleportToPest(pest)
-    end)
-    notify("XDarkHUB", "Pest found! Red button created.", 3)
 end
 
-function teleportToPest(pest)
-    if not pest then notify("XDarkHUB", "Pest not found!", 2); return end
-    character = player.Character
-    rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then notify("XDarkHUB", "No character!", 2); return end
-    local pestPos = pest.Position
-    if pest:IsA("BasePart") then pestPos = pest.Position
-    elseif pest.Parent and pest.Parent:FindFirstChild("HumanoidRootPart") then pestPos = pest.Parent.HumanoidRootPart.Position end
-    rootPart.CFrame = CFrame.new(pestPos + Vector3.new(0, 5, 0))
-    notify("XDarkHUB", "Teleported to Pest!", 2)
-    local effect = Instance.new("Part")
-    effect.Size = Vector3.new(5, 5, 5)
-    effect.Position = rootPart.Position
-    effect.Anchored = true; effect.CanCollide = false
-    effect.Material = Enum.Material.Neon
-    effect.Color = Color3.fromRGB(255, 0, 0)
-    effect.Transparency = 0.3
-    effect.Parent = workspace
-    Debris:AddItem(effect, 1)
-end
-
+-- Auto-update Pest ESP
 task.spawn(function()
     while true do
-        if pestESPEnabled then updatePestESP() end
+        if pestESPEnabled then
+            updatePestESP()
+        end
         task.wait(3)
     end
 end)
 
--- ФАРМ
+-- FARM
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     local d = (pos - rootPart.Position).Magnitude; local dur = math.max(0.1, d / spd)
@@ -1191,7 +1240,7 @@ function startFarming()
     end)
 end
 
--- КНОПКА МЕНЮ
+-- MENU BUTTON
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
@@ -1263,5 +1312,5 @@ RunService.Stepped:Connect(function()
 end)
 
 updateRoleUI(); updateBagUI(); switchTab("Farm")
-notify("XDarkHUB", "v28 Loaded", 3)
-notify("XDarkHUB", "Big Menu + Pest ESP + Teleport!", 3)
+notify("XDarkHUB", "v29 Loaded", 3)
+notify("XDarkHUB", "English + Fixed Pest TP!", 3)
