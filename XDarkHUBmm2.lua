@@ -1,7 +1,7 @@
--- ═══════════════════════════════════════════════════════════
---  XDarkHUB v31 · MM2 AUTOFARM
---  ИСПРАВЛЕН TP К ПИСТОЛЕТУ + GUN ESP
--- ═══════════════════════════════════════════════════════════
+-- ╔══════════════════════════════════════════════════════════════════════════════╗
+-- ║                         XDarkHUB v32 · FIXED ESP                             ║
+-- ║   ИСПРАВЛЕН ESP + TP К ПИСТОЛЕТУ ИЗ YARHM                                    ║
+-- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -59,9 +59,9 @@ local function notify(title, text, duration)
     end)
 end
 
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  ПОИСК РОЛЕЙ И ОБЪЕКТОВ
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -166,9 +166,114 @@ local function checkRole()
     isSheriff = (r == "Sheriff")
 end
 
--- ═══════════════════════════════════════════════════════════
---  TRAP ESP (ИЗ YARHM)
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  🔥 ИСПРАВЛЕННЫЙ ESP (АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ)
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Функция добавления ESP для игрока
+local function addPlayerESP(p)
+    if not p or not p.Character then return end
+    
+    -- Удаляем старый highlight если есть
+    if espHighlights[p] then
+        espHighlights[p]:Destroy()
+        espHighlights[p] = nil
+    end
+    
+    -- Определяем роль
+    local role = getPlayerRole(p)
+    local color
+    
+    if role == "Murderer" then
+        color = Color3.fromRGB(255, 0, 0)  -- Красный
+    elseif role == "Sheriff" then
+        color = Color3.fromRGB(0, 100, 255)  -- Синий
+    else
+        color = Color3.fromRGB(0, 255, 0)  -- Зеленый
+    end
+    
+    -- Создаем Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "PlayerESP_" .. p.Name
+    highlight.Adornee = p.Character
+    highlight.FillColor = color
+    highlight.OutlineColor = color
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = p.Character
+    
+    espHighlights[p] = highlight
+end
+
+-- Функция удаления ESP для игрока
+local function removePlayerESP(p)
+    if espHighlights[p] then
+        espHighlights[p]:Destroy()
+        espHighlights[p] = nil
+    end
+end
+
+-- 🔥 ИСПРАВЛЕНО: Полная перезагрузка ESP
+local function reloadESP()
+    -- Удаляем все старые highlights
+    for p, highlight in pairs(espHighlights) do
+        if highlight then
+            highlight:Destroy()
+        end
+    end
+    espHighlights = {}
+    
+    if not espEnabled then return end
+    
+    -- Добавляем highlights для всех игроков
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character then
+            addPlayerESP(p)
+        end
+    end
+end
+
+-- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при появлении игрока
+Players.PlayerAdded:Connect(function(p)
+    if espEnabled then
+        p.CharacterAdded:Connect(function(char)
+            task.wait(1)  -- Ждем пока персонаж загрузится
+            addPlayerESP(p)
+        end)
+    end
+end)
+
+-- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при исчезновении игрока
+Players.PlayerRemoving:Connect(function(p)
+    removePlayerESP(p)
+end)
+
+-- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при респауне персонажа
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= player then
+        p.CharacterAdded:Connect(function(char)
+            if espEnabled then
+                task.wait(1)
+                addPlayerESP(p)
+            end
+        end)
+    end
+end
+
+-- Периодическое обновление ESP (каждые 3 секунды)
+task.spawn(function()
+    while true do
+        if espEnabled then
+            reloadESP()
+        end
+        task.wait(3)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TRAP ESP (ИЗ YARHM - С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ)
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function addTrapESP(trap)
     if not trap then return end
     
@@ -179,7 +284,7 @@ local function addTrapESP(trap)
     
     -- Создаем Highlight
     local highlight = Instance.new("Highlight")
-    highlight.Name = "TrapHighlight_" .. tostring(trap)
+    highlight.Name = "TrapESP_" .. tostring(trap)
     highlight.Adornee = trap
     highlight.FillColor = Color3.fromRGB(255, 0, 0)
     highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
@@ -244,15 +349,15 @@ workspace.DescendantAdded:Connect(function(ch)
     end
 end)
 
--- ═══════════════════════════════════════════════════════════
---  🔥 GUN ESP (ИЗ YARHM - ИСПРАВЛЕНО)
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  🔥 GUN ESP (ИЗ YARHM - С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ)
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function addGunESP(gun)
     if not gun then return end
     
     -- Создаем Highlight
     local highlight = Instance.new("Highlight")
-    highlight.Name = "GunHighlight_" .. tostring(gun)
+    highlight.Name = "GunESP_" .. tostring(gun)
     highlight.Adornee = gun
     highlight.FillColor = Color3.fromRGB(255, 255, 0)  -- Желтый
     highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
@@ -328,9 +433,9 @@ workspace.DescendantRemoving:Connect(function(ch)
     end
 end)
 
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  🔥 TELEPORT TO GUN (ИЗ YARHM - ИСПРАВЛЕНО)
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 function teleportToGun()
     local gun = findGunDrop()
     if not gun then
@@ -344,18 +449,18 @@ function teleportToGun()
         return
     end
     
-    -- Сохраняем предыдущую позицию (из YARHM)
+    -- 🔥 ИЗ YARHM: Сохраняем предыдущую позицию
     local previousPosition = character:GetPivot()
     
-    -- Телепортируемся к пистолету (из YARHM)
+    -- 🔥 ИЗ YARHM: Телепортируемся к пистолету
     character:PivotTo(gun:GetPivot())
     
     notify("XDarkHUB", "🔫 Телепорт к пистолету!", 2)
     
-    -- Ждем получения пистолета (из YARHM)
+    -- 🔥 ИЗ YARHM: Ждем получения пистолета
     character.Backpack.ChildAdded:Wait()
     
-    -- Возвращаемся на предыдущую позицию (из YARHM)
+    -- 🔥 ИЗ YARHM: Возвращаемся на предыдущую позицию
     character:PivotTo(previousPosition)
     
     notify("XDarkHUB", "✅ Пистолет получен!", 2)
@@ -373,9 +478,9 @@ function teleportToGun()
     Debris:AddItem(effect, 1)
 end
 
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  FLING ИЗ YARHM (РАБОЧИЙ)
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -544,9 +649,9 @@ function flingSheriff()
     initialCoins = getPlayerCoins(player)
 end
 
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  ЦВЕТА
--- ═══════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════════════════════════
 local C = {
     bg = Color3.fromRGB(8, 8, 12),
     panel = Color3.fromRGB(12, 12, 18),
@@ -742,7 +847,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 80, 1, 0)
 vLbl.Position = UDim2.new(1, -90, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v31]"
+vLbl.Text = "[v32]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 12
 vLbl.TextColor3 = C.mut
@@ -1093,7 +1198,11 @@ end
 -- КОНТЕНТ ВКЛАДОК
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
-togC(espC, 2, "ESP Roles", function(s) espEnabled = s; notify("XDarkHUB", "ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
+togC(espC, 2, "👥 Player ESP", function(s) 
+    espEnabled = s
+    reloadESP()
+    notify("XDarkHUB", "👥 Player ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
+end)
 togC(espC, 3, "🪤 Trap ESP", function(s) 
     trapESPEnabled = s
     reloadTrapESP()
@@ -1355,6 +1464,10 @@ player.CharacterAdded:Connect(function(ch)
     character = ch; rootPart = ch:WaitForChild("HumanoidRootPart")
     visitedPositions = {}; farmStopped = false
     task.wait(1.5); checkRole(); updateRoleUI()
+    -- 🔥 ИСПРАВЛЕНО: Перезагружаем ESP при респауне
+    if espEnabled then
+        reloadESP()
+    end
 end)
 
 player.Idled:Connect(function()
@@ -1374,5 +1487,5 @@ RunService.Stepped:Connect(function()
 end)
 
 updateRoleUI(); updateBagUI(); switchTab("Farm")
-notify("XDarkHUB", "v31 загружен!", 3)
-notify("XDarkHUB", "🔫 Исправлен TP к пистолету + Gun ESP!", 3)
+notify("XDarkHUB", "v32 загружен!", 3)
+notify("XDarkHUB", "🔥 ИСПРАВЛЕН ESP + TP к пистолету!", 3)
