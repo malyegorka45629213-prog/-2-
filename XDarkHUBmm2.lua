@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  MM2 Coin Autofarm · [egor745top6] · НАСТОЯЩИЙ ФЛИНГ
+--  MM2 Coin Autofarm · [egor745top6] · ФИНАЛЬНАЯ ВЕРСИЯ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -10,8 +10,8 @@ local VirtualUser = game:GetService("VirtualUser")
 local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local character = player.Character
+local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 
 local visitedPositions = {}
 local isActive = false
@@ -386,6 +386,9 @@ function cinematicMurdererKill()
     print("🔪 === УБИЙЦА УБИВАЕТ ВСЕХ ===")
     killSound:Play()
     
+    character = player.Character
+    if not character then return end
+    
     local hrp = character:FindFirstChild("HumanoidRootPart")
     local hum = character:FindFirstChild("Humanoid")
     if not hrp or not hum then 
@@ -467,9 +470,11 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 НАСТОЯЩИЙ ФЛИНГ (FLING)
+-- 🔥 НАСТОЯЩИЙ ФЛИНГ — РАБОТАЕТ ДАЖЕ В ЛОББИ!
 function throwMurdererToSpace()
     print("🚀 === НАСТОЯЩИЙ ФЛИНГ ===")
+    print("📍 Состояние игрока: в лобби =", not player.Character or not player.Character:FindFirstChild("HumanoidRootPart"))
+    
     deathSound:Play()
     
     -- 🔥 Ищем мардера
@@ -495,7 +500,7 @@ function throwMurdererToSpace()
     end
     
     if not murdererPlayer.Character then
-        print("❌ Нет Character!")
+        print("❌ Нет Character у мардера!")
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -504,7 +509,7 @@ function throwMurdererToSpace()
     
     local murdererHrp = murdererPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not murdererHrp then
-        print("❌ Нет HumanoidRootPart!")
+        print("❌ Нет HumanoidRootPart у мардера!")
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -513,24 +518,24 @@ function throwMurdererToSpace()
     
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
-    print("🌀 Создаём флинг-частицы...")
+    print("🌀 Запускаем флинг на:", murdererPlayer.Name)
     
     -- 🔥 Отключаем управление мардеру
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
         murdererHum.JumpPower = 0
+        murdererHum.AutoRotate = false
     end
     
-    -- 🔥 Создаём 6 частей вокруг мардера для флинга
-    local flingParts = {}
+    -- 🔥 Создаём 6 флинг-частей
     local positions = {
-        Vector3.new(0, 3, 0),    -- Сверху
-        Vector3.new(0, -3, 0),   -- Снизу
-        Vector3.new(3, 0, 0),    -- Справа
-        Vector3.new(-3, 0, 0),   -- Слева
-        Vector3.new(0, 0, 3),    -- Спереди
-        Vector3.new(0, 0, -3),   -- Сзади
+        Vector3.new(0, 3, 0),
+        Vector3.new(0, -3, 0),
+        Vector3.new(3, 0, 0),
+        Vector3.new(-3, 0, 0),
+        Vector3.new(0, 0, 3),
+        Vector3.new(0, 0, -3),
     }
     
     for i, offset in ipairs(positions) do
@@ -544,32 +549,29 @@ function throwMurdererToSpace()
         part.Color = Color3.fromRGB(155, 60, 255)
         part.Parent = workspace
         
-        -- Weld к мардеру
         local weld = Instance.new("Weld")
         weld.Part0 = part
         weld.Part1 = murdererHrp
         weld.C0 = CFrame.new(offset)
         weld.Parent = part
         
-        -- BodyVelocity для каждой части (огромная сила вверх)
         local bv = Instance.new("BodyVelocity")
         bv.Velocity = Vector3.new(0, 500, 0)
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bv.Parent = part
         
-        table.insert(flingParts, part)
         Debris:AddItem(part, 5)
         Debris:AddItem(bv, 5)
     end
     
-    -- 🔥 Добавляем BodyAngularVelocity к мардеру (вращение)
+    -- 🔥 Вращение мардера
     local bodyAng = Instance.new("BodyAngularVelocity")
     bodyAng.AngularVelocity = Vector3.new(100, 100, 100)
     bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     bodyAng.Parent = murdererHrp
     Debris:AddItem(bodyAng, 10)
     
-    -- 🔥 Добавляем BodyVelocity к мардеру (полёт вверх)
+    -- 🔥 Полёт вверх
     local bodyVel = Instance.new("BodyVelocity")
     bodyVel.Velocity = Vector3.new(0, 1000, 0)
     bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -601,7 +603,7 @@ function throwMurdererToSpace()
     light.Color = Color3.fromRGB(155, 60, 255)
     light.Parent = flash
     
-    print("🚀", murdererPlayer.Name, "улетает в космос через флинг!")
+    print("🚀", murdererPlayer.Name, "улетает в космос!")
     
     bagFull = false
     collected = 0
@@ -639,6 +641,7 @@ function startFarming()
     updateBagUI()
     print("🚀 ФАРМ ЗАПУЩЕН! MAX_BAG =", MAX_BAG)
 
+    -- 🔥 ПОТОК 1: Таймер и статистика
     task.spawn(function()
         while isActive do
             local elapsed = tick() - startTime
@@ -649,11 +652,38 @@ function startFarming()
         end
     end)
 
+    -- 🔥 ПОТОК 2: ГЛАВНАЯ ПРОВЕРКА ПОЛНОГО МЕШКА (работает ВСЕГДА!)
+    task.spawn(function()
+        while isActive do
+            task.wait(0.5)
+            
+            -- 🔥 ПРОВЕРКА: мешок полон?
+            if collected >= MAX_BAG and not farmStopped then
+                print("🎒 === МЕШОК ПОЛОН! ===")
+                print("📍 Собрано:", collected, "/", MAX_BAG)
+                
+                bagFull = true
+                farmStopped = true
+                updateBagUI()
+                checkRole()
+                
+                print("🎭 isMurderer:", isMurderer)
+
+                if isMurderer then
+                    cinematicMurdererKill()
+                else
+                    throwMurdererToSpace()
+                end
+                stopFarming()
+            end
+        end
+    end)
+
+    -- 🔥 ПОТОК 3: Сбор монет (работает только когда есть тело)
     task.spawn(function()
         while isActive do
             if farmStopped then task.wait(1) continue end
 
-            -- 🔥 ВАЖНО: используем player.Character каждый раз!
             character = player.Character
             if not character then
                 task.wait(0.5)
@@ -662,7 +692,7 @@ function startFarming()
             
             rootPart = character:FindFirstChild("HumanoidRootPart")
             
-            -- 🔥 Если в лобби (нет rootPart), просто ждём
+            -- 🔥 Если в лобби — просто ждём (поток 2 всё равно проверяет мешок)
             if not rootPart then 
                 task.wait(0.5)
                 continue 
@@ -721,21 +751,6 @@ function startFarming()
                                 updateBagUI()
                                 visitedPositions[coinRef] = true
                                 print("✅ Собрано:", collected, "/", MAX_BAG)
-                                
-                                if collected >= MAX_BAG and not farmStopped then
-                                    print("🎒 === МЕШОК ПОЛОН! ===")
-                                    bagFull = true
-                                    farmStopped = true
-                                    updateBagUI()
-                                    checkRole()
-
-                                    if isMurderer then
-                                        cinematicMurdererKill()
-                                    else
-                                        throwMurdererToSpace()
-                                    end
-                                    stopFarming()
-                                end
                             else
                                 visitedPositions[coinRef] = true
                             end
@@ -989,5 +1004,5 @@ updateRoleUI()
 updateBagUI()
 
 print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("🌀 НАСТОЯЩИЙ ФЛИНГ: 6 частей + вращение + полёт вверх!")
-print("📍 Работает даже в лобби!")
+print("🔥 Теперь 3 потока: статистика + проверка мешка + сбор монет")
+print("📍 Проверка мешка работает ДАЖЕ В ЛОББИ!")
