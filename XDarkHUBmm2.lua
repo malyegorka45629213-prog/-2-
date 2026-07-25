@@ -1,32 +1,18 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
---  XDarkHUB v11 · TERMINAL STYLE · MM2 Autofarm · FULL VERSION
---  Author: egor745top6
---  Version: 11.0
---  Game: Murder Mystery 2
+--  XDarkHUB v12 · GLASSMORPHISM · MM2 Autofarm · FULL VERSION
 -- ═══════════════════════════════════════════════════════════════════════════════
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  СЕРВИСЫ ROBLOX
--- ═══════════════════════════════════════════════════════════════════════════════
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualUser = game:GetService("VirtualUser")
 local Debris = game:GetService("Debris")
-local StarterGui = game:GetService("StarterGui")
-local Workspace = game:GetService("Workspace")
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ИГРОК И ПЕРСОНАЖ
--- ═══════════════════════════════════════════════════════════════════════════════
 local player = Players.LocalPlayer
 local character = player.Character
 local rootPart = character and character:FindFirstChild("HumanoidRootPart")
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
 local visitedPositions = {}
 local isActive = false
 local flySpeed = 15
@@ -42,134 +28,73 @@ local espHighlights = {}
 local MAX_BAG = 40
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ЗВУКОВЫЕ ЭФФЕКТЫ
+--  ЗВУКИ
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Звук сбора монеты
 local collectSound = Instance.new("Sound")
-collectSound.Name = "CollectSound"
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
-collectSound.Looped = false
 
--- Звук убийства
 local killSound = Instance.new("Sound")
-killSound.Name = "KillSound"
 killSound.SoundId = "rbxassetid://9120392731"
 killSound.Volume = 0.8
-killSound.Looped = false
 
--- Звук смерти
 local deathSound = Instance.new("Sound")
-deathSound.Name = "DeathSound"
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
-deathSound.Looped = false
 
--- Звук клика по UI
 local clickSnd = Instance.new("Sound")
-clickSnd.Name = "ClickSound"
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
-clickSnd.Looped = false
-
--- Звук наведения
-local hoverSnd = Instance.new("Sound")
-hoverSnd.Name = "HoverSound"
-hoverSnd.SoundId = "rbxassetid://198657693"
-hoverSnd.Volume = 0.1
-hoverSnd.Looped = false
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ФУНКЦИЯ УВЕДОМЛЕНИЙ
+--  УВЕДОМЛЕНИЯ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function notify(title, text, duration)
     pcall(function()
-        StarterGui:SetCore("SendNotification", {
+        game.StarterGui:SetCore("SendNotification", {
             Title = title,
             Text = text,
-            Duration = duration or 3,
-            Icon = ""
+            Duration = duration or 3
         })
     end)
     print("[XDarkHUB] " .. title .. ": " .. text)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ОПРЕДЕЛЕНИЕ РОЛИ ИГРОКА
+--  РОЛИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerRole(p)
-    -- Проверка Character (нож/пистолет в руке)
     if p.Character then
-        if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then
-            return "Murderer"
-        end
-        if p.Character:FindFirstChild("Gun") or p.Character:FindFirstChild("SheriffGun") then
-            return "Sheriff"
-        end
+        if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
+        if p.Character:FindFirstChild("Gun") or p.Character:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
-    
-    -- Проверка Backpack (инструменты в инвентаре)
     if p:FindFirstChild("Backpack") then
         local bp = p.Backpack
-        if bp:FindFirstChild("Knife") or bp:FindFirstChild("MurdererSword") then
-            return "Murderer"
-        end
-        if bp:FindFirstChild("Gun") or bp:FindFirstChild("SheriffGun") then
-            return "Sheriff"
-        end
+        if bp:FindFirstChild("Knife") or bp:FindFirstChild("MurdererSword") then return "Murderer" end
+        if bp:FindFirstChild("Gun") or bp:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
-    
-    -- Проверка leaderstats (статистика игрока)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
         for _, v in ipairs(ls:GetChildren()) do
-            if v.Name == "Role" and v.Value then
-                return v.Value
-            end
-            if v.Value == "Murderer" or v.Value == "murderer" then
-                return "Murderer"
-            end
-            if v.Value == "Sheriff" or v.Value == "sheriff" then
-                return "Sheriff"
-            end
+            if v.Name == "Role" and v.Value then return v.Value end
+            if v.Value == "Murderer" or v.Value == "murderer" then return "Murderer" end
+            if v.Value == "Sheriff" or v.Value == "sheriff" then return "Sheriff" end
         end
     end
-    
-    -- Проверка Role в самом игроке
-    local rv = p:FindFirstChild("Role")
-    if rv and rv:IsA("StringValue") then
-        return rv.Value
-    end
-    
-    -- Проверка playerstats
-    local ps = p:FindFirstChild("playerstats")
-    if ps then
-        local rv2 = ps:FindFirstChild("Role")
-        if rv2 and rv2.Value then
-            return rv2.Value
-        end
-    end
-    
     return "Innocent"
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  УМНЫЙ ПОДСЧЁТ МОНЕТ ИГРОКА
--- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
-        -- Ищем значение с монетами по имени
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 local name = v.Name:lower()
-                if name:find("coin") or name:find("money") or name:find("cash") or name:find("gold") then
+                if name:find("coin") or name:find("money") or name:find("cash") then
                     return v.Value
                 end
             end
         end
-        -- Если не нашли по имени, берём первое числовое значение
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 return v.Value
@@ -179,9 +104,6 @@ local function getPlayerCoins(p)
     return 0
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ПРОВЕРКА ТЕКУЩЕЙ РОЛИ
--- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
     local r = getPlayerRole(player)
     isMurderer = (r == "Murderer")
@@ -189,43 +111,40 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  TERMINAL THEME - ЦВЕТОВАЯ СХЕМА
+--  GLASSMORPHISM THEME
 -- ═══════════════════════════════════════════════════════════════════════════════
 local C = {
-    bg = Color3.fromRGB(6, 6, 9),           -- Основной фон
-    panel = Color3.fromRGB(10, 10, 14),     -- Панели
-    card = Color3.fromRGB(14, 14, 20),      -- Карточки
-    hov = Color3.fromRGB(20, 20, 28),       -- При наведении
-    bdr = Color3.fromRGB(32, 32, 42),       -- Границы
-    bdrLt = Color3.fromRGB(50, 50, 62),     -- Светлые границы
-    txt = Color3.fromRGB(235, 235, 245),    -- Основной текст
-    mut = Color3.fromRGB(95, 95, 110),      -- Приглушённый текст
-    wht = Color3.fromRGB(255, 255, 255),    -- Белый текст
-    dim = Color3.fromRGB(60, 60, 75),       -- Тёмный
+    bg = Color3.fromRGB(8, 8, 12),
+    panel = Color3.fromRGB(12, 12, 18),
+    card = Color3.fromRGB(18, 18, 26),
+    hov = Color3.fromRGB(26, 26, 36),
+    bdr = Color3.fromRGB(40, 40, 52),
+    bdrLt = Color3.fromRGB(55, 55, 70),
+    txt = Color3.fromRGB(245, 245, 255),
+    mut = Color3.fromRGB(100, 100, 115),
+    wht = Color3.fromRGB(255, 255, 255),
+    dim = Color3.fromRGB(65, 65, 80),
 }
 
 local A = {
-    base = Color3.fromRGB(220, 30, 55),     -- Основной акцент
-    dim = Color3.fromRGB(60, 10, 22),       -- Тёмный акцент
-    lit = Color3.fromRGB(255, 85, 110),     -- Светлый акцент
-    glo = Color3.fromRGB(255, 45, 70),      -- Свечение
-    drk = Color3.fromRGB(35, 6, 14),        -- Очень тёмный
-    neo = Color3.fromRGB(255, 30, 58),      -- Неоновый
-    soft = Color3.fromRGB(180, 40, 65),     -- Мягкий акцент
+    base = Color3.fromRGB(235, 35, 60),
+    dim = Color3.fromRGB(65, 12, 24),
+    lit = Color3.fromRGB(255, 90, 115),
+    glo = Color3.fromRGB(255, 50, 75),
+    drk = Color3.fromRGB(38, 8, 16),
+    neo = Color3.fromRGB(255, 35, 62),
+    soft = Color3.fromRGB(190, 45, 70),
 }
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  UI HELPER ФУНКЦИИ
+--  UI HELPERS
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Создать скругление
 local function crn(o, r)
     local c = Instance.new("UICorner", o)
     c.CornerRadius = UDim.new(0, r)
     return c
 end
 
--- Создать обводку
 local function stk(o, c, t, tr)
     local s = Instance.new("UIStroke", o)
     s.Color = c
@@ -234,7 +153,6 @@ local function stk(o, c, t, tr)
     return s
 end
 
--- Создать градиент
 local function grd(o, cs, rot)
     local g = Instance.new("UIGradient", o)
     g.Color = ColorSequence.new(cs)
@@ -242,16 +160,10 @@ local function grd(o, cs, rot)
     return g
 end
 
--- Анимация
 local function ani(o, p, t, s)
     TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  СОЗДАНИЕ UI ЭЛЕМЕНТОВ
--- ═══════════════════════════════════════════════════════════════════════════════
-
--- Создать Frame
 local function mkF(par, bg, sz, pos, r, zi)
     local f = Instance.new("Frame")
     f.BackgroundColor3 = bg or C.card
@@ -264,7 +176,6 @@ local function mkF(par, bg, sz, pos, r, zi)
     return f
 end
 
--- Создать TextLabel
 local function mkL(par, txt, col, fnt, fsz, sz, pos, xa, zi)
     local l = Instance.new("TextLabel")
     l.BackgroundTransparency = 1
@@ -280,7 +191,6 @@ local function mkL(par, txt, col, fnt, fsz, sz, pos, xa, zi)
     return l
 end
 
--- Создать TextButton с Ripple эффектом
 local function mkB(par, bg, txt, tcol, fnt, fsz, sz, pos, r, zi)
     local b = Instance.new("TextButton")
     b.BackgroundColor3 = bg or C.card
@@ -295,8 +205,6 @@ local function mkB(par, bg, txt, tcol, fnt, fsz, sz, pos, r, zi)
     b.ZIndex = zi or 3
     b.Parent = par
     if r then crn(b, r) end
-    
-    -- Ripple эффект при клике
     b.MouseButton1Click:Connect(function()
         clickSnd:Play()
         local rip = Instance.new("Frame")
@@ -314,54 +222,39 @@ local function mkB(par, bg, txt, tcol, fnt, fsz, sz, pos, r, zi)
             if rip.Parent then rip:Destroy() end
         end)
     end)
-    
-    -- Звук при наведении
-    b.MouseEnter:Connect(function()
-        hoverSnd:Play()
-    end)
-    
     return b
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ОЧИСТКА СТАРОГО GUI
+--  ОЧИСТКА + GUI
 -- ═══════════════════════════════════════════════════════════════════════════════
 do
     local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
     if old then old:Destroy() end
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  СОЗДАНИЕ GUI
--- ═══════════════════════════════════════════════════════════════════════════════
 local gui = Instance.new("ScreenGui")
 gui.Name = "AutoFarmGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
-
--- Привязка звуков к GUI
 collectSound.Parent = gui
 killSound.Parent = gui
 deathSound.Parent = gui
 clickSnd.Parent = gui
-hoverSnd.Parent = gui
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ФОН С АНИМИРОВАННЫМИ ЧАСТИЦАМИ
+--  ФОН С ЧАСТИЦАМИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local bgF = mkF(gui, C.bg, UDim2.new(1, 0, 1, 0), nil, nil, 0)
-bgF.BackgroundTransparency = 0.1
-
--- Градиент фона
+bgF.BackgroundTransparency = 0.08
 grd(bgF, {
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 3, 12)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(6, 6, 9)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 3, 8)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 4, 14)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8, 8, 12)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 4, 10)),
 }, 45)
 
--- Анимация вращения градиента фона
 task.spawn(function()
     local rotation = 0
     while bgF.Parent do
@@ -371,32 +264,20 @@ task.spawn(function()
     end
 end)
 
--- Цвета частиц
-local pCols = {
-    A.base, A.neo, A.glo, A.lit,
-    Color3.fromRGB(255, 18, 38),
-    Color3.fromRGB(255, 110, 130),
-    Color3.fromRGB(200, 20, 50)
-}
-
--- Создание 25 частиц
-for i = 1, 25 do
-    local sz = math.random(2, 10)
-    local p = mkF(bgF, pCols[math.random(1, #pCols)], UDim2.new(0, sz, 0, sz), UDim2.new(math.random(), 0, math.random(), 0), math.random(1, 4), 0)
-    p.BackgroundTransparency = math.random(50, 85) / 100
-    
-    -- Glow эффект для некоторых частиц
-    if math.random() > 0.6 then
+local pCols = {A.base, A.neo, A.glo, A.lit, Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 115, 135)}
+for i = 1, 28 do
+    local sz = math.random(2, 11)
+    local p = mkF(bgF, pCols[math.random(1, #pCols)], UDim2.new(0, sz, 0, sz), UDim2.new(math.random(), 0, math.random(), 0), math.random(1, 5), 0)
+    p.BackgroundTransparency = math.random(45, 82) / 100
+    if math.random() > 0.5 then
         stk(p, p.BackgroundColor3, 1, 0.5)
     end
-    
-    -- Анимация частицы
     task.spawn(function()
         while p.Parent do
-            local d = math.random(15, 35)
+            local d = math.random(16, 36)
             ani(p, {
                 Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundTransparency = math.random(40, 85) / 100
+                BackgroundTransparency = math.random(35, 82) / 100
             }, d, Enum.EasingStyle.Sine)
             task.wait(d)
         end
@@ -404,58 +285,49 @@ for i = 1, 25 do
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ГЛАВНЫЙ ФРЕЙМ МЕНЮ
+--  ГЛАВНЫЙ ФРЕЙМ
 -- ═══════════════════════════════════════════════════════════════════════════════
-local frame = mkF(gui, C.bg, UDim2.new(0, 560, 0, 460), UDim2.new(0.5, -280, 0.5, -230), 4, 1)
-frame.BackgroundTransparency = 0.02
+local frame = mkF(gui, C.bg, UDim2.new(0, 620, 0, 520), UDim2.new(0.5, -310, 0.5, -260), 8, 1)
+frame.BackgroundTransparency = 0.03
 frame.ClipsDescendants = true
-stk(frame, A.base, 1, 0.5)
+stk(frame, A.base, 1.5, 0.4)
 
--- Тонкая акцентная линия сверху
-local topLine = mkF(frame, A.neo, UDim2.new(1, 0, 0, 1), nil, nil, 3)
-topLine.BackgroundTransparency = 0.2
+local topLine = mkF(frame, A.neo, UDim2.new(1, 0, 0, 2), nil, nil, 3)
+topLine.BackgroundTransparency = 0.15
 
--- Анимация появления
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-ani(frame, {
-    Size = UDim2.new(0, 560, 0, 460),
-    Position = UDim2.new(0.5, -280, 0.5, -230)
-}, 0.5, Enum.EasingStyle.Back)
+ani(frame, {Size = UDim2.new(0, 620, 0, 520), Position = UDim2.new(0.5, -310, 0.5, -260)}, 0.6, Enum.EasingStyle.Back)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ЗАГОЛОВОК МЕНЮ
+--  ЗАГОЛОВОК
 -- ═══════════════════════════════════════════════════════════════════════════════
-local tBar = mkF(frame, C.panel, UDim2.new(1, 0, 0, 44), nil, nil, 2)
+local tBar = mkF(frame, C.panel, UDim2.new(1, 0, 0, 50), nil, nil, 2)
 tBar.Active = true
+tBar.BackgroundTransparency = 0.04
+grd(tBar, {
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 14, 24)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 10, 16)),
+})
 
--- Логотип X
-local logo = mkF(tBar, A.base, UDim2.new(0, 28, 0, 28), UDim2.new(0, 14, 0.5, -14), nil, 3)
-stk(logo, A.neo, 1, 0.3)
-mkL(logo, "X", C.wht, Enum.Font.GothamBlack, 18, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 4)
+local logo = mkF(tBar, A.base, UDim2.new(0, 32, 0, 32), UDim2.new(0, 14, 0.5, -16), nil, 3)
+stk(logo, A.neo, 1.5, 0.3)
+mkL(logo, "X", C.wht, Enum.Font.GothamBlack, 20, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 4)
 
--- Название XDARKHUB
-local tLbl = mkL(tBar, "XDARKHUB", A.lit, Enum.Font.Code, 16, UDim2.new(1, -120, 1, 0), UDim2.new(0, 52, 0, 0), Enum.TextXAlignment.Left, 3)
+local tLbl = mkL(tBar, "XDARKHUB", A.lit, Enum.Font.GothamBlack, 18, UDim2.new(1, -130, 1, 0), UDim2.new(0, 56, 0, 0), Enum.TextXAlignment.Left, 3)
 tLbl.TextStrokeTransparency = 0.8
 tLbl.TextStrokeColor3 = A.drk
 
--- Разделитель
-local sep1 = mkF(tBar, A.base, UDim2.new(0, 1, 0, 18), UDim2.new(0, 48, 0.5, -9), nil, 3)
+local sep1 = mkF(tBar, A.base, UDim2.new(0, 1, 0, 22), UDim2.new(0, 52, 0.5, -11), nil, 3)
 sep1.BackgroundTransparency = 0.5
 
--- Версия
-mkL(tBar, "[v11]", A.mut, Enum.Font.Code, 10, UDim2.new(0, 50, 1, 0), UDim2.new(1, -58, 0, 0), Enum.TextXAlignment.Right, 3)
+mkL(tBar, "[v12]", A.mut, Enum.Font.Code, 11, UDim2.new(0, 60, 1, 0), UDim2.new(1, -68, 0, 0), Enum.TextXAlignment.Right, 3)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ПЕРЕТАСКИВАНИЕ МЕНЮ
--- ═══════════════════════════════════════════════════════════════════════════════
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dr = true
-            ds = i.Position
-            sp = frame.Position
+            dr = true; ds = i.Position; sp = frame.Position
         end
     end)
     UserInputService.InputChanged:Connect(function(i)
@@ -465,57 +337,48 @@ do
         end
     end)
     UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dr = false
-        end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end
     end)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕЙНЕР И ПАНЕЛИ
+--  КОНТЕЙНЕР
 -- ═══════════════════════════════════════════════════════════════════════════════
-local ctr = mkF(frame, nil, UDim2.new(1, 0, 1, -46), UDim2.new(0, 0, 0, 46), nil, 1)
+local ctr = mkF(frame, nil, UDim2.new(1, 0, 1, -52), UDim2.new(0, 0, 0, 52), nil, 1)
 ctr.BackgroundTransparency = 1
 
--- Левая панель (вкладки)
-local lPan = mkF(ctr, C.panel, UDim2.new(0, 140, 1, 0), nil, nil, 2)
+local lPan = mkF(ctr, C.panel, UDim2.new(0, 160, 1, 0), nil, nil, 2)
+lPan.BackgroundTransparency = 0.04
 
--- Вертикальная линия-разделитель
-local vLine = mkF(ctr, A.base, UDim2.new(0, 1, 1, 0), UDim2.new(0, 140, 0, 0), nil, 3)
-vLine.BackgroundTransparency = 0.7
+local vLine = mkF(ctr, A.base, UDim2.new(0, 1, 1, 0), UDim2.new(0, 160, 0, 0), nil, 3)
+vLine.BackgroundTransparency = 0.65
 
--- Правая панель (контент)
-local rPan = mkF(ctr, nil, UDim2.new(1, -142, 1, 0), UDim2.new(0, 142, 0, 0), nil, 2)
+local rPan = mkF(ctr, nil, UDim2.new(1, -162, 1, 0), UDim2.new(0, 162, 0, 0), nil, 2)
 rPan.BackgroundTransparency = 1
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  СИСТЕМА ВКЛАДОК
+--  ВКЛАДКИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local tabs = {}
 local tabC = {}
 local curTab = nil
 
--- Создание вкладки
 local function mkTab(name, icon, ord)
-    local b = mkB(lPan, nil, "", nil, nil, nil, UDim2.new(1, 0, 0, 40), UDim2.new(0, 0, 0, 10 + (ord - 1) * 44), nil, 3)
+    local b = mkB(lPan, nil, "", nil, nil, nil, UDim2.new(1, -16, 0, 46), UDim2.new(0, 8, 0, 12 + (ord - 1) * 52), nil, 3)
     b.BackgroundTransparency = 1
     
-    -- Индикатор слева (тонкая линия)
-    local ind = mkF(b, A.base, UDim2.new(0, 2, 0, 20), UDim2.new(0, 0, 0.5, -10), nil, 3)
+    local ind = mkF(b, A.base, UDim2.new(0, 3, 0, 24), UDim2.new(0, 0, 0.5, -12), nil, 3)
     ind.BackgroundTransparency = 1
     
-    -- Иконка
-    local ic = mkL(b, icon, A.mut, Enum.Font.GothamBold, 16, UDim2.new(0, 30, 1, 0), UDim2.new(0, 14, 0, 0), Enum.TextXAlignment.Center, 3)
+    local ic = mkL(b, icon, A.mut, Enum.Font.GothamBold, 18, UDim2.new(0, 34, 1, 0), UDim2.new(0, 12, 0, 0), Enum.TextXAlignment.Center, 3)
     
-    -- Название
-    mkL(b, name, C.mut, Enum.Font.Code, 11, UDim2.new(1, -50, 1, 0), UDim2.new(0, 44, 0, 0), Enum.TextXAlignment.Left, 3)
+    mkL(b, name, C.mut, Enum.Font.GothamBold, 12, UDim2.new(1, -54, 1, 0), UDim2.new(0, 46, 0, 0), Enum.TextXAlignment.Left, 3)
     
     tabs[name] = {btn = b, ic = ic, ind = ind}
     
-    -- Hover эффекты
     b.MouseEnter:Connect(function()
         if curTab ~= name then
-            ani(b, {BackgroundColor3 = Color3.fromRGB(18, 18, 24)}, 0.15)
+            ani(b, {BackgroundColor3 = Color3.fromRGB(20, 20, 28)}, 0.15)
             ani(ic, {TextColor3 = C.txt}, 0.15)
         end
     end)
@@ -526,18 +389,14 @@ local function mkTab(name, icon, ord)
             ani(ic, {TextColor3 = A.mut}, 0.15)
         end
     end)
-    b.MouseButton1Click:Connect(function()
-        switchTab(name)
-    end)
 end
 
--- Создание контента вкладки
 local function mkTabC(name)
     local c = Instance.new("ScrollingFrame")
     c.Size = UDim2.new(1, 0, 1, 0)
     c.BackgroundTransparency = 1
     c.BorderSizePixel = 0
-    c.ScrollBarThickness = 2
+    c.ScrollBarThickness = 3
     c.ScrollBarImageColor3 = A.base
     c.CanvasSize = UDim2.new(0, 0, 0, 0)
     c.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -546,21 +405,19 @@ local function mkTabC(name)
     c.Parent = rPan
     
     local p = Instance.new("UIPadding", c)
-    p.PaddingLeft = UDim.new(0, 16)
-    p.PaddingRight = UDim.new(0, 16)
-    p.PaddingTop = UDim.new(0, 14)
-    p.PaddingBottom = UDim.new(0, 14)
+    p.PaddingLeft = UDim.new(0, 18)
+    p.PaddingRight = UDim.new(0, 18)
+    p.PaddingTop = UDim.new(0, 16)
+    p.PaddingBottom = UDim.new(0, 16)
     
     local l = Instance.new("UIListLayout", c)
     l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 8)
+    l.Padding = UDim.new(0, 10)
     
     tabC[name] = c
 end
 
--- Переключение вкладок
 function switchTab(name)
-    -- Деактивация всех вкладок
     for n, t in pairs(tabs) do
         t.btn.BackgroundColor3 = nil
         t.btn.BackgroundTransparency = 1
@@ -568,21 +425,19 @@ function switchTab(name)
         t.ind.BackgroundTransparency = 1
     end
     
-    -- Активация выбранной
     if tabs[name] then
-        tabs[name].btn.BackgroundTransparency = 0.7
-        tabs[name].btn.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+        tabs[name].btn.BackgroundTransparency = 0.65
+        tabs[name].btn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
         tabs[name].ic.TextColor3 = A.neo
         tabs[name].ind.BackgroundTransparency = 0
         tabs[name].ind.BackgroundColor3 = A.neo
     end
     
-    -- Переключение контента
     for n, c in pairs(tabC) do
         if n == name then
             c.Visible = true
-            c.Position = UDim2.new(0, 30, 0, 0)
-            ani(c, {Position = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back)
+            c.Position = UDim2.new(0, 40, 0, 0)
+            ani(c, {Position = UDim2.new(0, 0, 0, 0)}, 0.35, Enum.EasingStyle.Back)
         else
             c.Visible = false
         end
@@ -591,68 +446,61 @@ function switchTab(name)
     curTab = name
 end
 
--- Создание всех вкладок
 mkTab("Sheriff", "⭐", 1)
 mkTab("Murderer", "🔪", 2)
 mkTab("ESP", "👁️", 3)
 mkTab("Player", "🎯", 4)
-mkTab("Farm", "⚙", 5)
+mkTab("Farm", "⚙️", 5)
 
 for n in pairs(tabs) do
     mkTabC(n)
+    tabs[n].btn.MouseButton1Click:Connect(function()
+        switchTab(n)
+    end)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  UI КОМПОНЕНТЫ
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Заголовок секции
 local function secT(par, ord, txt)
-    local l = mkL(par, txt, A.soft, Enum.Font.Code, 10, UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Left, 2)
+    local l = mkL(par, txt, A.soft, Enum.Font.GothamBold, 11, UDim2.new(1, 0, 0, 22), nil, Enum.TextXAlignment.Left, 2)
     l.LayoutOrder = ord
     local ln = mkF(par, A.base, UDim2.new(1, 0, 0, 1), nil, nil, 2)
-    ln.BackgroundTransparency = 0.85
+    ln.BackgroundTransparency = 0.82
     ln.LayoutOrder = ord + 0.1
 end
 
--- Строка статистики
 local function statR(par, ord, name)
-    local r = mkF(par, nil, UDim2.new(1, 0, 0, 30), nil, nil, 2)
+    local r = mkF(par, nil, UDim2.new(1, 0, 0, 34), nil, nil, 2)
     r.LayoutOrder = ord
     r.BackgroundTransparency = 1
     
-    -- Нижняя линия
     local ln = mkF(r, C.bdr, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, 0), nil, 2)
-    ln.BackgroundTransparency = 0.7
+    ln.BackgroundTransparency = 0.65
     
-    -- Точка
-    local dot = mkF(r, A.base, UDim2.new(0, 4, 0, 4), UDim2.new(0, 0, 0.5, -2), 2, 2)
+    local dot = mkF(r, A.base, UDim2.new(0, 5, 0, 5), UDim2.new(0, 0, 0.5, -2.5), 3, 2)
     
-    mkL(r, name, C.mut, Enum.Font.Code, 11, UDim2.new(0.6, 0, 1, 0), UDim2.new(0, 12, 0, 0), Enum.TextXAlignment.Left, 2)
-    local v = mkL(r, "0", A.lit, Enum.Font.Code, 12, UDim2.new(0.4, -12, 1, 0), UDim2.new(0.6, 0, 0, 0), Enum.TextXAlignment.Right, 2)
+    mkL(r, name, C.mut, Enum.Font.Gotham, 12, UDim2.new(0.6, 0, 1, 0), UDim2.new(0, 14, 0, 0), Enum.TextXAlignment.Left, 2)
+    local v = mkL(r, "0", A.lit, Enum.Font.GothamBold, 13, UDim2.new(0.4, -14, 1, 0), UDim2.new(0.6, 0, 0, 0), Enum.TextXAlignment.Right, 2)
     return v
 end
 
--- Переключатель (Toggle)
 local function togC(par, ord, label, onTog)
-    local cd = mkF(par, nil, UDim2.new(1, 0, 0, 42), nil, nil, 2)
+    local cd = mkF(par, nil, UDim2.new(1, 0, 0, 46), nil, nil, 2)
     cd.LayoutOrder = ord
     cd.BackgroundTransparency = 1
     
-    -- Нижняя линия
     local ln = mkF(cd, C.bdr, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, 0), nil, 2)
-    ln.BackgroundTransparency = 0.7
+    ln.BackgroundTransparency = 0.65
     
-    mkL(cd, label, C.txt, Enum.Font.Code, 12, UDim2.new(1, -80, 1, 0), UDim2.new(0, 0, 0, 0), Enum.TextXAlignment.Left, 2)
+    mkL(cd, label, C.txt, Enum.Font.GothamBold, 13, UDim2.new(1, -90, 1, 0), UDim2.new(0, 0, 0, 0), Enum.TextXAlignment.Left, 2)
     
-    -- Квадратный переключатель
-    local sw = mkF(cd, C.bdr, UDim2.new(0, 44, 0, 22), UDim2.new(1, -52, 0.5, -11), nil, 2)
+    local sw = mkF(cd, C.bdr, UDim2.new(0, 50, 0, 26), UDim2.new(1, -58, 0.5, -13), nil, 2)
     stk(sw, C.bdrLt, 1)
     
-    -- Внутренний индикатор
-    local ind = mkF(sw, C.mut, UDim2.new(0, 14, 0, 14), UDim2.new(0, 4, 0.5, -7), nil, 2)
+    local ind = mkF(sw, C.mut, UDim2.new(0, 16, 0, 16), UDim2.new(0, 5, 0.5, -8), nil, 2)
     
-    local pl = mkL(sw, "OFF", C.mut, Enum.Font.Code, 9, UDim2.new(1, 0, 1, 0), UDim2.new(0, 20, 0, 0), Enum.TextXAlignment.Left, 2)
+    local pl = mkL(sw, "OFF", C.mut, Enum.Font.GothamBold, 10, UDim2.new(1, 0, 1, 0), UDim2.new(0, 24, 0, 0), Enum.TextXAlignment.Left, 2)
     
     local btn = mkB(cd, nil, "", nil, nil, nil, UDim2.new(1, 0, 1, 0), nil, nil, 3)
     btn.BackgroundTransparency = 1
@@ -664,14 +512,14 @@ local function togC(par, ord, label, onTog)
         if st then
             ani(sw, {BackgroundColor3 = A.dim}, 0.2)
             sw.UIStroke.Color = A.base
-            ani(ind, {Position = UDim2.new(0, 26, 0.5, -7), BackgroundColor3 = A.neo}, 0.25, Enum.EasingStyle.Back)
+            ani(ind, {Position = UDim2.new(0, 29, 0.5, -8), BackgroundColor3 = A.neo}, 0.25, Enum.EasingStyle.Back)
             pl.Text = "ON"
             ani(pl, {TextColor3 = A.lit}, 0.2)
-            ani(cd, {BackgroundColor3 = Color3.fromRGB(18, 14, 20)}, 0.2)
+            ani(cd, {BackgroundColor3 = Color3.fromRGB(20, 16, 22)}, 0.2)
         else
             ani(sw, {BackgroundColor3 = C.bdr}, 0.2)
             sw.UIStroke.Color = C.bdrLt
-            ani(ind, {Position = UDim2.new(0, 4, 0.5, -7), BackgroundColor3 = C.mut}, 0.25, Enum.EasingStyle.Back)
+            ani(ind, {Position = UDim2.new(0, 5, 0.5, -8), BackgroundColor3 = C.mut}, 0.25, Enum.EasingStyle.Back)
             pl.Text = "OFF"
             ani(pl, {TextColor3 = C.mut}, 0.2)
             cd.BackgroundColor3 = nil
@@ -682,7 +530,7 @@ local function togC(par, ord, label, onTog)
     
     btn.MouseEnter:Connect(function()
         if not st then
-            ani(cd, {BackgroundColor3 = Color3.fromRGB(16, 16, 22)}, 0.15)
+            ani(cd, {BackgroundColor3 = Color3.fromRGB(18, 18, 24)}, 0.15)
         end
     end)
     btn.MouseLeave:Connect(function()
@@ -694,96 +542,85 @@ local function togC(par, ord, label, onTog)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕНТ ВКЛАДКИ ESP
+--  КОНТЕНТ ВКЛАДОК
 -- ═══════════════════════════════════════════════════════════════════════════════
 local espC = tabC["ESP"]
-secT(espC, 1, "-- VISUAL")
-togC(espC, 2, "esp_roles", function(s)
+secT(espC, 1, "VISUAL")
+togC(espC, 2, "ESP Roles", function(s)
     espEnabled = s
     updateESP()
     notify("XDarkHUB", "ESP: " .. (s and "ON" or "OFF"), 2)
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕНТ ВКЛАДКИ FARM
--- ═══════════════════════════════════════════════════════════════════════════════
 local fC = tabC["Farm"]
-secT(fC, 1, "-- STATS")
-local counterV = statR(fC, 2, "coins")
-local timerV = statR(fC, 3, "time")
-local rateV = statR(fC, 4, "rate")
-local pCoinV = statR(fC, 5, "total")
-secT(fC, 6, "-- ROLE")
-local roleV = statR(fC, 7, "status")
-secT(fC, 8, "-- BAG")
-local bagV = statR(fC, 9, "state")
+secT(fC, 1, "STATS")
+local counterV = statR(fC, 2, "Coins")
+local timerV = statR(fC, 3, "Time")
+local rateV = statR(fC, 4, "Rate")
+local pCoinV = statR(fC, 5, "Total")
+secT(fC, 6, "ROLE")
+local roleV = statR(fC, 7, "Status")
+secT(fC, 8, "BAG")
+local bagV = statR(fC, 9, "State")
 
--- Лимит мешка
 do
-    local cd = mkF(fC, nil, UDim2.new(1, 0, 0, 38), nil, nil, 2)
+    local cd = mkF(fC, nil, UDim2.new(1, 0, 0, 42), nil, nil, 2)
     cd.LayoutOrder = 10
     cd.BackgroundTransparency = 1
     local ln = mkF(cd, C.bdr, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, 0), nil, 2)
-    ln.BackgroundTransparency = 0.7
-    mkL(cd, "limit", C.txt, Enum.Font.Code, 12, UDim2.new(1, -80, 1, 0), nil, Enum.TextXAlignment.Left, 2)
-    local pill = mkF(cd, A.base, UDim2.new(0, 60, 0, 24), UDim2.new(1, -68, 0.5, -12), nil, 2)
+    ln.BackgroundTransparency = 0.65
+    mkL(cd, "Limit", C.txt, Enum.Font.GothamBold, 13, UDim2.new(1, -90, 1, 0), nil, Enum.TextXAlignment.Left, 2)
+    local pill = mkF(cd, A.base, UDim2.new(0, 68, 0, 28), UDim2.new(1, -76, 0.5, -14), nil, 2)
     stk(pill, A.neo, 1)
-    local pL = mkL(pill, MAX_BAG, C.wht, Enum.Font.Code, 12, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 2)
+    local pL = mkL(pill, MAX_BAG, C.wht, Enum.Font.GothamBold, 13, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 2)
     local b = mkB(cd, nil, "", nil, nil, nil, UDim2.new(1, 0, 1, 0), nil, nil, 3)
     b.BackgroundTransparency = 1
     b.MouseButton1Click:Connect(function()
         if MAX_BAG == 40 then MAX_BAG = 50 else MAX_BAG = 40 end
         pL.Text = MAX_BAG
-        ani(pill, {Size = UDim2.new(0, 68, 0, 28)}, 0.12)
+        ani(pill, {Size = UDim2.new(0, 76, 0, 32)}, 0.12)
         task.wait(0.12)
-        ani(pill, {Size = UDim2.new(0, 60, 0, 24)}, 0.12)
-        notify("XDarkHUB", "limit: " .. MAX_BAG, 2)
+        ani(pill, {Size = UDim2.new(0, 68, 0, 28)}, 0.12)
     end)
 end
 
--- Скорость фарма
 do
-    local cd = mkF(fC, nil, UDim2.new(1, 0, 0, 38), nil, nil, 2)
+    local cd = mkF(fC, nil, UDim2.new(1, 0, 0, 42), nil, nil, 2)
     cd.LayoutOrder = 11
     cd.BackgroundTransparency = 1
     local ln = mkF(cd, C.bdr, UDim2.new(1, 0, 0, 1), UDim2.new(0, 0, 1, 0), nil, 2)
-    ln.BackgroundTransparency = 0.7
-    mkL(cd, "speed", C.txt, Enum.Font.Code, 12, UDim2.new(1, -80, 1, 0), nil, Enum.TextXAlignment.Left, 2)
-    local pill = mkF(cd, C.bdr, UDim2.new(0, 50, 0, 22), UDim2.new(1, -58, 0.5, -11), nil, 2)
+    ln.BackgroundTransparency = 0.65
+    mkL(cd, "Speed", C.txt, Enum.Font.GothamBold, 13, UDim2.new(1, -90, 1, 0), nil, Enum.TextXAlignment.Left, 2)
+    local pill = mkF(cd, C.bdr, UDim2.new(0, 58, 0, 26), UDim2.new(1, -66, 0.5, -13), nil, 2)
     stk(pill, A.base, 1)
-    local sL = mkL(pill, tostring(flySpeed), A.lit, Enum.Font.Code, 11, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 2)
+    local sL = mkL(pill, tostring(flySpeed), A.lit, Enum.Font.GothamBold, 12, UDim2.new(1, 0, 1, 0), nil, Enum.TextXAlignment.Center, 2)
     local b = mkB(cd, nil, "", nil, nil, nil, UDim2.new(1, 0, 1, 0), nil, nil, 3)
     b.BackgroundTransparency = 1
     b.MouseButton1Click:Connect(function()
         flySpeed = flySpeed + 5
         if flySpeed > 50 then flySpeed = 10 end
         sL.Text = tostring(flySpeed)
-        notify("XDarkHUB", "speed: " .. flySpeed, 1)
     end)
 end
 
--- Auto Farm
-togC(fC, 12, "auto_farm", function(s)
+togC(fC, 12, "Auto Farm", function(s)
     isActive = s
     if s then
         startFarming()
-        notify("XDarkHUB", "farm ON", 2)
+        notify("XDarkHUB", "Farm ON", 2)
     else
-        notify("XDarkHUB", "farm OFF", 2)
+        notify("XDarkHUB", "Farm OFF", 2)
     end
 end)
 
--- Anti-AFK
-togC(fC, 13, "anti_afk", function(s)
+togC(fC, 13, "Anti-AFK", function(s)
     antiAFK = s
-    notify("XDarkHUB", "anti_afk: " .. (s and "ON" or "OFF"), 2)
 end)
 
--- Fling кнопка
 do
-    local b = mkB(fC, A.base, "> FLING", C.wht, Enum.Font.Code, 12, UDim2.new(1, 0, 0, 40), nil, nil, 2)
+    local b = mkB(fC, A.base, "FLING", C.wht, Enum.Font.GothamBlack, 14, UDim2.new(1, 0, 0, 46), nil, nil, 2)
     b.LayoutOrder = 14
-    stk(b, A.neo, 1)
+    stk(b, A.neo, 1.5)
     b.MouseEnter:Connect(function()
         ani(b, {BackgroundColor3 = A.neo}, 0.15)
     end)
@@ -795,14 +632,13 @@ do
     end)
 end
 
--- Reset кнопка
 do
-    local b = mkB(fC, nil, "> RESET", A.soft, Enum.Font.Code, 11, UDim2.new(1, 0, 0, 34), nil, nil, 2)
+    local b = mkB(fC, nil, "RESET", A.soft, Enum.Font.GothamBold, 12, UDim2.new(1, 0, 0, 38), nil, nil, 2)
     b.LayoutOrder = 15
     b.BackgroundTransparency = 1
     stk(b, A.base, 1, 0.5)
     b.MouseEnter:Connect(function()
-        ani(b, {BackgroundColor3 = Color3.fromRGB(18, 14, 20)}, 0.15)
+        ani(b, {BackgroundColor3 = Color3.fromRGB(20, 16, 22)}, 0.15)
     end)
     b.MouseLeave:Connect(function()
         b.BackgroundColor3 = nil
@@ -818,47 +654,42 @@ do
         farmStopped = false
         visitedPositions = {}
         updateBagUI()
-        notify("XDarkHUB", "reset", 2)
     end)
 end
 
--- Заглушки для других вкладок
 for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     local c = tabC[name]
-    mkL(c, "-- " .. name:upper(), A.soft, Enum.Font.Code, 10, UDim2.new(1, 0, 0, 20), nil, Enum.TextXAlignment.Left, 2).LayoutOrder = 1
-    local cd = mkF(c, nil, UDim2.new(1, 0, 0, 90), nil, nil, 2)
+    mkL(c, name:upper(), A.soft, Enum.Font.GothamBlack, 16, UDim2.new(1, 0, 0, 30), nil, Enum.TextXAlignment.Left, 2).LayoutOrder = 1
+    local cd = mkF(c, nil, UDim2.new(1, 0, 0, 100), nil, nil, 2)
     cd.LayoutOrder = 2
     cd.BackgroundTransparency = 1
     stk(cd, C.bdr, 1, 0.5)
-    mkL(cd, "> coming_soon", C.mut, Enum.Font.Code, 12, UDim2.new(1, -20, 1, 0), UDim2.new(0, 10, 0, 0), Enum.TextXAlignment.Left, 2)
+    mkL(cd, "Coming Soon", C.mut, Enum.Font.Gotham, 13, UDim2.new(1, -20, 1, 0), UDim2.new(0, 10, 0, 0), Enum.TextXAlignment.Left, 2)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ФУНКЦИИ UI ОБНОВЛЕНИЯ
+--  ФУНКЦИИ
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Обновление роли
 function updateRoleUI()
     checkRole()
     if isMurderer then
-        roleV.Text = "murderer"
+        roleV.Text = "Murderer"
         roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
     elseif isSheriff then
-        roleV.Text = "sheriff"
+        roleV.Text = "Sheriff"
         roleV.TextColor3 = Color3.fromRGB(50, 150, 255)
     else
-        roleV.Text = "innocent"
+        roleV.Text = "Innocent"
         roleV.TextColor3 = Color3.fromRGB(50, 255, 50)
     end
 end
 
--- Обновление статуса мешка
 function updateBagUI()
     if farmStopped then
-        bagV.Text = "stopped"
+        bagV.Text = "Stopped"
         bagV.TextColor3 = Color3.fromRGB(255, 80, 80)
     elseif bagFull then
-        bagV.Text = "full"
+        bagV.Text = "Full"
         bagV.TextColor3 = Color3.fromRGB(255, 200, 0)
     else
         bagV.Text = collected .. "/" .. MAX_BAG
@@ -866,18 +697,14 @@ function updateBagUI()
     end
 end
 
--- Остановка фарма
 function stopFarming()
     farmStopped = true
     updateBagUI()
-    notify("XDarkHUB", "stopped", 2)
+    notify("XDarkHUB", "Stopped", 2)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  УБИЙЦА УБИВАЕТ ВСЕХ (Кинематографичное убийство)
--- ═══════════════════════════════════════════════════════════════════════════════
 function cinematicMurdererKill()
-    notify("XDarkHUB", "kill all", 3)
+    notify("XDarkHUB", "Kill All", 3)
     killSound:Play()
     
     character = player.Character
@@ -887,7 +714,6 @@ function cinematicMurdererKill()
     local hum = character:FindFirstChild("Humanoid")
     if not hrp or not hum then return end
     
-    -- Поиск ножа
     local k = character:FindFirstChild("Knife") or character:FindFirstChild("MurdererSword")
     if not k then
         k = player:FindFirstChild("Backpack") and (player.Backpack:FindFirstChild("Knife") or player.Backpack:FindFirstChild("MurdererSword"))
@@ -902,7 +728,6 @@ function cinematicMurdererKill()
     hum:EquipTool(k)
     task.wait(0.3)
     
-    -- Сбор всех целей
     local tgts = {}
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
@@ -910,7 +735,6 @@ function cinematicMurdererKill()
         end
     end
     
-    -- Фиксация целей
     for _, p in ipairs(tgts) do
         local h = p.Character:FindFirstChild("Humanoid")
         if h then
@@ -925,7 +749,6 @@ function cinematicMurdererKill()
     
     task.wait(0.4)
     
-    -- Убийство всех
     for i, p in ipairs(tgts) do
         if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             local h = p.Character:FindFirstChild("HumanoidRootPart")
@@ -937,7 +760,6 @@ function cinematicMurdererKill()
                 if p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
-                notify("XDarkHUB", i .. "/" .. #tgts, 1)
             end
         end
     end
@@ -946,17 +768,16 @@ function cinematicMurdererKill()
     bagFull = false
     collected = 0
     counterV.Text = "0"
-    notify("XDarkHUB", "done", 2)
+    notify("XDarkHUB", "Done", 2)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ФЛИНГ МАРДЕРА В КОСМОС
+--  ФЛИНГ МАРДЕРА (РАБОЧИЙ МЕТОД)
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "fling", 3)
+    notify("XDarkHUB", "Fling", 3)
     deathSound:Play()
     
-    -- Поиск мардера
     local mp = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and getPlayerRole(p) == "Murderer" then
@@ -966,101 +787,103 @@ function throwMurdererToSpace()
     end
     
     if not mp or not mp.Character then
-        notify("XDarkHUB", "not found", 2)
+        notify("XDarkHUB", "Not Found", 2)
         return
     end
     
     local mh = mp.Character:FindFirstChild("HumanoidRootPart")
-    if not mh then return end
+    if not mh then
+        notify("XDarkHUB", "No HRP", 2)
+        return
+    end
     
     notify("XDarkHUB", mp.Name, 2)
     
-    -- Отключение управления мардеру
+    -- Отключение управления
     local mhu = mp.Character:FindFirstChild("Humanoid")
     if mhu then
         mhu.PlatformStand = true
         mhu.WalkSpeed = 0
         mhu.JumpPower = 0
         mhu.AutoRotate = false
+        mhu.JumpHeight = 0
     end
     
     -- Отключение коллизий
     for _, pt in ipairs(mp.Character:GetDescendants()) do
-        if pt:IsA("BasePart") then pt.CanCollide = false end
+        if pt:IsA("BasePart") then
+            pt.CanCollide = false
+        end
     end
     
     -- Удаление старых velocity
     for _, v in ipairs(mh:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
+        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") or v:IsA("AlignPosition") or v:IsA("AlignOrientation") then
             v:Destroy()
         end
     end
     
-    -- Создание 12 флинг-частей
-    for i = 1, 12 do
-        local pt = Instance.new("Part")
-        pt.Size = Vector3.new(math.random(3, 6), math.random(3, 6), math.random(3, 6))
-        pt.Position = mh.Position + Vector3.new(math.random(-3, 3), math.random(-2, 4), math.random(-3, 3))
-        pt.Anchored = false
-        pt.CanCollide = false
-        pt.Transparency = 1
-        pt.Massless = true
-        pt.CustomPhysicalProperties = PhysicalProperties.new(0.1, 0.3, 0.5, 0.1, 0.1)
-        pt.Parent = Workspace
-        
-        -- WeldConstraint к мардеру
-        local w = Instance.new("WeldConstraint")
-        w.Part0 = pt
-        w.Part1 = mh
-        w.Parent = pt
-        
-        -- BodyVelocity на часть
-        local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(math.random(-500, 500), math.random(8000, 15000), math.random(-500, 500))
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.P = math.huge
-        bv.Parent = pt
-        
-        Debris:AddItem(pt, 15)
-        Debris:AddItem(bv, 15)
-    end
+    -- Создание ОДНОЙ большой невидимой части
+    local flingPart = Instance.new("Part")
+    flingPart.Name = "FlingPart"
+    flingPart.Size = Vector3.new(10, 10, 10)
+    flingPart.Position = mh.Position
+    flingPart.Anchored = false
+    flingPart.CanCollide = false
+    flingPart.Transparency = 1
+    flingPart.Massless = false
+    flingPart.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5, 100, 1000)
+    flingPart.Parent = workspace
     
-    -- BodyAngularVelocity на мардера (вращение)
+    -- WeldConstraint
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = flingPart
+    weld.Part1 = mh
+    weld.Parent = flingPart
+    
+    -- BodyVelocity на часть (огромная сила вверх)
+    local bv = Instance.new("BodyVelocity")
+    bv.Velocity = Vector3.new(0, 20000, 0)
+    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bv.P = math.huge
+    bv.Parent = flingPart
+    
+    -- BodyAngularVelocity на часть (вращение)
     local ba = Instance.new("BodyAngularVelocity")
-    ba.AngularVelocity = Vector3.new(1500, 1500, 1500)
+    ba.AngularVelocity = Vector3.new(2000, 2000, 2000)
     ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     ba.P = math.huge
-    ba.Parent = mh
+    ba.Parent = flingPart
+    
+    -- Очистка через 15 секунд
+    Debris:AddItem(flingPart, 15)
+    Debris:AddItem(bv, 15)
     Debris:AddItem(ba, 15)
     
-    -- Красный эффект вспышки
+    -- Красный эффект
     local fl = Instance.new("Part")
-    fl.Size = Vector3.new(30, 30, 30)
+    fl.Size = Vector3.new(35, 35, 35)
     fl.Position = mh.Position
     fl.Anchored = true
     fl.CanCollide = false
     fl.Material = Enum.Material.Neon
     fl.Color = A.neo
-    fl.Transparency = 0.3
-    fl.Parent = Workspace
+    fl.Transparency = 0.25
+    fl.Parent = workspace
     Debris:AddItem(fl, 4)
     
-    -- Свет от вспышки
     local lt = Instance.new("PointLight")
-    lt.Brightness = 30
-    lt.Range = 70
+    lt.Brightness = 35
+    lt.Range = 80
     lt.Color = A.neo
     lt.Parent = fl
     
-    notify("XDarkHUB", mp.Name .. " flung", 3)
+    notify("XDarkHUB", mp.Name .. " Flung", 3)
     bagFull = false
     collected = 0
     counterV.Text = "0"
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ПОЛЁТ К МОНЕТЕ
--- ═══════════════════════════════════════════════════════════════════════════════
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     
@@ -1080,9 +903,6 @@ function flyTo(pos, spd)
     return not c
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФАРМ МОНЕТ
--- ═══════════════════════════════════════════════════════════════════════════════
 function startFarming()
     collected = 0
     startTime = tick()
@@ -1095,9 +915,8 @@ function startFarming()
     rateV.Text = "0"
     updateRoleUI()
     updateBagUI()
-    notify("XDarkHUB", "farm on", 2)
+    notify("XDarkHUB", "Farm ON", 2)
     
-    -- Поток статистики
     task.spawn(function()
         while isActive do
             local e = tick() - startTime
@@ -1108,12 +927,11 @@ function startFarming()
         end
     end)
     
-    -- Поток проверки мешка
     task.spawn(function()
         while isActive do
             task.wait(0.5)
             if collected >= MAX_BAG and not farmStopped then
-                notify("XDarkHUB", "full", 3)
+                notify("XDarkHUB", "Full", 3)
                 bagFull = true
                 farmStopped = true
                 updateBagUI()
@@ -1128,7 +946,6 @@ function startFarming()
         end
     end)
     
-    -- Поток сбора монет
     task.spawn(function()
         while isActive do
             if farmStopped then task.wait(1) continue end
@@ -1141,11 +958,9 @@ function startFarming()
             
             checkRole()
             
-            -- Поиск ближайшей монеты
             local cl, sh = nil, math.huge
-            for _, o in ipairs(Workspace:GetDescendants()) do
+            for _, o in ipairs(workspace:GetDescendants()) do
                 if o:IsA("BasePart") and o.Name == "Coin_Server" then
-                    -- Проверка что монета не в Character другого игрока
                     local ic = false
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p.Character and o:IsDescendantOf(p.Character) then
@@ -1153,7 +968,7 @@ function startFarming()
                             break
                         end
                     end
-                    if not ic and o.Parent and o:IsDescendantOf(Workspace) and not visitedPositions[o] then
+                    if not ic and o.Parent and o:IsDescendantOf(workspace) and not visitedPositions[o] then
                         local d = (o.Position - rootPart.Position).Magnitude
                         if d < sh and d < 300 then
                             cl = o
@@ -1170,8 +985,7 @@ function startFarming()
                 
                 if flyTo(cp, flySpeed) and not farmStopped then
                     task.wait(0.3)
-                    if cr.Parent and cr:IsDescendantOf(Workspace) then
-                        -- Проверка что монета не в Character
+                    if cr.Parent and cr:IsDescendantOf(workspace) then
                         local ic = false
                         for _, p in ipairs(Players:GetPlayers()) do
                             if p.Character and cr:IsDescendantOf(p.Character) then
@@ -1205,22 +1019,20 @@ function startFarming()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  КНОПКА МЕНЮ (перетаскиваемая)
+--  КНОПКА МЕНЮ
 -- ═══════════════════════════════════════════════════════════════════════════════
-local mBtn = mkB(gui, A.base, "X", C.wht, Enum.Font.Code, 22, UDim2.new(0, 50, 0, 50), UDim2.new(0, 15, 1, -65), nil, 10)
-stk(mBtn, A.neo, 1, 0.4)
+local mBtn = mkB(gui, A.base, "X", C.wht, Enum.Font.GothamBlack, 24, UDim2.new(0, 56, 0, 56), UDim2.new(0, 18, 1, -74), nil, 10)
+stk(mBtn, A.neo, 1.5, 0.4)
 
--- Пульсация кнопки
 task.spawn(function()
     while mBtn.Parent do
-        ani(mBtn, {Size = UDim2.new(0, 54, 0, 54)}, 1.5, Enum.EasingStyle.Sine)
+        ani(mBtn, {Size = UDim2.new(0, 60, 0, 60)}, 1.5, Enum.EasingStyle.Sine)
         task.wait(1.5)
-        ani(mBtn, {Size = UDim2.new(0, 50, 0, 50)}, 1.5, Enum.EasingStyle.Sine)
+        ani(mBtn, {Size = UDim2.new(0, 56, 0, 56)}, 1.5, Enum.EasingStyle.Sine)
         task.wait(1.5)
     end
 end)
 
--- Перетаскивание
 do
     local dr, ds, sp = false, nil, nil
     mBtn.InputBegan:Connect(function(i)
@@ -1243,7 +1055,6 @@ do
     end)
 end
 
--- Клик по кнопке - скрытие/показ меню
 mBtn.MouseButton1Click:Connect(function()
     local v = frame.Visible
     frame.Visible = not v
@@ -1251,10 +1062,9 @@ mBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ESP ПОДСВЕТКА ИГРОКОВ
+--  ESP
 -- ═══════════════════════════════════════════════════════════════════════════════
 function updateESP()
-    -- Удаление старых highlight
     for _, h in pairs(espHighlights) do
         if h then h:Destroy() end
     end
@@ -1262,7 +1072,6 @@ function updateESP()
     
     if not espEnabled then return end
     
-    -- Создание новых highlight для каждого игрока
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local r = getPlayerRole(p)
@@ -1285,7 +1094,6 @@ function updateESP()
     end
 end
 
--- Автообновление ESP каждые 2 секунды
 task.spawn(function()
     while true do
         if espEnabled then updateESP() end
@@ -1296,8 +1104,6 @@ end)
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  СИСТЕМНЫЕ СОБЫТИЯ
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- При возрождении персонажа
 player.CharacterAdded:Connect(function(ch)
     character = ch
     rootPart = ch:WaitForChild("HumanoidRootPart")
@@ -1306,19 +1112,16 @@ player.CharacterAdded:Connect(function(ch)
     task.wait(1.5)
     checkRole()
     updateRoleUI()
-    notify("XDarkHUB", "respawn", 2)
 end)
 
--- Anti-AFK защита
 player.Idled:Connect(function()
     if antiAFK then
-        VirtualUser:Button2Down(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
         task.wait(1)
-        VirtualUser:Button2Up(Vector2.new(0, 0), Workspace.CurrentCamera.CFrame)
+        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
     end
 end)
 
--- NoClip (проход сквозь стены)
 RunService.Stepped:Connect(function()
     if isActive and character and not farmStopped then
         for _, v in ipairs(character:GetDescendants()) do
@@ -1329,19 +1132,8 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ИНИЦИАЛИЗАЦИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
 updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v11 loaded", 3)
-notify("XDarkHUB", "terminal style", 3)
-notify("XDarkHUB", "ready", 3)
-
-print("═══════════════════════════════════════════════════════════════════════════════")
-print("  XDarkHUB v11 · TERMINAL STYLE · MM2 Autofarm")
-print("  Author: egor745top6")
-print("  Loaded successfully!")
-print("═══════════════════════════════════════════════════════════════════════════════")
+notify("XDarkHUB", "v12 Loaded", 3)
