@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · DRAGGABLE BUTTON
+--  XDarkHUB · MM2 Coin Autofarm · УВЕДОМЛЕНИЯ ДЛЯ ПЛАНШЕТА
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -39,6 +39,18 @@ killSound.Volume = 0.8
 local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
+
+-- 🔥 ФУНКЦИЯ УВЕДОМЛЕНИЙ ДЛЯ ПЛАНШЕТА
+local function notify(title, text, duration)
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 3
+        })
+    end)
+    print("📢 [" .. title .. "] " .. text)
+end
 
 local function getPlayerRole(p)
     if p.Character then
@@ -415,11 +427,11 @@ end
 function stopFarming()
     farmStopped = true
     updateBagUI()
-    print("🛑 ФАРМ ОСТАНОВЛЕН!")
+    notify("XDarkHUB", "Фарм остановлен", 2)
 end
 
 function cinematicMurdererKill()
-    print("🔪 === УБИЙЦА УБИВАЕТ ВСЕХ ===")
+    notify("XDarkHUB", "🔪 Убийца убивает всех!", 3)
     killSound:Play()
     
     character = player.Character
@@ -491,31 +503,25 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 ФЛИНГ С МАКСИМАЛЬНОЙ ОТЛАДКОЙ
+-- 🔥 УПРОЩЁННЫЙ ФЛИНГ С УВЕДОМЛЕНИЯМИ
 function throwMurdererToSpace()
-    print("🚀 ========================================")
-    print("🚀 === ФЛИНГ МАРДЕРА В КОСМОС ===")
-    print("🚀 ========================================")
+    notify("XDarkHUB", "🚀 ФЛИНГ МАРДЕРА!", 4)
     deathSound:Play()
     
     -- 🔥 Ищем мардера
     local murdererPlayer = nil
-    print("🔍 Ищем мардера...")
-    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local role = getPlayerRole(p)
-            print("  👤", p.Name, "→", role)
             if role == "Murderer" then
                 murdererPlayer = p
-                print("  ✅ НАЙДЕН:", p.Name)
                 break
             end
         end
     end
     
     if not murdererPlayer then
-        print("❌ МАРДЕР НЕ НАЙДЕН!")
+        notify("XDarkHUB", "❌ Мардер не найден!", 3)
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -523,7 +529,7 @@ function throwMurdererToSpace()
     end
     
     if not murdererPlayer.Character then
-        print("❌ У мардера нет Character!")
+        notify("XDarkHUB", "❌ Нет Character!", 3)
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -532,7 +538,7 @@ function throwMurdererToSpace()
     
     local murdererHrp = murdererPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not murdererHrp then
-        print("❌ У мардера нет HumanoidRootPart!")
+        notify("XDarkHUB", "❌ Нет HRP!", 3)
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -541,8 +547,7 @@ function throwMurdererToSpace()
     
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
-    print("✅ Мардер:", murdererPlayer.Name)
-    print("📍 Позиция:", murdererHrp.Position)
+    notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
     -- 🔥 Отключаем управление
     if murdererHum then
@@ -550,14 +555,12 @@ function throwMurdererToSpace()
         murdererHum.WalkSpeed = 0
         murdererHum.JumpPower = 0
         murdererHum.AutoRotate = false
-        print("✅ Управление отключено")
     end
     
     -- 🔥 Отключаем коллизии
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
-    print("✅ Коллизии отключены")
     
     -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
@@ -577,14 +580,12 @@ function throwMurdererToSpace()
     flingPart.Massless = true
     flingPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
     flingPart.Parent = workspace
-    print("✅ Флинг-часть создана в workspace")
     
     -- 🔥 WeldConstraint
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = flingPart
     weld.Part1 = murdererHrp
     weld.Parent = flingPart
-    print("✅ WeldConstraint создан")
     
     -- 🔥 BodyVelocity
     local flingVel = Instance.new("BodyVelocity")
@@ -592,7 +593,6 @@ function throwMurdererToSpace()
     flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     flingVel.P = math.huge
     flingVel.Parent = flingPart
-    print("✅ BodyVelocity 15000 добавлен")
     
     -- 🔥 BodyAngularVelocity
     local flingAng = Instance.new("BodyAngularVelocity")
@@ -600,7 +600,6 @@ function throwMurdererToSpace()
     flingAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     flingAng.P = math.huge
     flingAng.Parent = flingPart
-    print("✅ BodyAngularVelocity 800 добавлен")
     
     -- 🔥 Красный эффект
     local flash = Instance.new("Part")
@@ -643,8 +642,7 @@ function throwMurdererToSpace()
     Debris:AddItem(flingVel, 10)
     Debris:AddItem(flingAng, 10)
     
-    print("🚀", murdererPlayer.Name, "улетает в космос!")
-    print("🚀 ========================================")
+    notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетает!", 3)
     
     bagFull = false
     collected = 0
@@ -680,7 +678,7 @@ function startFarming()
     rateVal.Text = "0"
     updateRoleUI()
     updateBagUI()
-    print("🚀 ФАРМ ЗАПУЩЕН! MAX_BAG =", MAX_BAG)
+    notify("XDarkHUB", "🚀 Фарм запущен! Лимит: " .. MAX_BAG, 3)
 
     task.spawn(function()
         while isActive do
@@ -696,7 +694,7 @@ function startFarming()
         while isActive do
             task.wait(0.5)
             if collected >= MAX_BAG and not farmStopped then
-                print("🎒 === МЕШОК ПОЛОН! ===")
+                notify("XDarkHUB", "🎒 МЕШОК ПОЛОН!", 3)
                 bagFull = true
                 farmStopped = true
                 updateBagUI()
@@ -774,7 +772,9 @@ function startFarming()
                                 collectSound:Play()
                                 updateBagUI()
                                 visitedPositions[coinRef] = true
-                                print("✅ Собрано:", collected, "/", MAX_BAG)
+                                if collected % 10 == 0 then
+                                    notify("XDarkHUB", "✅ Собрано: " .. collected .. "/" .. MAX_BAG, 2)
+                                end
                             else
                                 visitedPositions[coinRef] = true
                             end
@@ -964,7 +964,6 @@ menuButton.Parent = gui
 corner(menuButton, 32)
 stroke(menuButton, ACCENT.light, 2)
 
--- 🔥 DRAG ФУНКЦИОНАЛЬНОСТЬ ДЛЯ КНОПКИ X
 do
     local dragging, dragStart, startPos = false, nil, nil
     
@@ -1061,10 +1060,5 @@ end)
 updateRoleUI()
 updateBagUI()
 
-print("========================================")
-print("✅ XDarkHUB загружен!")
-print("🎨 Чёрная тема с красным акцентом")
-print("🔴 Кнопка X теперь перетаскиваемая!")
-print("🚀 Флинг мардера через WeldConstraint")
-print("📍 Открой консоль (F9) для отладки")
-print("========================================")
+notify("XDarkHUB", "✅ Скрипт загружен!", 3)
+notify("XDarkHUB", "🔴 Кнопка X перетаскиваемая", 3)
