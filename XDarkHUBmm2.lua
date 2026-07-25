@@ -1,5 +1,5 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v13 · PREMIUM                             ║
+-- ║                         XDarkHUB v14 · PREMIUM                             ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -234,7 +234,6 @@ frame.Parent = gui
 crn(frame, 10)
 stk(frame, A.base, 1.5, 0.4)
 
--- Акцентная линия сверху
 local topLine = Instance.new("Frame")
 topLine.Size = UDim2.new(1, 0, 0, 2)
 topLine.BackgroundColor3 = A.neo
@@ -244,7 +243,6 @@ topLine.ZIndex = 3
 topLine.Parent = frame
 crn(topLine, 1)
 
--- Анимация появления
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 ani(frame, {
@@ -269,7 +267,6 @@ grd(tBar, {
     ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 10, 16)),
 })
 
--- Логотип
 local logo = Instance.new("Frame")
 logo.Size = UDim2.new(0, 36, 0, 36)
 logo.Position = UDim2.new(0, 14, 0.5, -18)
@@ -290,7 +287,6 @@ logoX.TextColor3 = C.wht
 logoX.ZIndex = 4
 logoX.Parent = logo
 
--- Название
 local tLbl = Instance.new("TextLabel")
 tLbl.Size = UDim2.new(1, -140, 1, 0)
 tLbl.Position = UDim2.new(0, 60, 0, 0)
@@ -305,7 +301,6 @@ tLbl.Parent = tBar
 tLbl.TextStrokeTransparency = 0.8
 tLbl.TextStrokeColor3 = Color3.fromRGB(38, 8, 16)
 
--- Разделитель
 local sep1 = Instance.new("Frame")
 sep1.Size = UDim2.new(0, 1, 0, 24)
 sep1.Position = UDim2.new(0, 56, 0.5, -12)
@@ -315,12 +310,11 @@ sep1.BorderSizePixel = 0
 sep1.ZIndex = 3
 sep1.Parent = tBar
 
--- Версия
 local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v13]"
+vLbl.Text = "[v14]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -328,7 +322,6 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- Перетаскивание
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -381,13 +374,12 @@ rPan.ZIndex = 2
 rPan.Parent = ctr
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ВКЛАДКИ (ПРОВЕРЕННЫЙ МЕТОД)
+--  ВКЛАДКИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
 
--- Функция создания вкладки
 local function createTab(name, icon, order)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 48)
@@ -402,7 +394,6 @@ local function createTab(name, icon, order)
     btn.Parent = lPan
     crn(btn, 10)
     
-    -- Индикатор
     local ind = Instance.new("Frame")
     ind.Size = UDim2.new(0, 3, 0, 26)
     ind.Position = UDim2.new(0, 0, 0.5, -13)
@@ -413,7 +404,6 @@ local function createTab(name, icon, order)
     ind.Parent = btn
     crn(ind, 2)
     
-    -- Иконка
     local ic = Instance.new("TextLabel")
     ic.Size = UDim2.new(0, 36, 1, 0)
     ic.Position = UDim2.new(0, 14, 0, 0)
@@ -425,7 +415,6 @@ local function createTab(name, icon, order)
     ic.ZIndex = 6
     ic.Parent = btn
     
-    -- Название
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -56, 1, 0)
     lbl.Position = UDim2.new(0, 50, 0, 0)
@@ -440,7 +429,6 @@ local function createTab(name, icon, order)
     
     tabs[name] = {btn = btn, ic = ic, ind = ind, lbl = lbl}
     
-    -- Hover эффекты
     btn.MouseEnter:Connect(function()
         if currentTab ~= name then
             ani(btn, {BackgroundTransparency = 0.7}, 0.15)
@@ -457,7 +445,6 @@ local function createTab(name, icon, order)
     return btn
 end
 
--- Функция создания контента вкладки
 local function createTabContent(name)
     local c = Instance.new("ScrollingFrame")
     c.Size = UDim2.new(1, 0, 1, 0)
@@ -484,9 +471,7 @@ local function createTabContent(name)
     tabContents[name] = c
 end
 
--- Функция переключения вкладок
 local function switchTab(name)
-    -- Деактивация всех
     for n, t in pairs(tabs) do
         t.btn.BackgroundTransparency = 1
         t.btn.BackgroundColor3 = C.card
@@ -495,7 +480,6 @@ local function switchTab(name)
         t.ind.BackgroundTransparency = 1
     end
     
-    -- Активация выбранной
     if tabs[name] then
         tabs[name].btn.BackgroundTransparency = 0.65
         tabs[name].btn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
@@ -505,7 +489,6 @@ local function switchTab(name)
         tabs[name].ind.BackgroundColor3 = A.neo
     end
     
-    -- Переключение контента
     for n, c in pairs(tabContents) do
         if n == name then
             c.Visible = true
@@ -519,19 +502,16 @@ local function switchTab(name)
     currentTab = name
 end
 
--- Создание вкладок
 createTab("Sheriff", "⭐", 1)
 createTab("Murderer", "🔪", 2)
 createTab("ESP", "👁️", 3)
 createTab("Player", "🎯", 4)
 createTab("Farm", "⚙️", 5)
 
--- Создание контента
 for n in pairs(tabs) do
     createTabContent(n)
 end
 
--- ВАЖНО: Подключение обработчиков ПОСЛЕ создания всего
 for n, t in pairs(tabs) do
     t.btn.MouseButton1Click:Connect(function()
         clickSnd:Play()
@@ -719,8 +699,6 @@ end
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  КОНТЕНТ ВКЛАДОК
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- ESP
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
 togC(espC, 2, "ESP Roles", function(s)
@@ -729,7 +707,6 @@ togC(espC, 2, "ESP Roles", function(s)
     notify("XDarkHUB", "ESP: " .. (s and "ON" or "OFF"), 2)
 end)
 
--- Farm
 local fC = tabContents["Farm"]
 secT(fC, 1, "STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -741,7 +718,6 @@ local roleV = statR(fC, 7, "Status")
 secT(fC, 8, "BAG")
 local bagV = statR(fC, 9, "State")
 
--- Limit
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 44)
@@ -808,7 +784,6 @@ do
     end)
 end
 
--- Speed
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 44)
@@ -873,7 +848,6 @@ do
     end)
 end
 
--- Auto Farm
 togC(fC, 12, "Auto Farm", function(s)
     isActive = s
     if s then
@@ -884,12 +858,10 @@ togC(fC, 12, "Auto Farm", function(s)
     end
 end)
 
--- Anti-AFK
 togC(fC, 13, "Anti-AFK", function(s)
     antiAFK = s
 end)
 
--- Fling
 do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 48)
@@ -915,7 +887,6 @@ do
     end)
 end
 
--- Reset
 do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 40)
@@ -950,7 +921,6 @@ do
     end)
 end
 
--- Заглушки
 for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     local c = tabContents[name]
     local t = Instance.new("TextLabel")
@@ -988,7 +958,7 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ФУНКЦИИ
+--  ФУНКЦИИ UI
 -- ═══════════════════════════════════════════════════════════════════════════════
 function updateRoleUI()
     checkRole()
@@ -1022,6 +992,9 @@ function stopFarming()
     updateBagUI()
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  🔪 УБИЙЦА УБИВАЕТ ВСЕХ (ИСПРАВЛЕНО - ИГРОКИ ПЕРЕД ТОБОЙ)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function cinematicMurdererKill()
     notify("XDarkHUB", "Kill All", 3)
     killSound:Play()
@@ -1033,6 +1006,7 @@ function cinematicMurdererKill()
     local hum = character:FindFirstChild("Humanoid")
     if not hrp or not hum then return end
     
+    -- Поиск ножа
     local k = character:FindFirstChild("Knife") or character:FindFirstChild("MurdererSword")
     if not k then
         k = player:FindFirstChild("Backpack") and (player.Backpack:FindFirstChild("Knife") or player.Backpack:FindFirstChild("MurdererSword"))
@@ -1047,6 +1021,7 @@ function cinematicMurdererKill()
     hum:EquipTool(k)
     task.wait(0.3)
     
+    -- Сбор всех целей
     local tgts = {}
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
@@ -1054,31 +1029,86 @@ function cinematicMurdererKill()
         end
     end
     
-    for _, p in ipairs(tgts) do
-        local h = p.Character:FindFirstChild("Humanoid")
-        if h then
-            h.PlatformStand = true
-            h.WalkSpeed = 0
-            h.JumpPower = 0
+    -- 🔥 ИСПРАВЛЕНИЕ: Телепортируем всех ПЕРЕД собой в линию
+    local myLook = hrp.CFrame.LookVector  -- Направление куда смотрим
+    local myRight = hrp.CFrame.RightVector  -- Направление вправо
+    
+    for i, p in ipairs(tgts) do
+        local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
+        local targetHum = p.Character:FindFirstChild("Humanoid")
+        if targetHrp and targetHum then
+            -- 🔥 Игроки стоят ПЕРЕД нами в линию
+            -- Расставляем их полукругом перед нами
+            local distance = 5  -- Расстояние от нас
+            local spread = (i - (#tgts + 1) / 2) * 2.5  -- Распределение по ширине
+            
+            local newPos = hrp.Position + myLook * distance + myRight * spread
+            targetHrp.CFrame = CFrame.new(newPos, hrp.Position)  -- Смотрят на нас
+            
+            -- Фиксируем их
+            targetHum.PlatformStand = true
+            targetHum.WalkSpeed = 0
+            targetHum.JumpPower = 0
+            targetHum.AutoRotate = false
+            
+            -- Отключаем коллизии
             for _, pt in ipairs(p.Character:GetDescendants()) do
                 if pt:IsA("BasePart") then pt.CanCollide = false end
             end
         end
     end
     
-    task.wait(0.4)
+    -- 🔥 Красная вспышка вокруг нас
+    local flash = Instance.new("Part")
+    flash.Size = Vector3.new(30, 30, 30)
+    flash.Position = hrp.Position
+    flash.Anchored = true
+    flash.CanCollide = false
+    flash.Material = Enum.Material.Neon
+    flash.Color = A.neo
+    flash.Transparency = 0.3
+    flash.Parent = workspace
+    Debris:AddItem(flash, 3)
     
+    local light = Instance.new("PointLight")
+    light.Brightness = 30
+    light.Range = 60
+    light.Color = A.neo
+    light.Parent = flash
+    
+    task.wait(0.5)
+    
+    -- 🔥 Убиваем всех по очереди
     for i, p in ipairs(tgts) do
         if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            local h = p.Character:FindFirstChild("HumanoidRootPart")
-            if h then
-                hrp.CFrame = h.CFrame * CFrame.new(0, 0, -1.5)
+            local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if targetHrp then
+                -- Телепорт вплотную к цели (перед ней)
+                hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -1.5)
                 task.wait(0.12)
+                
+                -- Активируем нож
                 if k and k.Parent == character then k:Activate() end
                 task.wait(0.05)
+                
+                -- Наносим урон
                 if p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
+                
+                -- 🔥 Эффект удара
+                local hit = Instance.new("Part")
+                hit.Size = Vector3.new(2, 2, 2)
+                hit.Position = targetHrp.Position
+                hit.Anchored = true
+                hit.CanCollide = false
+                hit.Material = Enum.Material.Neon
+                hit.Color = A.neo
+                hit.Transparency = 0.3
+                hit.Parent = workspace
+                Debris:AddItem(hit, 0.5)
+                
+                notify("XDarkHUB", i .. "/" .. #tgts, 1)
             end
         end
     end
@@ -1087,12 +1117,17 @@ function cinematicMurdererKill()
     bagFull = false
     collected = 0
     counterV.Text = "0"
+    notify("XDarkHUB", "Done", 2)
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  🚀 ФЛИНГ МАРДЕРА (ВИЗУАЛЬНО КРАСИВЫЙ)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "Fling", 3)
+    notify("XDarkHUB", "Fling Start", 3)
     deathSound:Play()
     
+    -- Поиск мардера
     local mp = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and getPlayerRole(p) == "Murderer" then
@@ -1111,6 +1146,7 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", mp.Name, 2)
     
+    -- Отключение управления мардеру
     local mhu = mp.Character:FindFirstChild("Humanoid")
     if mhu then
         mhu.PlatformStand = true
@@ -1119,16 +1155,92 @@ function throwMurdererToSpace()
         mhu.AutoRotate = false
     end
     
+    -- Отключение коллизий мардера
     for _, pt in ipairs(mp.Character:GetDescendants()) do
         if pt:IsA("BasePart") then pt.CanCollide = false end
     end
     
+    -- Удаление старых velocity
     for _, v in ipairs(mh:GetChildren()) do
         if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
+    -- 🔥 ВИЗУАЛЬНЫЙ ЭФФЕКТ: Персонаж крутится вокруг мардера
+    character = player.Character
+    rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if rootPart then
+        local startPos = rootPart.Position
+        local radius = 5
+        local totalSpins = 60
+        
+        -- 🔥 Красный след вокруг мардера
+        task.spawn(function()
+            for i = 1, 80 do
+                if not mh.Parent then break end
+                local angle = math.rad(i * 20)
+                local trail = Instance.new("Part")
+                trail.Size = Vector3.new(1.5, 1.5, 1.5)
+                trail.Position = mh.Position + Vector3.new(
+                    math.cos(angle) * radius,
+                    math.random(-2, 2),
+                    math.sin(angle) * radius
+                )
+                trail.Anchored = true
+                trail.CanCollide = false
+                trail.Material = Enum.Material.Neon
+                trail.Color = A.neo
+                trail.Transparency = 0.2
+                trail.Parent = workspace
+                Debris:AddItem(trail, 1.5)
+                task.wait(0.02)
+            end
+        end)
+        
+        -- 🔥 Персонаж крутится вокруг мардера
+        for i = 1, totalSpins do
+            if not mh.Parent or not rootPart.Parent then break end
+            
+            local angle = math.rad(i * 24)
+            local height = i * 1.5  -- Поднимаемся с каждым оборотом
+            
+            local offset = Vector3.new(
+                math.cos(angle) * radius,
+                height,
+                math.sin(angle) * radius
+            )
+            
+            -- Крутимся вокруг мардера
+            rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
+            
+            task.wait(0.02)
+        end
+        
+        -- Возвращаем персонажа на место
+        rootPart.CFrame = CFrame.new(startPos)
+    end
+    
+    -- 🔥 Красная вспышка
+    local fl = Instance.new("Part")
+    fl.Size = Vector3.new(40, 40, 40)
+    fl.Position = mh.Position
+    fl.Anchored = true
+    fl.CanCollide = false
+    fl.Material = Enum.Material.Neon
+    fl.Color = A.neo
+    fl.Transparency = 0.2
+    fl.Parent = workspace
+    Debris:AddItem(fl, 4)
+    
+    local lt = Instance.new("PointLight")
+    lt.Brightness = 40
+    lt.Range = 100
+    lt.Color = A.neo
+    lt.Parent = fl
+    
+    -- 🔥 Создаём флинг-часть
     local flingPart = Instance.new("Part")
     flingPart.Name = "FlingPart"
     flingPart.Size = Vector3.new(10, 10, 10)
@@ -1140,17 +1252,20 @@ function throwMurdererToSpace()
     flingPart.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5, 100, 1000)
     flingPart.Parent = workspace
     
+    -- WeldConstraint
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = flingPart
     weld.Part1 = mh
     weld.Parent = flingPart
     
+    -- BodyVelocity
     local bv = Instance.new("BodyVelocity")
     bv.Velocity = Vector3.new(0, 20000, 0)
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     bv.P = math.huge
     bv.Parent = flingPart
     
+    -- BodyAngularVelocity
     local ba = Instance.new("BodyAngularVelocity")
     ba.AngularVelocity = Vector3.new(2000, 2000, 2000)
     ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
@@ -1161,22 +1276,23 @@ function throwMurdererToSpace()
     Debris:AddItem(bv, 15)
     Debris:AddItem(ba, 15)
     
-    local fl = Instance.new("Part")
-    fl.Size = Vector3.new(35, 35, 35)
-    fl.Position = mh.Position
-    fl.Anchored = true
-    fl.CanCollide = false
-    fl.Material = Enum.Material.Neon
-    fl.Color = A.neo
-    fl.Transparency = 0.25
-    fl.Parent = workspace
-    Debris:AddItem(fl, 4)
-    
-    local lt = Instance.new("PointLight")
-    lt.Brightness = 35
-    lt.Range = 80
-    lt.Color = A.neo
-    lt.Parent = fl
+    -- 🔥 Красный след за мардером
+    task.spawn(function()
+        for i = 1, 60 do
+            task.wait(0.05)
+            if not mh.Parent then break end
+            local trail = Instance.new("Part")
+            trail.Size = Vector3.new(2, 2, 2)
+            trail.Position = mh.Position
+            trail.Anchored = true
+            trail.CanCollide = false
+            trail.Material = Enum.Material.Neon
+            trail.Color = A.neo
+            trail.Transparency = 0.3
+            trail.Parent = workspace
+            Debris:AddItem(trail, 2)
+        end
+    end)
     
     notify("XDarkHUB", mp.Name .. " Flung", 3)
     bagFull = false
@@ -1184,6 +1300,9 @@ function throwMurdererToSpace()
     counterV.Text = "0"
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  ФАРМ
+-- ═══════════════════════════════════════════════════════════════════════════════
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     
@@ -1451,4 +1570,4 @@ updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v13 Loaded", 3)
+notify("XDarkHUB", "v14 Loaded", 3)
