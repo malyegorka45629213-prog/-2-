@@ -505,7 +505,7 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 ПРЯМОЙ ФЛИНГ (БЕЗ FLING-ЧАСТИ)
+-- 🔥 НАСТОЯЩИЙ ФЛИНГ ЧЕРЕЗ ФИЗИКУ (6 ЧАСТЕЙ)
 function throwMurdererToSpace()
     notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
@@ -553,7 +553,6 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
-    -- 🔥 Отключаем управление
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
@@ -561,60 +560,87 @@ function throwMurdererToSpace()
         murdererHum.AutoRotate = false
     end
     
-    -- 🔥 Отключаем коллизии
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
-    -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
+        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") or v:IsA("AlignPosition") then
             v:Destroy()
         end
     end
     
-    -- 🔥 ТЕЛЕПОРТИРУЕМ МАРДЕРА ВЫСОКО ВВЕРХ
-    local startPos = murdererHrp.Position
-    murdererHrp.CFrame = CFrame.new(startPos + Vector3.new(0, 500, 0))
-    notify("XDarkHUB", "📍 Телепортирован на 500 вверх", 2)
+    notify("XDarkHUB", "🔧 Создаю 6 флинг-частей...", 2)
     
-    -- 🔥 BodyVelocity НАПРЯМУЮ НА МАРДЕРА
-    local bodyVel = Instance.new("BodyVelocity")
-    bodyVel.Velocity = Vector3.new(0, 5000, 0)
-    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVel.P = math.huge
-    bodyVel.Parent = murdererHrp
-    Debris:AddItem(bodyVel, 10)
+    local positions = {
+        Vector3.new(0, 3, 0),
+        Vector3.new(0, -3, 0),
+        Vector3.new(3, 0, 0),
+        Vector3.new(-3, 0, 0),
+        Vector3.new(0, 0, 3),
+        Vector3.new(0, 0, -3),
+    }
     
-    -- 🔥 BodyAngularVelocity НАПРЯМУЮ НА МАРДЕРА
+    for i, offset in ipairs(positions) do
+        local part = Instance.new("Part")
+        part.Name = "FlingPart_" .. i
+        part.Size = Vector3.new(3, 3, 3)
+        part.Position = murdererHrp.Position + offset
+        part.Anchored = false
+        part.CanCollide = false
+        part.Transparency = 1
+        part.Massless = true
+        part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+        part.Parent = workspace
+        
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = part
+        weld.Part1 = murdererHrp
+        weld.Parent = part
+        
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(0, 3000, 0)
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.P = math.huge
+        bv.Parent = part
+        
+        Debris:AddItem(part, 10)
+        Debris:AddItem(bv, 10)
+    end
+    
     local bodyAng = Instance.new("BodyAngularVelocity")
-    bodyAng.AngularVelocity = Vector3.new(500, 500, 500)
+    bodyAng.AngularVelocity = Vector3.new(1000, 1000, 1000)
     bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     bodyAng.P = math.huge
     bodyAng.Parent = murdererHrp
     Debris:AddItem(bodyAng, 10)
     
-    -- 🔥 Красный эффект
+    local bodyVel = Instance.new("BodyVelocity")
+    bodyVel.Velocity = Vector3.new(0, 2000, 0)
+    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVel.P = math.huge
+    bodyVel.Parent = murdererHrp
+    Debris:AddItem(bodyVel, 10)
+    
     local flash = Instance.new("Part")
-    flash.Size = Vector3.new(25, 25, 25)
-    flash.Position = startPos
+    flash.Size = Vector3.new(30, 30, 30)
+    flash.Position = murdererHrp.Position
     flash.Anchored = true
     flash.CanCollide = false
     flash.Material = Enum.Material.Neon
     flash.Color = ACCENT.base
-    flash.Transparency = 0.4
+    flash.Transparency = 0.3
     flash.Parent = workspace
-    Debris:AddItem(flash, 3)
+    Debris:AddItem(flash, 4)
     
     local light = Instance.new("PointLight")
-    light.Brightness = 25
-    light.Range = 60
+    light.Brightness = 30
+    light.Range = 70
     light.Color = ACCENT.base
     light.Parent = flash
     
-    -- 🔥 Красный след
     task.spawn(function()
-        for i = 1, 50 do
+        for i = 1, 60 do
             task.wait(0.05)
             if murdererHrp.Parent then
                 local trail = Instance.new("Part")
@@ -624,9 +650,9 @@ function throwMurdererToSpace()
                 trail.CanCollide = false
                 trail.Material = Enum.Material.Neon
                 trail.Color = ACCENT.base
-                trail.Transparency = 0.3
+                trail.Transparency = 0.2
                 trail.Parent = workspace
-                Debris:AddItem(trail, 1.5)
+                Debris:AddItem(trail, 2)
             end
         end
     end)
@@ -804,7 +830,6 @@ local espToggle = toggleCard(3, "ESP Roles", function(state)
     notify("XDarkHUB", "ESP: " .. (state and "ВКЛ" or "ВЫКЛ"), 2)
 end)
 
--- 🔥 КНОПКА ТЕСТ ФЛИНГ
 do
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 46)
