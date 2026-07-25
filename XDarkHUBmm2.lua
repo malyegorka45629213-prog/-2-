@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  MM2 Coin Autofarm · [egor745top6] · ИСПРАВЛЕНО ДЛЯ ЛОББИ
+--  MM2 Coin Autofarm · [egor745top6] · НАСТОЯЩИЙ ФЛИНГ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -467,16 +467,20 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
+-- 🔥 НАСТОЯЩИЙ ФЛИНГ (FLING)
 function throwMurdererToSpace()
-    print("🚀 === ВЫБРОС МАРДЕРА ===")
+    print("🚀 === НАСТОЯЩИЙ ФЛИНГ ===")
     deathSound:Play()
     
+    -- 🔥 Ищем мардера
     local murdererPlayer = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local role = getPlayerRole(p)
+            print("  Игрок:", p.Name, "→ Роль:", role)
             if role == "Murderer" then
                 murdererPlayer = p
+                print("  ✅ НАЙДЕН:", p.Name)
                 break
             end
         end
@@ -490,37 +494,114 @@ function throwMurdererToSpace()
         return
     end
     
-    if not murdererPlayer.Character or not murdererPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        print("❌ Нет Character у мардера!")
+    if not murdererPlayer.Character then
+        print("❌ Нет Character!")
         bagFull = false
         collected = 0
         counterVal.Text = "0"
         return
     end
     
-    local murdererHrp = murdererPlayer.Character.HumanoidRootPart
-    local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
-    
-    -- 🔥 МГНОВЕННЫЙ ВЫБРОС (работает даже в лобби!)
-    if murdererHum then
-        murdererHum.PlatformStand = true
+    local murdererHrp = murdererPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not murdererHrp then
+        print("❌ Нет HumanoidRootPart!")
+        bagFull = false
+        collected = 0
+        counterVal.Text = "0"
+        return
     end
     
-    murdererHrp.CFrame = CFrame.new(murdererHrp.Position + Vector3.new(0, 10000, 0))
+    local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
+    print("🌀 Создаём флинг-частицы...")
+    
+    -- 🔥 Отключаем управление мардеру
+    if murdererHum then
+        murdererHum.PlatformStand = true
+        murdererHum.WalkSpeed = 0
+        murdererHum.JumpPower = 0
+    end
+    
+    -- 🔥 Создаём 6 частей вокруг мардера для флинга
+    local flingParts = {}
+    local positions = {
+        Vector3.new(0, 3, 0),    -- Сверху
+        Vector3.new(0, -3, 0),   -- Снизу
+        Vector3.new(3, 0, 0),    -- Справа
+        Vector3.new(-3, 0, 0),   -- Слева
+        Vector3.new(0, 0, 3),    -- Спереди
+        Vector3.new(0, 0, -3),   -- Сзади
+    }
+    
+    for i, offset in ipairs(positions) do
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(2, 2, 2)
+        part.Position = murdererHrp.Position + offset
+        part.Anchored = false
+        part.CanCollide = false
+        part.Transparency = 0.7
+        part.Material = Enum.Material.Neon
+        part.Color = Color3.fromRGB(155, 60, 255)
+        part.Parent = workspace
+        
+        -- Weld к мардеру
+        local weld = Instance.new("Weld")
+        weld.Part0 = part
+        weld.Part1 = murdererHrp
+        weld.C0 = CFrame.new(offset)
+        weld.Parent = part
+        
+        -- BodyVelocity для каждой части (огромная сила вверх)
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(0, 500, 0)
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = part
+        
+        table.insert(flingParts, part)
+        Debris:AddItem(part, 5)
+        Debris:AddItem(bv, 5)
+    end
+    
+    -- 🔥 Добавляем BodyAngularVelocity к мардеру (вращение)
+    local bodyAng = Instance.new("BodyAngularVelocity")
+    bodyAng.AngularVelocity = Vector3.new(100, 100, 100)
+    bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyAng.Parent = murdererHrp
+    Debris:AddItem(bodyAng, 10)
+    
+    -- 🔥 Добавляем BodyVelocity к мардеру (полёт вверх)
     local bodyVel = Instance.new("BodyVelocity")
-    bodyVel.Velocity = Vector3.new(0, 10000, 0)
+    bodyVel.Velocity = Vector3.new(0, 1000, 0)
     bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     bodyVel.Parent = murdererHrp
     Debris:AddItem(bodyVel, 10)
     
+    -- 🔥 Отключаем коллизии
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
         end
     end
     
-    print("🚀", murdererPlayer.Name, "улетел в космос!")
+    -- 🔥 Фиолетовая вспышка
+    local flash = Instance.new("Part")
+    flash.Size = Vector3.new(20, 20, 20)
+    flash.Position = murdererHrp.Position
+    flash.Anchored = true
+    flash.CanCollide = false
+    flash.Material = Enum.Material.Neon
+    flash.Color = Color3.fromRGB(155, 60, 255)
+    flash.Transparency = 0.5
+    flash.Parent = workspace
+    Debris:AddItem(flash, 3)
+    
+    local light = Instance.new("PointLight")
+    light.Brightness = 20
+    light.Range = 50
+    light.Color = Color3.fromRGB(155, 60, 255)
+    light.Parent = flash
+    
+    print("🚀", murdererPlayer.Name, "улетает в космос через флинг!")
     
     bagFull = false
     collected = 0
@@ -572,10 +653,16 @@ function startFarming()
         while isActive do
             if farmStopped then task.wait(1) continue end
 
-            character = player.Character or player.CharacterAdded:Wait()
+            -- 🔥 ВАЖНО: используем player.Character каждый раз!
+            character = player.Character
+            if not character then
+                task.wait(0.5)
+                continue
+            end
+            
             rootPart = character:FindFirstChild("HumanoidRootPart")
             
-            -- 🔥 ПРОВЕРКА: если мы в лобби (нет rootPart), просто ждём
+            -- 🔥 Если в лобби (нет rootPart), просто ждём
             if not rootPart then 
                 task.wait(0.5)
                 continue 
@@ -902,4 +989,5 @@ updateRoleUI()
 updateBagUI()
 
 print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("📍 В лобби: мардер мгновенно улетает в космос!")
+print("🌀 НАСТОЯЩИЙ ФЛИНГ: 6 частей + вращение + полёт вверх!")
+print("📍 Работает даже в лобби!")
