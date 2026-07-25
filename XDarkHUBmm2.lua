@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB v8.0 · MM2 Autofarm · OPTIMIZED PREMIUM UI
+--  XDarkHUB v9.0 · ULTRA PREMIUM UI · MM2 Autofarm
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -27,6 +27,7 @@ local espEnabled = false
 local espHighlights = {}
 local MAX_BAG = 40
 
+-- 🔥 ЗВУКИ
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -39,6 +40,15 @@ local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
 
+local clickSound = Instance.new("Sound")
+clickSound.SoundId = "rbxassetid://169759176"
+clickSound.Volume = 0.3
+
+local hoverSound = Instance.new("Sound")
+hoverSound.SoundId = "rbxassetid://198657693"
+hoverSound.Volume = 0.1
+
+-- 🔥 УВЕДОМЛЕНИЯ
 local function notify(title, text, duration)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
@@ -47,6 +57,7 @@ local function notify(title, text, duration)
     end)
 end
 
+-- 🔥 РОЛИ
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -94,32 +105,34 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ОПТИМИЗИРОВАННАЯ UI СИСТЕМА
+--  ULTRA PREMIUM UI СИСТЕМА v9.0
 -- ═══════════════════════════════════════════════════════════
 
 local THEME = {
     colors = {
-        bg = Color3.fromRGB(2, 2, 5),
-        panel = Color3.fromRGB(8, 8, 12),
-        card = Color3.fromRGB(14, 14, 20),
-        cardHov = Color3.fromRGB(22, 22, 30),
-        border = Color3.fromRGB(35, 35, 45),
-        text = Color3.fromRGB(250, 248, 255),
-        muted = Color3.fromRGB(100, 100, 115),
+        bg = Color3.fromRGB(3, 3, 8),
+        panel = Color3.fromRGB(10, 10, 18),
+        card = Color3.fromRGB(16, 16, 26),
+        cardHov = Color3.fromRGB(24, 24, 36),
+        border = Color3.fromRGB(40, 40, 55),
+        text = Color3.fromRGB(255, 252, 255),
+        muted = Color3.fromRGB(110, 110, 130),
         white = Color3.fromRGB(255, 255, 255),
+        shadow = Color3.fromRGB(0, 0, 0),
     },
     accent = {
-        base = Color3.fromRGB(230, 25, 55),
-        dim = Color3.fromRGB(70, 10, 20),
-        light = Color3.fromRGB(255, 85, 105),
-        glow = Color3.fromRGB(255, 45, 65),
-        dark = Color3.fromRGB(45, 6, 15),
-        neon = Color3.fromRGB(255, 30, 60),
+        base = Color3.fromRGB(235, 30, 60),
+        dim = Color3.fromRGB(75, 12, 25),
+        light = Color3.fromRGB(255, 95, 120),
+        glow = Color3.fromRGB(255, 50, 75),
+        dark = Color3.fromRGB(50, 8, 20),
+        neon = Color3.fromRGB(255, 35, 65),
+        pulse = Color3.fromRGB(255, 80, 100),
     },
     sizes = {
-        corner = 14,
-        padding = 16,
-        spacing = 12,
+        corner = 16,
+        padding = 18,
+        spacing = 14,
     }
 }
 
@@ -149,9 +162,62 @@ function UI.gradient(obj, colors, rotation)
     return g
 end
 
-function UI.animate(obj, props, t, style)
-    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+function UI.shadow(obj, color, radius, transparency)
+    local s = Instance.new("ImageLabel", obj)
+    s.BackgroundTransparency = 1
+    s.Image = "rbxassetid://6676267309"
+    s.ImageColor3 = color or THEME.colors.shadow
+    s.ImageTransparency = transparency or 0.5
+    s.ScaleType = Enum.ScaleType.Slice
+    s.SliceCenter = Rect.new(49, 49, 450, 450)
+    s.Size = UDim2.new(1, radius * 2, 1, radius * 2)
+    s.Position = UDim2.new(0, -radius, 0, -radius)
+    s.ZIndex = obj.ZIndex - 1
+    return s
+end
+
+function UI.animate(obj, props, t, style, dir)
+    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
     TweenService:Create(obj, info, props):Play()
+end
+
+function UI.createRipple(button, color)
+    button.MouseButton1Click:Connect(function()
+        local ripple = Instance.new("Frame")
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.BackgroundColor3 = color or THEME.accent.neon
+        ripple.BackgroundTransparency = 0.6
+        ripple.BorderSizePixel = 0
+        ripple.ZIndex = button.ZIndex + 1
+        ripple.Parent = button
+        UI.corner(ripple, 50)
+        
+        UI.animate(ripple, {
+            Size = UDim2.new(2, 0, 2, 0),
+            BackgroundTransparency = 1
+        }, 0.5, Enum.EasingStyle.Quad)
+        
+        task.delay(0.5, function()
+            if ripple.Parent then ripple:Destroy() end
+        end)
+    end)
+end
+
+function UI.createGlowPulse(obj, color)
+    local glow = UI.stroke(obj, color or THEME.accent.neon, 2, 0.6)
+    
+    task.spawn(function()
+        while obj.Parent do
+            UI.animate(glow, {Transparency = 0.3, Thickness = 3}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+            UI.animate(glow, {Transparency = 0.7, Thickness = 2}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+        end
+    end)
+    
+    return glow
 end
 
 function UI.createFrame(parent, props)
@@ -167,6 +233,7 @@ function UI.createFrame(parent, props)
     if props.corner then UI.corner(f, props.corner) end
     if props.stroke then UI.stroke(f, props.stroke.color, props.stroke.thickness, props.stroke.transparency) end
     if props.gradient then UI.gradient(f, props.gradient.colors, props.gradient.rotation) end
+    if props.shadow then UI.shadow(f, props.shadow.color, props.shadow.radius, props.shadow.transparency) end
     
     return f
 end
@@ -208,6 +275,22 @@ function UI.createButton(parent, props)
     if props.stroke then UI.stroke(b, props.stroke.color, props.stroke.thickness, props.stroke.transparency) end
     if props.gradient then UI.gradient(b, props.gradient.colors, props.gradient.rotation) end
     
+    if props.ripple ~= false then
+        UI.createRipple(b, props.rippleColor)
+    end
+    
+    if props.hoverSound ~= false then
+        b.MouseEnter:Connect(function()
+            hoverSound.Parent = b
+            hoverSound:Play()
+        end)
+    end
+    
+    b.MouseButton1Down:Connect(function()
+        clickSound.Parent = b
+        clickSound:Play()
+    end)
+    
     return b
 end
 
@@ -227,120 +310,146 @@ gui.Parent = player:WaitForChild("PlayerGui")
 collectSound.Parent = gui
 killSound.Parent = gui
 deathSound.Parent = gui
+clickSound.Parent = gui
+hoverSound.Parent = gui
 
 -- ═══════════════════════════════════════════════════════════
---  ФОН С ЧАСТИЦАМИ
+--  ФОН С УЛУЧШЕННЫМИ ЧАСТИЦАМИ
 -- ═══════════════════════════════════════════════════════════
 
 local bgFrame = UI.createFrame(gui, {
     bg = THEME.colors.bg,
-    transparency = 0.15,
+    transparency = 0.1,
     size = UDim2.new(1, 0, 1, 0),
     zIndex = 0,
     gradient = {
         colors = {
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 2, 8)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(2, 2, 5)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 2, 5)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 3, 12)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(3, 3, 8)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 3, 8)),
         },
         rotation = 45
     }
 })
 
+-- Анимированный градиент фона
+task.spawn(function()
+    local rotation = 0
+    while bgFrame.Parent do
+        rotation = rotation + 0.2
+        bgFrame.UIGradient.Rotation = rotation
+        task.wait(0.05)
+    end
+end)
+
 local particleColors = {
     THEME.accent.base, THEME.accent.neon, THEME.accent.glow, 
-    THEME.accent.light, Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 100, 120)
+    THEME.accent.light, THEME.accent.pulse,
+    Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 100, 120),
+    Color3.fromRGB(255, 150, 170)
 }
 
-for i = 1, 35 do
+for i = 1, 40 do
+    local size = math.random(3, 16)
     local particle = UI.createFrame(bgFrame, {
         bg = particleColors[math.random(1, #particleColors)],
         transparency = math.random(40, 80) / 100,
-        size = UDim2.new(0, math.random(3, 14), 0, math.random(3, 14)),
+        size = UDim2.new(0, size, 0, size),
         position = UDim2.new(math.random(), 0, math.random(), 0),
-        corner = math.random(2, 7),
+        corner = math.random(2, 8),
         zIndex = 0
     })
     
+    -- Glow эффект для частиц
+    if math.random() > 0.5 then
+        UI.stroke(particle, particle.BackgroundColor3, 2, 0.5)
+    end
+    
     task.spawn(function()
         while particle.Parent do
+            local duration = math.random(15, 35)
             UI.animate(particle, {
                 Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundTransparency = math.random(30, 85) / 100
-            }, math.random(12, 28), Enum.EasingStyle.Sine)
-            task.wait(math.random(12, 28))
+                BackgroundTransparency = math.random(30, 85) / 100,
+                Size = UDim2.new(0, math.random(3, 16), 0, math.random(3, 16))
+            }, duration, Enum.EasingStyle.Sine)
+            task.wait(duration)
         end
     end)
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ГЛАВНЫЙ ФРЕЙМ
+--  ГЛАВНЫЙ ФРЕЙМ С 3D ЭФФЕКТАМИ
 -- ═══════════════════════════════════════════════════════════
 
 local frame = UI.createFrame(gui, {
     bg = THEME.colors.bg,
-    transparency = 0.03,
-    size = UDim2.new(0, 700, 0, 600),
-    position = UDim2.new(0.5, -350, 0.5, -300),
-    corner = 20,
+    transparency = 0.02,
+    size = UDim2.new(0, 720, 0, 620),
+    position = UDim2.new(0.5, -360, 0.5, -310),
+    corner = 22,
     stroke = {color = THEME.accent.neon, thickness = 2, transparency = 0.5},
     zIndex = 1
 })
 
-local outerGlow = UI.stroke(frame, THEME.accent.neon, 2, 0.5)
+-- Неоновое свечение
+UI.createGlowPulse(frame, THEME.accent.neon)
 
-task.spawn(function()
-    while frame.Parent do
-        UI.animate(outerGlow, {Transparency = 0.3, Thickness = 3}, 2.5, Enum.EasingStyle.Sine)
-        task.wait(2.5)
-        UI.animate(outerGlow, {Transparency = 0.7, Thickness = 2}, 2.5, Enum.EasingStyle.Sine)
-        task.wait(2.5)
-    end
-end)
+-- Внутренняя граница
+UI.stroke(frame, THEME.accent.base, 1, 0.3)
 
 -- ═══════════════════════════════════════════════════════════
---  ЗАГОЛОВОК
+--  ЗАГОЛОВОК С АНИМАЦИЯМИ
 -- ═══════════════════════════════════════════════════════════
 
 local titleBar = UI.createFrame(frame, {
     bg = THEME.colors.panel,
-    transparency = 0.05,
-    size = UDim2.new(1, 0, 0, 70),
-    corner = 20,
+    transparency = 0.03,
+    size = UDim2.new(1, 0, 0, 75),
+    corner = 22,
     gradient = {
         colors = {
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 12, 25)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 6, 12)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 12, 25)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 14, 28)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(12, 8, 15)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 14, 28)),
         }
     },
     zIndex = 2
 })
 titleBar.Active = true
 
+-- Анимированный градиент заголовка
 task.spawn(function()
     local rotation = 0
     while frame.Parent do
-        rotation = rotation + 0.4
+        rotation = rotation + 0.5
         titleBar.UIGradient.Rotation = rotation
         task.wait(0.05)
     end
 end)
 
+-- Логотип X с вращением
 local logo = UI.createFrame(titleBar, {
     bg = THEME.accent.base,
-    size = UDim2.new(0, 50, 0, 50),
-    position = UDim2.new(0, 20, 0.5, -25),
-    corner = 15,
+    size = UDim2.new(0, 55, 0, 55),
+    position = UDim2.new(0, 20, 0.5, -27),
+    corner = 16,
     stroke = {color = THEME.accent.neon, thickness = 2, transparency = 0.3},
     zIndex = 3
 })
 
+-- Glow эффект логотипа
+UI.createGlowPulse(logo, THEME.accent.neon)
+
+-- Вращение логотипа
 task.spawn(function()
+    local rotation = 0
     while frame.Parent do
-        UI.animate(logo, {Size = UDim2.new(0, 54, 0, 54)}, 1.5, Enum.EasingStyle.Sine)
+        rotation = rotation + 1
+        logo.Rotation = math.sin(rotation * 0.02) * 5
+        UI.animate(logo, {Size = UDim2.new(0, 58, 0, 58)}, 1.5, Enum.EasingStyle.Sine)
         task.wait(1.5)
-        UI.animate(logo, {Size = UDim2.new(0, 50, 0, 50)}, 1.5, Enum.EasingStyle.Sine)
+        UI.animate(logo, {Size = UDim2.new(0, 55, 0, 55)}, 1.5, Enum.EasingStyle.Sine)
         task.wait(1.5)
     end
 end)
@@ -349,39 +458,90 @@ UI.createLabel(logo, {
     text = "X",
     color = THEME.colors.white,
     font = Enum.Font.GothamBlack,
-    textSize = 32,
+    textSize = 34,
     xAlign = Enum.TextXAlignment.Center,
     zIndex = 4
 })
 
-UI.createLabel(titleBar, {
+-- Заголовок с анимированным градиентом
+local titleLbl = UI.createLabel(titleBar, {
     text = "XDarkHUB",
     color = THEME.accent.light,
     font = Enum.Font.GothamBlack,
-    textSize = 32,
-    size = UDim2.new(1, -90, 1, 0),
-    position = UDim2.new(0, 85, 0, 0),
+    textSize = 34,
+    size = UDim2.new(1, -100, 1, 0),
+    position = UDim2.new(0, 90, 0, 0),
     xAlign = Enum.TextXAlignment.Left,
     gradient = {
         colors = {
             ColorSequenceKeypoint.new(0, THEME.accent.neon),
-            ColorSequenceKeypoint.new(0.5, THEME.colors.white),
+            ColorSequenceKeypoint.new(0.3, THEME.colors.white),
+            ColorSequenceKeypoint.new(0.7, THEME.accent.glow),
             ColorSequenceKeypoint.new(1, THEME.accent.neon),
         }
     },
     zIndex = 3
 })
 
+-- Анимация градиента текста
+task.spawn(function()
+    local offset = 0
+    while frame.Parent do
+        offset = offset + 0.015
+        if offset > 1 then offset = 0 end
+        titleLbl.UIGradient.Offset = Vector2.new(offset, 0)
+        task.wait(0.05)
+    end
+end)
+
+-- Тень заголовка
 UI.createLabel(titleBar, {
-    text = "v8.0 · PREMIUM",
+    text = "XDarkHUB",
+    color = THEME.accent.base,
+    font = Enum.Font.GothamBlack,
+    textSize = 34,
+    size = UDim2.new(1, -100, 1, 0),
+    position = UDim2.new(0, 92, 0, 2),
+    xAlign = Enum.TextXAlignment.Left,
+    transparency = 0.4,
+    zIndex = 2
+})
+
+-- Версия с пульсацией
+local versionLbl = UI.createLabel(titleBar, {
+    text = "v9.0 · ULTRA",
     color = THEME.accent.light,
     font = Enum.Font.GothamBold,
     textSize = 12,
-    size = UDim2.new(0, 140, 1, 0),
-    position = UDim2.new(1, -150, 0, 0),
+    size = UDim2.new(0, 150, 1, 0),
+    position = UDim2.new(1, -160, 0, 0),
     xAlign = Enum.TextXAlignment.Right,
-    transparency = 0.7,
+    transparency = 0.6,
     zIndex = 3
+})
+
+task.spawn(function()
+    while frame.Parent do
+        UI.animate(versionLbl, {TextTransparency = 0.3}, 2, Enum.EasingStyle.Sine)
+        task.wait(2)
+        UI.animate(versionLbl, {TextTransparency = 0.6}, 2, Enum.EasingStyle.Sine)
+        task.wait(2)
+    end
+end)
+
+-- Разделитель с неоновым эффектом
+local sep = UI.createFrame(frame, {
+    bg = THEME.accent.neon,
+    size = UDim2.new(1, -60, 0, 2),
+    position = UDim2.new(0, 30, 0, 75),
+    corner = 1,
+    zIndex = 2
+})
+
+UI.gradient(sep, {
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(3, 3, 8)),
+    ColorSequenceKeypoint.new(0.5, THEME.accent.neon),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(3, 3, 8)),
 })
 
 -- Перетаскивание
@@ -405,22 +565,22 @@ do
 end
 
 -- ═══════════════════════════════════════════════════════════
---  КОНТЕЙНЕР
+--  КОНТЕЙНЕР С АНИМАЦИЕЙ ПОЯВЛЕНИЯ
 -- ═══════════════════════════════════════════════════════════
 
 local container = UI.createFrame(frame, {
     transparency = 1,
-    size = UDim2.new(1, 0, 1, -75),
-    position = UDim2.new(0, 0, 0, 75),
+    size = UDim2.new(1, 0, 1, -80),
+    position = UDim2.new(0, 0, 0, 80),
     zIndex = 1
 })
 
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 UI.animate(frame, {
-    Size = UDim2.new(0, 700, 0, 600),
-    Position = UDim2.new(0.5, -350, 0.5, -300)
-}, 0.7, Enum.EasingStyle.Back)
+    Size = UDim2.new(0, 720, 0, 620),
+    Position = UDim2.new(0.5, -360, 0.5, -310)
+}, 0.8, Enum.EasingStyle.Back)
 
 -- ═══════════════════════════════════════════════════════════
 --  ПАНЕЛИ
@@ -428,12 +588,12 @@ UI.animate(frame, {
 
 local leftPanel = UI.createFrame(container, {
     bg = THEME.colors.panel,
-    transparency = 0.05,
-    size = UDim2.new(0, 190, 1, 0),
+    transparency = 0.03,
+    size = UDim2.new(0, 200, 1, 0),
     gradient = {
         colors = {
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 10, 15)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 5, 8)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 12, 18)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 6, 10)),
         }
     },
     zIndex = 2
@@ -441,13 +601,13 @@ local leftPanel = UI.createFrame(container, {
 
 local rightPanel = UI.createFrame(container, {
     transparency = 1,
-    size = UDim2.new(1, -190, 1, 0),
-    position = UDim2.new(0, 190, 0, 0),
+    size = UDim2.new(1, -200, 1, 0),
+    position = UDim2.new(0, 200, 0, 0),
     zIndex = 2
 })
 
 -- ═══════════════════════════════════════════════════════════
---  ВКЛАДКИ
+--  ВКЛАДКИ С 3D ЭФФЕКТАМИ
 -- ═══════════════════════════════════════════════════════════
 
 local tabs = {}
@@ -457,20 +617,21 @@ local currentTab = nil
 local function createTab(name, icon, order)
     local btn = UI.createButton(leftPanel, {
         bg = THEME.colors.card,
-        transparency = 0.05,
-        size = UDim2.new(1, -28, 0, 56),
-        position = UDim2.new(0, 14, 0, 20 + (order - 1) * 62),
-        corner = 15,
+        transparency = 0.03,
+        size = UDim2.new(1, -30, 0, 58),
+        position = UDim2.new(0, 15, 0, 22 + (order - 1) * 64),
+        corner = 16,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 3
     })
 
-    UI.createLabel(btn, {
+    -- Иконка с анимацией
+    local iconLbl = UI.createLabel(btn, {
         text = icon,
         color = THEME.accent.light,
         font = Enum.Font.GothamBold,
-        textSize = 26,
-        size = UDim2.new(0, 50, 1, 0),
+        textSize = 28,
+        size = UDim2.new(0, 52, 1, 0),
         xAlign = Enum.TextXAlignment.Center,
         zIndex = 3
     })
@@ -480,13 +641,13 @@ local function createTab(name, icon, order)
         color = THEME.colors.text,
         font = Enum.Font.GothamBold,
         textSize = 15,
-        size = UDim2.new(1, -54, 1, 0),
-        position = UDim2.new(0, 54, 0, 0),
+        size = UDim2.new(1, -56, 1, 0),
+        position = UDim2.new(0, 56, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 3
     })
 
-    tabs[name] = {button = btn}
+    tabs[name] = {button = btn, icon = iconLbl}
     return btn
 end
 
@@ -505,14 +666,14 @@ local function createTabContent(name)
     content.Parent = rightPanel
 
     local p = Instance.new("UIPadding", content)
-    p.PaddingLeft = UDim.new(0, 22)
-    p.PaddingRight = UDim.new(0, 22)
-    p.PaddingTop = UDim.new(0, 22)
-    p.PaddingBottom = UDim.new(0, 22)
+    p.PaddingLeft = UDim.new(0, 24)
+    p.PaddingRight = UDim.new(0, 24)
+    p.PaddingTop = UDim.new(0, 24)
+    p.PaddingBottom = UDim.new(0, 24)
 
     local l = Instance.new("UIListLayout", content)
     l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 14)
+    l.Padding = UDim.new(0, 16)
 
     tabContents[name] = content
     return content
@@ -520,19 +681,31 @@ end
 
 local function switchTab(name)
     for n, tab in pairs(tabs) do
-        UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.05}, 0.3)
+        UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.03}, 0.3)
         tab.button.UIStroke.Color = THEME.colors.border
+        tab.icon.TextColor3 = THEME.accent.light
     end
     
     if tabs[name] then
         UI.animate(tabs[name].button, {BackgroundColor3 = THEME.accent.dark, BackgroundTransparency = 0}, 0.3)
         tabs[name].button.UIStroke.Color = THEME.accent.neon
+        tabs[name].icon.TextColor3 = THEME.accent.neon
+        
+        -- Анимация иконки
+        task.spawn(function()
+            for i = 1, 3 do
+                UI.animate(tabs[name].icon, {TextTransparency = 0}, 0.2)
+                task.wait(0.2)
+                UI.animate(tabs[name].icon, {TextTransparency = 0.3}, 0.2)
+                task.wait(0.2)
+            end
+        end)
     end
     
     for n, content in pairs(tabContents) do
         if n == name then
             content.Visible = true
-            content.Position = UDim2.new(0, 70, 0, 0)
+            content.Position = UDim2.new(0, 80, 0, 0)
             UI.animate(content, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back)
         else
             content.Visible = false
@@ -557,37 +730,40 @@ for name, tab in pairs(tabs) do
     tab.button.MouseEnter:Connect(function()
         if not (currentTab == name) then
             UI.animate(tab.button, {BackgroundColor3 = THEME.colors.cardHov}, 0.2)
+            UI.animate(tab.icon, {TextSize = 30}, 0.2)
         end
     end)
     tab.button.MouseLeave:Connect(function()
         if not (currentTab == name) then
-            UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.05}, 0.2)
+            UI.animate(tab.button, {BackgroundColor3 = THEME.colors.card, BackgroundTransparency = 0.03}, 0.2)
+            UI.animate(tab.icon, {TextSize = 28}, 0.2)
         end
     end)
 end
 
 -- ═══════════════════════════════════════════════════════════
---  UI КОМПОНЕНТЫ
+--  UI КОМПОНЕНТЫ С ЭФФЕКТАМИ
 -- ═══════════════════════════════════════════════════════════
 
 local function sectionTitle(parent, order, text)
-    UI.createLabel(parent, {
+    local l = UI.createLabel(parent, {
         text = text,
         color = THEME.accent.light,
         font = Enum.Font.GothamBold,
         textSize = 13,
-        size = UDim2.new(1, 0, 0, 28),
+        size = UDim2.new(1, 0, 0, 30),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
-    }).LayoutOrder = order
+    })
+    l.LayoutOrder = order
 end
 
 local function statRow(parent, order, name)
     local row = UI.createFrame(parent, {
         bg = THEME.colors.card,
-        transparency = 0.02,
-        size = UDim2.new(1, 0, 0, 38),
-        corner = 13,
+        transparency = 0.01,
+        size = UDim2.new(1, 0, 0, 40),
+        corner = 14,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -599,7 +775,7 @@ local function statRow(parent, order, name)
         font = Enum.Font.Gotham,
         textSize = 13,
         size = UDim2.new(0.6, 0, 1, 0),
-        position = UDim2.new(0, 18, 0, 0),
+        position = UDim2.new(0, 20, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
     })
@@ -609,7 +785,7 @@ local function statRow(parent, order, name)
         color = THEME.accent.light,
         font = Enum.Font.GothamBold,
         textSize = 14,
-        size = UDim2.new(0.4, -18, 1, 0),
+        size = UDim2.new(0.4, -20, 1, 0),
         position = UDim2.new(0.6, 0, 0, 0),
         xAlign = Enum.TextXAlignment.Right,
         zIndex = 2
@@ -620,9 +796,9 @@ end
 local function toggleCard(parent, order, label, onToggle)
     local card = UI.createFrame(parent, {
         bg = THEME.colors.card,
-        transparency = 0.02,
-        size = UDim2.new(1, 0, 0, 54),
-        corner = 15,
+        transparency = 0.01,
+        size = UDim2.new(1, 0, 0, 56),
+        corner = 16,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -633,17 +809,17 @@ local function toggleCard(parent, order, label, onToggle)
         color = THEME.colors.text,
         font = Enum.Font.GothamBold,
         textSize = 15,
-        size = UDim2.new(1, -120, 1, 0),
-        position = UDim2.new(0, 22, 0, 0),
+        size = UDim2.new(1, -130, 1, 0),
+        position = UDim2.new(0, 24, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
     })
 
     local pill = UI.createFrame(card, {
         bg = THEME.colors.border,
-        size = UDim2.new(0, 64, 0, 30),
-        position = UDim2.new(1, -74, 0.5, -15),
-        corner = 15,
+        size = UDim2.new(0, 68, 0, 32),
+        position = UDim2.new(1, -78, 0.5, -16),
+        corner = 16,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -718,9 +894,9 @@ local bagVal = statRow(farmContent, 9, "Bag Full")
 do
     local card = UI.createFrame(farmContent, {
         bg = THEME.colors.card,
-        transparency = 0.02,
-        size = UDim2.new(1, 0, 0, 54),
-        corner = 15,
+        transparency = 0.01,
+        size = UDim2.new(1, 0, 0, 56),
+        corner = 16,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -731,17 +907,17 @@ do
         color = THEME.colors.text,
         font = Enum.Font.GothamBold,
         textSize = 15,
-        size = UDim2.new(1, -130, 1, 0),
-        position = UDim2.new(0, 22, 0, 0),
+        size = UDim2.new(1, -140, 1, 0),
+        position = UDim2.new(0, 24, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
     })
 
     local pill = UI.createFrame(card, {
         bg = THEME.accent.base,
-        size = UDim2.new(0, 85, 0, 34),
-        position = UDim2.new(1, -95, 0.5, -17),
-        corner = 13,
+        size = UDim2.new(0, 90, 0, 36),
+        position = UDim2.new(1, -100, 0.5, -18),
+        corner = 14,
         stroke = {color = THEME.accent.neon, thickness = 1},
         zIndex = 2
     })
@@ -764,9 +940,9 @@ do
     btn.MouseButton1Click:Connect(function()
         if MAX_BAG == 40 then MAX_BAG = 50 else MAX_BAG = 40 end
         pillLabel.Text = tostring(MAX_BAG) .. " 🪙"
-        UI.animate(pill, {Size = UDim2.new(0, 95, 0, 38)}, 0.15)
+        UI.animate(pill, {Size = UDim2.new(0, 100, 0, 40)}, 0.15)
         task.wait(0.15)
-        UI.animate(pill, {Size = UDim2.new(0, 85, 0, 34)}, 0.15)
+        UI.animate(pill, {Size = UDim2.new(0, 90, 0, 36)}, 0.15)
         notify("XDarkHUB", "🎯 Лимит: " .. MAX_BAG, 2)
     end)
 end
@@ -775,9 +951,9 @@ end
 do
     local card = UI.createFrame(farmContent, {
         bg = THEME.colors.card,
-        transparency = 0.02,
-        size = UDim2.new(1, 0, 0, 54),
-        corner = 15,
+        transparency = 0.01,
+        size = UDim2.new(1, 0, 0, 56),
+        corner = 16,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -788,17 +964,17 @@ do
         color = THEME.colors.text,
         font = Enum.Font.GothamBold,
         textSize = 15,
-        size = UDim2.new(1, -130, 1, 0),
-        position = UDim2.new(0, 22, 0, 0),
+        size = UDim2.new(1, -140, 1, 0),
+        position = UDim2.new(0, 24, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
     })
 
     local pill = UI.createFrame(card, {
         bg = THEME.accent.dim,
-        size = UDim2.new(0, 64, 0, 30),
-        position = UDim2.new(1, -74, 0.5, -15),
-        corner = 15,
+        size = UDim2.new(0, 68, 0, 32),
+        position = UDim2.new(1, -78, 0.5, -16),
+        corner = 16,
         stroke = {color = THEME.accent.base, thickness = 1},
         zIndex = 2
     })
@@ -848,9 +1024,9 @@ do
         text = "🚀 TEST FLING",
         textColor = THEME.colors.white,
         font = Enum.Font.GothamBlack,
-        textSize = 16,
-        size = UDim2.new(1, 0, 0, 56),
-        corner = 15,
+        textSize = 17,
+        size = UDim2.new(1, 0, 0, 60),
+        corner = 16,
         stroke = {color = THEME.accent.neon, thickness = 2},
         gradient = {
             colors = {
@@ -862,6 +1038,16 @@ do
         zIndex = 2
     })
     btn.LayoutOrder = 14
+    
+    -- Пульсация кнопки
+    task.spawn(function()
+        while btn.Parent do
+            UI.animate(btn, {BackgroundTransparency = 0.1}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+            UI.animate(btn, {BackgroundTransparency = 0}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+        end
+    end)
     
     btn.MouseEnter:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.accent.neon}, 0.2) end)
     btn.MouseLeave:Connect(function() UI.animate(btn, {BackgroundColor3 = THEME.accent.base}, 0.2) end)
@@ -875,13 +1061,13 @@ end
 do
     local btn = UI.createButton(farmContent, {
         bg = THEME.colors.card,
-        transparency = 0.02,
+        transparency = 0.01,
         text = "🔄 Reset & Resume",
         textColor = THEME.accent.light,
         font = Enum.Font.GothamBold,
         textSize = 15,
-        size = UDim2.new(1, 0, 0, 48),
-        corner = 15,
+        size = UDim2.new(1, 0, 0, 50),
+        corner = 16,
         stroke = {color = THEME.accent.base, thickness = 1},
         zIndex = 2
     })
@@ -911,17 +1097,17 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
         text = name == "Sheriff" and "⭐ SHERIFF" or name == "Murderer" and "🔪 MURDERER" or "🎯 PLAYER",
         color = THEME.accent.light,
         font = Enum.Font.GothamBlack,
-        textSize = 24,
-        size = UDim2.new(1, 0, 0, 60),
+        textSize = 26,
+        size = UDim2.new(1, 0, 0, 65),
         xAlign = Enum.TextXAlignment.Left,
         zIndex = 2
     }).LayoutOrder = 1
     
     local card = UI.createFrame(content, {
         bg = THEME.colors.card,
-        transparency = 0.02,
-        size = UDim2.new(1, 0, 0, 160),
-        corner = 18,
+        transparency = 0.01,
+        size = UDim2.new(1, 0, 0, 170),
+        corner = 20,
         stroke = {color = THEME.colors.border, thickness = 1},
         zIndex = 2
     })
@@ -932,8 +1118,8 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
         color = THEME.colors.muted,
         font = Enum.Font.Gotham,
         textSize = 15,
-        size = UDim2.new(1, -30, 1, 0),
-        position = UDim2.new(0, 15, 0, 0),
+        size = UDim2.new(1, -32, 1, 0),
+        position = UDim2.new(0, 16, 0, 0),
         xAlign = Enum.TextXAlignment.Left,
         yAlign = Enum.TextYAlignment.Top,
         zIndex = 2
@@ -1286,16 +1472,19 @@ function startFarming()
     end)
 end
 
--- Кнопка меню
+-- ═══════════════════════════════════════════════════════════
+--  КНОПКА МЕНЮ С УЛУЧШЕННЫМИ ЭФФЕКТАМИ
+-- ═══════════════════════════════════════════════════════════
+
 local menuButton = UI.createButton(gui, {
     bg = THEME.accent.base,
     text = "X",
     textColor = THEME.colors.white,
     font = Enum.Font.GothamBlack,
-    textSize = 44,
-    size = UDim2.new(0, 80, 0, 80),
-    position = UDim2.new(0, 25, 1, -105),
-    corner = 40,
+    textSize = 46,
+    size = UDim2.new(0, 85, 0, 85),
+    position = UDim2.new(0, 25, 1, -110),
+    corner = 42,
     stroke = {color = THEME.accent.neon, thickness = 3, transparency = 0.4},
     gradient = {
         colors = {
@@ -1307,12 +1496,26 @@ local menuButton = UI.createButton(gui, {
     zIndex = 10
 })
 
+-- Неоновое свечение кнопки
+UI.createGlowPulse(menuButton, THEME.accent.neon)
+
+-- Пульсация кнопки
 task.spawn(function()
     while menuButton.Parent do
-        UI.animate(menuButton, {Size = UDim2.new(0, 85, 0, 85)}, 1.2, Enum.EasingStyle.Sine)
-        task.wait(1.2)
-        UI.animate(menuButton, {Size = UDim2.new(0, 80, 0, 80)}, 1.2, Enum.EasingStyle.Sine)
-        task.wait(1.2)
+        UI.animate(menuButton, {Size = UDim2.new(0, 90, 0, 90)}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
+        UI.animate(menuButton, {Size = UDim2.new(0, 85, 0, 85)}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
+    end
+end)
+
+-- Вращение кнопки
+task.spawn(function()
+    local rotation = 0
+    while menuButton.Parent do
+        rotation = rotation + 1
+        menuButton.Rotation = math.sin(rotation * 0.02) * 8
+        task.wait(0.05)
     end
 end)
 
@@ -1404,6 +1607,6 @@ updateRoleUI()
 updateBagUI()
 switchTab("Auto Farm")
 
-notify("XDarkHUB", "✅ v8.0 OPTIMIZED загружен!", 3)
-notify("XDarkHUB", "🎨 Оптимизированный UI", 3)
+notify("XDarkHUB", "✅ v9.0 ULTRA загружен!", 3)
+notify("XDarkHUB", "🎨 Ultra Premium UI", 3)
 notify("XDarkHUB", "🚀 Классический флинг!", 4)
