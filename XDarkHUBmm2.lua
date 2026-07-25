@@ -470,11 +470,9 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 НАСТОЯЩИЙ ФЛИНГ — РАБОТАЕТ ДАЖЕ В ЛОББИ!
+-- 🔥 НАСТОЯЩИЙ ФЛИНГ — ТЕЛЕПОРТАЦИЯ + ВРАЩЕНИЕ
 function throwMurdererToSpace()
     print("🚀 === НАСТОЯЩИЙ ФЛИНГ ===")
-    print("📍 Состояние игрока: в лобби =", not player.Character or not player.Character:FindFirstChild("HumanoidRootPart"))
-    
     deathSound:Play()
     
     -- 🔥 Ищем мардера
@@ -518,72 +516,63 @@ function throwMurdererToSpace()
     
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     
-    print("🌀 Запускаем флинг на:", murdererPlayer.Name)
-    
     -- 🔥 Отключаем управление мардеру
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
         murdererHum.JumpPower = 0
-        murdererHum.AutoRotate = false
     end
     
-    -- 🔥 Создаём 6 флинг-частей
-    local positions = {
-        Vector3.new(0, 3, 0),
-        Vector3.new(0, -3, 0),
-        Vector3.new(3, 0, 0),
-        Vector3.new(-3, 0, 0),
-        Vector3.new(0, 0, 3),
-        Vector3.new(0, 0, -3),
-    }
-    
-    for i, offset in ipairs(positions) do
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(2, 2, 2)
-        part.Position = murdererHrp.Position + offset
-        part.Anchored = false
-        part.CanCollide = false
-        part.Transparency = 0.7
-        part.Material = Enum.Material.Neon
-        part.Color = Color3.fromRGB(155, 60, 255)
-        part.Parent = workspace
-        
-        local weld = Instance.new("Weld")
-        weld.Part0 = part
-        weld.Part1 = murdererHrp
-        weld.C0 = CFrame.new(offset)
-        weld.Parent = part
-        
-        local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 500, 0)
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.Parent = part
-        
-        Debris:AddItem(part, 5)
-        Debris:AddItem(bv, 5)
-    end
-    
-    -- 🔥 Вращение мардера
-    local bodyAng = Instance.new("BodyAngularVelocity")
-    bodyAng.AngularVelocity = Vector3.new(100, 100, 100)
-    bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bodyAng.Parent = murdererHrp
-    Debris:AddItem(bodyAng, 10)
-    
-    -- 🔥 Полёт вверх
-    local bodyVel = Instance.new("BodyVelocity")
-    bodyVel.Velocity = Vector3.new(0, 1000, 0)
-    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVel.Parent = murdererHrp
-    Debris:AddItem(bodyVel, 10)
-    
-    -- 🔥 Отключаем коллизии
+    -- 🔥 Отключаем коллизии мардера
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
         end
     end
+    
+    print("🌀 Создаём флинг-объект...")
+    
+    -- 🔥 Создаём невидимую флинг-часть
+    local flingPart = Instance.new("Part")
+    flingPart.Size = Vector3.new(3, 3, 3)
+    flingPart.Position = murdererHrp.Position
+    flingPart.Anchored = false
+    flingPart.CanCollide = true
+    flingPart.Transparency = 1 -- Невидимая!
+    flingPart.Material = Enum.Material.Neon
+    flingPart.Color = Color3.fromRGB(155, 60, 255)
+    flingPart.Parent = workspace
+    
+    -- 🔥 BodyVelocity для флинг-части (огромная скорость вверх)
+    local flingVel = Instance.new("BodyVelocity")
+    flingVel.Velocity = Vector3.new(0, 5000, 0)
+    flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    flingVel.Parent = flingPart
+    
+    -- 🔥 BodyAngularVelocity для вращения
+    local flingAng = Instance.new("BodyAngularVelocity")
+    flingAng.AngularVelocity = Vector3.new(200, 200, 200)
+    flingAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    flingAng.Parent = flingPart
+    
+    -- 🔥 Weld к мардеру
+    local weld = Instance.new("Weld")
+    weld.Part0 = flingPart
+    weld.Part1 = murdererHrp
+    weld.C0 = CFrame.new(0, 0, 0)
+    weld.Parent = flingPart
+    
+    -- 🔥 BodyVelocity к мардеру (полёт вверх)
+    local murdererVel = Instance.new("BodyVelocity")
+    murdererVel.Velocity = Vector3.new(0, 3000, 0)
+    murdererVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    murdererVel.Parent = murdererHrp
+    
+    -- 🔥 BodyAngularVelocity к мардеру (вращение)
+    local murdererAng = Instance.new("BodyAngularVelocity")
+    murdererAng.AngularVelocity = Vector3.new(150, 150, 150)
+    murdererAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    murdererAng.Parent = murdererHrp
     
     -- 🔥 Фиолетовая вспышка
     local flash = Instance.new("Part")
@@ -602,6 +591,31 @@ function throwMurdererToSpace()
     light.Range = 50
     light.Color = Color3.fromRGB(155, 60, 255)
     light.Parent = flash
+    
+    -- 🔥 Фиолетовый след
+    task.spawn(function()
+        for i = 1, 30 do
+            task.wait(0.1)
+            if murdererHrp.Parent then
+                local trail = Instance.new("Part")
+                trail.Size = Vector3.new(2, 2, 2)
+                trail.Position = murdererHrp.Position
+                trail.Anchored = true
+                trail.CanCollide = false
+                trail.Material = Enum.Material.Neon
+                trail.Color = Color3.fromRGB(155, 60, 255)
+                trail.Transparency = 0.3
+                trail.Parent = workspace
+                Debris:AddItem(trail, 1.5)
+            end
+        end
+    end)
+    
+    Debris:AddItem(flingPart, 5)
+    Debris:AddItem(flingVel, 5)
+    Debris:AddItem(flingAng, 5)
+    Debris:AddItem(murdererVel, 10)
+    Debris:AddItem(murdererAng, 10)
     
     print("🚀", murdererPlayer.Name, "улетает в космос!")
     
@@ -641,7 +655,6 @@ function startFarming()
     updateBagUI()
     print("🚀 ФАРМ ЗАПУЩЕН! MAX_BAG =", MAX_BAG)
 
-    -- 🔥 ПОТОК 1: Таймер и статистика
     task.spawn(function()
         while isActive do
             local elapsed = tick() - startTime
@@ -652,12 +665,10 @@ function startFarming()
         end
     end)
 
-    -- 🔥 ПОТОК 2: ГЛАВНАЯ ПРОВЕРКА ПОЛНОГО МЕШКА (работает ВСЕГДА!)
     task.spawn(function()
         while isActive do
             task.wait(0.5)
             
-            -- 🔥 ПРОВЕРКА: мешок полон?
             if collected >= MAX_BAG and not farmStopped then
                 print("🎒 === МЕШОК ПОЛОН! ===")
                 print("📍 Собрано:", collected, "/", MAX_BAG)
@@ -679,7 +690,6 @@ function startFarming()
         end
     end)
 
-    -- 🔥 ПОТОК 3: Сбор монет (работает только когда есть тело)
     task.spawn(function()
         while isActive do
             if farmStopped then task.wait(1) continue end
@@ -692,7 +702,6 @@ function startFarming()
             
             rootPart = character:FindFirstChild("HumanoidRootPart")
             
-            -- 🔥 Если в лобби — просто ждём (поток 2 всё равно проверяет мешок)
             if not rootPart then 
                 task.wait(0.5)
                 continue 
@@ -1004,5 +1013,5 @@ updateRoleUI()
 updateBagUI()
 
 print("✅ [egor745top6] Coin Farm ГОТОВ!")
-print("🔥 Теперь 3 потока: статистика + проверка мешка + сбор монет")
-print("📍 Проверка мешка работает ДАЖЕ В ЛОББИ!")
+print("🌀 ФЛИНГ: невидимая часть + вращение + полёт вверх!")
+print("📍 Работает даже в лобби!")
