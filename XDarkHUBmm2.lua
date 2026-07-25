@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v32 · FIXED ESP                             ║
--- ║   ИСПРАВЛЕН ESP + TP К ПИСТОЛЕТУ ИЗ YARHM                                    ║
+-- ║                         XDarkHUB v33 · SHERIFF FLOATING BUTTONS              ║
+-- ║   TP TO GUN + SHOOT MURDERER AS FLOATING BUTTONS                             ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -30,9 +30,8 @@ local espEnabled = false
 local trapESPEnabled = false
 local gunESPEnabled = false
 local espHighlights = {}
-local trapHighlights = {}
-local gunHighlights = {}
 local MAX_BAG = 40
+local shootOffset = 2.8
 
 -- ЗВУКИ
 local collectSound = Instance.new("Sound")
@@ -60,7 +59,7 @@ local function notify(title, text, duration)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ПОИСК РОЛЕЙ И ОБЪЕКТОВ
+--  ПОИСК РОЛЕЙ (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerRole(p)
     if p.Character then
@@ -102,39 +101,13 @@ local function findSheriff()
     return nil
 end
 
--- 🔥 ИСПРАВЛЕНО: Поиск карты (из YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  ПОИСК КАРТЫ (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function getMap()
     for _, o in ipairs(workspace:GetChildren()) do
         if o:FindFirstChild("CoinContainer") and o:FindFirstChild("Spawns") then
             return o
-        end
-    end
-    return nil
-end
-
--- 🔥 ИСПРАВЛЕНО: Поиск пистолета (из YARHM)
-local function findGunDrop()
-    local map = getMap()
-    if map then
-        local gunDrop = map:FindFirstChild("GunDrop")
-        if gunDrop then
-            return gunDrop
-        end
-    end
-    -- Fallback поиск
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "GunDrop" then
-            return obj
-        end
-    end
-    return nil
-end
-
--- 🔥 ИСПРАВЛЕНО: Поиск ловушки (из YARHM)
-local function findTrap()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "Trap" and (obj.Parent:IsA("Folder") or obj.Parent:IsA("Model")) then
-            return obj
         end
     end
     return nil
@@ -167,319 +140,230 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🔥 ИСПРАВЛЕННЫЙ ESP (АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ)
+--  PREDICTION (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Функция добавления ESP для игрока
-local function addPlayerESP(p)
-    if not p or not p.Character then return end
+local function getPredictedPosition(targetPlayer)
+    local playerChar = targetPlayer.Character
+    if not playerChar then return Vector3.new(0,0,0) end
     
-    -- Удаляем старый highlight если есть
-    if espHighlights[p] then
-        espHighlights[p]:Destroy()
-        espHighlights[p] = nil
-    end
+    local playerHRP = playerChar:FindFirstChild("UpperTorso") or playerChar:FindFirstChild("HumanoidRootPart")
+    local playerHum = playerChar:FindFirstChild("Humanoid")
     
-    -- Определяем роль
-    local role = getPlayerRole(p)
-    local color
+    if not playerHRP or not playerHum then return Vector3.new(0,0,0) end
     
-    if role == "Murderer" then
-        color = Color3.fromRGB(255, 0, 0)  -- Красный
-    elseif role == "Sheriff" then
-        color = Color3.fromRGB(0, 100, 255)  -- Синий
-    else
-        color = Color3.fromRGB(0, 255, 0)  -- Зеленый
-    end
+    local playerPosition = playerHRP.Position
+    local velocity = playerHRP.AssemblyLinearVelocity
+    local playerMoveDirection = playerHum.MoveDirection
     
-    -- Создаем Highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "PlayerESP_" .. p.Name
-    highlight.Adornee = p.Character
-    highlight.FillColor = color
-    highlight.OutlineColor = color
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = p.Character
+    local predictedPosition = playerHRP.Position + ((velocity * Vector3.new(0.75, 0.5, 0.75))) * (shootOffset / 15) + playerMoveDirection * shootOffset
     
-    espHighlights[p] = highlight
+    return predictedPosition
 end
-
--- Функция удаления ESP для игрока
-local function removePlayerESP(p)
-    if espHighlights[p] then
-        espHighlights[p]:Destroy()
-        espHighlights[p] = nil
-    end
-end
-
--- 🔥 ИСПРАВЛЕНО: Полная перезагрузка ESP
-local function reloadESP()
-    -- Удаляем все старые highlights
-    for p, highlight in pairs(espHighlights) do
-        if highlight then
-            highlight:Destroy()
-        end
-    end
-    espHighlights = {}
-    
-    if not espEnabled then return end
-    
-    -- Добавляем highlights для всех игроков
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            addPlayerESP(p)
-        end
-    end
-end
-
--- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при появлении игрока
-Players.PlayerAdded:Connect(function(p)
-    if espEnabled then
-        p.CharacterAdded:Connect(function(char)
-            task.wait(1)  -- Ждем пока персонаж загрузится
-            addPlayerESP(p)
-        end)
-    end
-end)
-
--- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при исчезновении игрока
-Players.PlayerRemoving:Connect(function(p)
-    removePlayerESP(p)
-end)
-
--- 🔥 ИСПРАВЛЕНО: Автоматическое обновление при респауне персонажа
-for _, p in ipairs(Players:GetPlayers()) do
-    if p ~= player then
-        p.CharacterAdded:Connect(function(char)
-            if espEnabled then
-                task.wait(1)
-                addPlayerESP(p)
-            end
-        end)
-    end
-end
-
--- Периодическое обновление ESP (каждые 3 секунды)
-task.spawn(function()
-    while true do
-        if espEnabled then
-            reloadESP()
-        end
-        task.wait(3)
-    end
-end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  TRAP ESP (ИЗ YARHM - С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ)
+--  TP TO GUN (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
-local function addTrapESP(trap)
-    if not trap then return end
-    
-    -- Делаем ловушку видимой
-    if trap:IsA("BasePart") then
-        trap.Transparency = 0
-    end
-    
-    -- Создаем Highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "TrapESP_" .. tostring(trap)
-    highlight.Adornee = trap
-    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-    highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = trap
-    
-    -- Создаем BillboardGui с надписью
-    local bgui = Instance.new("BillboardGui")
-    bgui.Name = "TrapLabel"
-    bgui.AlwaysOnTop = true
-    bgui.Size = UDim2.new(0, 100, 0, 30)
-    bgui.StudsOffset = Vector3.new(0, 3, 0)
-    bgui.Adornee = trap
-    bgui.Parent = trap
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "🪤 TRAP"
-    label.TextColor3 = Color3.fromRGB(255, 0, 0)
-    label.Font = Enum.Font.GothamBold
-    label.TextScaled = true
-    label.Parent = bgui
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(100, 0, 0)
-    stroke.Thickness = 2
-    stroke.Parent = label
-    
-    table.insert(trapHighlights, highlight)
-end
-
-local function reloadTrapESP()
-    -- Удаляем старые highlights
-    for _, h in ipairs(trapHighlights) do
-        if h and h.Parent then h:Destroy() end
-    end
-    trapHighlights = {}
-    
-    -- Удаляем старые labels
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "TrapLabel" then obj:Destroy() end
-    end
-    
-    if not trapESPEnabled then return end
-    
-    -- Добавляем новые highlights
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "Trap" and (obj.Parent:IsA("Folder") or obj.Parent:IsA("Model")) then
-            addTrapESP(obj)
-        end
-    end
-end
-
--- Слушаем новые ловушки (из YARHM)
-workspace.DescendantAdded:Connect(function(ch)
-    if trapESPEnabled and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
-        addTrapESP(ch)
-        notify("XDarkHUB", "🪤 Ловушка обнаружена!", 3)
-    end
-end)
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  🔥 GUN ESP (ИЗ YARHM - С АВТОМАТИЧЕСКИМ ОБНОВЛЕНИЕМ)
--- ═══════════════════════════════════════════════════════════════════════════════
-local function addGunESP(gun)
-    if not gun then return end
-    
-    -- Создаем Highlight
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "GunESP_" .. tostring(gun)
-    highlight.Adornee = gun
-    highlight.FillColor = Color3.fromRGB(255, 255, 0)  -- Желтый
-    highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent = gun
-    
-    -- Создаем BillboardGui с надписью
-    local bgui = Instance.new("BillboardGui")
-    bgui.Name = "GunLabel"
-    bgui.AlwaysOnTop = true
-    bgui.Size = UDim2.new(0, 120, 0, 35)
-    bgui.StudsOffset = Vector3.new(0, 4, 0)
-    bgui.Adornee = gun
-    bgui.Parent = gun
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "🔫 DROPPED GUN"
-    label.TextColor3 = Color3.fromRGB(255, 255, 0)
-    label.Font = Enum.Font.GothamBold
-    label.TextScaled = true
-    label.Parent = bgui
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(200, 200, 0)
-    stroke.Thickness = 2
-    stroke.Parent = label
-    
-    table.insert(gunHighlights, highlight)
-end
-
-local function reloadGunESP()
-    -- Удаляем старые highlights
-    for _, h in ipairs(gunHighlights) do
-        if h and h.Parent then h:Destroy() end
-    end
-    gunHighlights = {}
-    
-    -- Удаляем старые labels
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "GunLabel" then obj:Destroy() end
-    end
-    
-    if not gunESPEnabled then return end
-    
-    -- Добавляем новые highlights
-    local gun = findGunDrop()
-    if gun then
-        addGunESP(gun)
-        notify("XDarkHUB", "🔫 Пистолет найден!", 3)
-    end
-end
-
--- Слушаем появление пистолета (из YARHM)
-workspace.DescendantAdded:Connect(function(ch)
-    if gunESPEnabled and ch.Name == "GunDrop" then
-        addGunESP(ch)
-        notify("XDarkHUB", "🔫 Пистолет брошен! Найди желтую подсветку.", 3)
-    end
-end)
-
-workspace.DescendantRemoving:Connect(function(ch)
-    if gunESPEnabled and ch.Name == "GunDrop" then
-        -- Удаляем highlights
-        for _, h in ipairs(gunHighlights) do
-            if h and h.Parent then h:Destroy() end
-        end
-        gunHighlights = {}
-        notify("XDarkHUB", "🔫 Кто-то взял пистолет.", 2)
-    end
-end)
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  🔥 TELEPORT TO GUN (ИЗ YARHM - ИСПРАВЛЕНО)
--- ═══════════════════════════════════════════════════════════════════════════════
-function teleportToGun()
-    local gun = findGunDrop()
-    if not gun then
-        notify("XDarkHUB", "❌ Нет пистолета для телепортации!", 2)
+local function teleportToGun()
+    local map = getMap()
+    if not map then
+        notify("XDarkHUB", "❌ Карта не найдена!", 2)
         return
     end
     
-    character = player.Character
-    if not character then
-        notify("XDarkHUB", "❌ Нет персонажа!", 2)
+    local gunDrop = map:FindFirstChild("GunDrop")
+    if not gunDrop then
+        notify("XDarkHUB", "❌ Пистолет не брошен!", 2)
         return
     end
     
-    -- 🔥 ИЗ YARHM: Сохраняем предыдущую позицию
-    local previousPosition = character:GetPivot()
+    local localplayer = player
+    local previousPosition = localplayer.Character:GetPivot()
     
-    -- 🔥 ИЗ YARHM: Телепортируемся к пистолету
-    character:PivotTo(gun:GetPivot())
-    
+    -- Телепорт к пистолету
+    localplayer.Character:PivotTo(gunDrop:GetPivot())
     notify("XDarkHUB", "🔫 Телепорт к пистолету!", 2)
     
-    -- 🔥 ИЗ YARHM: Ждем получения пистолета
-    character.Backpack.ChildAdded:Wait()
+    -- Ждем получения пистолета
+    localplayer.Backpack.ChildAdded:Wait()
     
-    -- 🔥 ИЗ YARHM: Возвращаемся на предыдущую позицию
-    character:PivotTo(previousPosition)
-    
+    -- Возвращаемся на предыдущую позицию
+    localplayer.Character:PivotTo(previousPosition)
     notify("XDarkHUB", "✅ Пистолет получен!", 2)
-    
-    -- Эффект телепортации
-    local effect = Instance.new("Part")
-    effect.Size = Vector3.new(5, 5, 5)
-    effect.Position = rootPart.Position
-    effect.Anchored = true
-    effect.CanCollide = false
-    effect.Material = Enum.Material.Neon
-    effect.Color = Color3.fromRGB(255, 255, 0)
-    effect.Transparency = 0.3
-    effect.Parent = workspace
-    Debris:AddItem(effect, 1)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLING ИЗ YARHM (РАБОЧИЙ)
+--  SHOOT MURDERER (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function shootMurderer()
+    if findSheriff() ~= player then
+        notify("XDarkHUB", "❌ Ты не шериф!", 2)
+        return
+    end
+    
+    local murderer = findMurderer()
+    if not murderer then
+        notify("XDarkHUB", "❌ Мардер не найден!", 2)
+        return
+    end
+    
+    if not player.Character:FindFirstChild("Gun") then
+        local hum = player.Character:FindFirstChild("Humanoid")
+        if player.Backpack:FindFirstChild("Gun") then
+            hum:EquipTool(player.Backpack:FindFirstChild("Gun"))
+        else
+            notify("XDarkHUB", "❌ У тебя нет пистолета!", 2)
+            return
+        end
+    end
+    
+    local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+    if not murdererHRP then
+        notify("XDarkHUB", "❌ Не найден HumanoidRootPart мардера!", 2)
+        return
+    end
+    
+    local predictedPosition = getPredictedPosition(murderer)
+    local args = {
+        CFrame.new(player.Character.RightHand.Position),
+        CFrame.new(predictedPosition)
+    }
+    
+    player.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
+    notify("XDarkHUB", "🔫 Выстрел в мардера!", 2)
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FLOATING BUTTON SYSTEM (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local floatingButtons = {}
+
+local function createFloatingButton(name, text, color, callback, position)
+    -- Удаляем старую кнопку если есть
+    if floatingButtons[name] then
+        floatingButtons[name]:Destroy()
+        floatingButtons[name] = nil
+    end
+    
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0, 150, 0, 50)
+    button.Position = position or UDim2.new(0, 125, 0, 90)
+    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextScaled = true
+    button.Font = Enum.Font.GothamBold
+    button.AutoButtonColor = false
+    button.ClipsDescendants = true
+    button.Parent = player:WaitForChild("PlayerGui"):WaitForChild("AutoFarmGui")
+    
+    local corner = Instance.new("UICorner", button)
+    corner.CornerRadius = UDim.new(0, 10)
+    
+    local stroke = Instance.new("UIStroke", button)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    
+    -- Click handler
+    button.MouseButton1Click:Connect(function()
+        clickSnd:Play()
+        callback()
+    end)
+    
+    -- Ripple effect
+    button.MouseButton1Down:Connect(function(x, y)
+        TweenService:Create(button, TweenInfo.new(0.1), {
+            Size = UDim2.new(0, 145, 0, 48)
+        }):Play()
+        
+        local ripple = Instance.new("Frame")
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 1
+        ripple.Position = UDim2.fromOffset(x - button.AbsolutePosition.X, y - button.AbsolutePosition.Y)
+        ripple.Size = UDim2.fromOffset(50, 50)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.Parent = button
+        
+        local rippleCorner = Instance.new("UICorner", ripple)
+        rippleCorner.CornerRadius = UDim.new(1, 0)
+        
+        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.6,
+            Size = UDim2.fromOffset(150, 150)
+        }):Play()
+        
+        task.spawn(function()
+            task.wait(0.5)
+            if ripple and ripple.Parent then ripple:Destroy() end
+        end)
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(button, TweenInfo.new(0.1), {
+                Size = UDim2.new(0, 150, 0, 50)
+            }):Play()
+        end
+    end)
+    
+    -- Draggable (ИЗ YARHM)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    -- Animate appearance
+    button.Size = UDim2.new(0, 0, 0, 0)
+    TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 150, 0, 50)
+    }):Play()
+    
+    floatingButtons[name] = button
+    notify("XDarkHUB", "📌 Кнопка " .. text .. " создана!", 3)
+    
+    return button
+end
+
+local function removeFloatingButton(name)
+    if floatingButtons[name] then
+        local button = floatingButtons[name]
+        TweenService:Create(button, TweenInfo.new(0.3), {
+            Size = UDim2.new(0, 0, 0, 0)
+        }):Play()
+        task.wait(0.3)
+        button:Destroy()
+        floatingButtons[name] = nil
+        notify("XDarkHUB", "📌 Кнопка удалена!", 2)
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FLING ИЗ YARHM
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
@@ -504,8 +388,8 @@ function miniFling(playerToFling)
     if TCharacter:FindFirstChildOfClass("Accessory") then
         Accessory = TCharacter:FindFirstChildOfClass("Accessory")
     end
-    if Accessory and Accessory:FindFirstChild("handle") then
-        Handle = Accessory.handle
+    if Accessory and Accessory:FindFirstChild("Handle") then
+        Handle = Accessory.Handle
     end
     
     if Character and Humanoid and RootPart then
@@ -847,7 +731,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 80, 1, 0)
 vLbl.Position = UDim2.new(1, -90, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v32]"
+vLbl.Text = "[v33]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 12
 vLbl.TextColor3 = C.mut
@@ -1195,25 +1079,150 @@ local function togC(par, ord, label, onTog)
     btn.MouseLeave:Connect(function() if not st then cd.BackgroundTransparency = 1 end end)
 end
 
--- КОНТЕНТ ВКЛАДОК
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  КОНТЕНТ ВКЛАДОК
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- ESP TAB
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
-togC(espC, 2, "👥 Player ESP", function(s) 
-    espEnabled = s
-    reloadESP()
-    notify("XDarkHUB", "👥 Player ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
-end)
-togC(espC, 3, "🪤 Trap ESP", function(s) 
-    trapESPEnabled = s
-    reloadTrapESP()
-    notify("XDarkHUB", "🪤 Trap ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
-end)
-togC(espC, 4, "🔫 Gun ESP", function(s) 
-    gunESPEnabled = s
-    reloadGunESP()
-    notify("XDarkHUB", "🔫 Gun ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
-end)
+togC(espC, 2, "ESP Roles", function(s) espEnabled = s; notify("XDarkHUB", "ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
+togC(espC, 3, "🪤 Trap ESP", function(s) trapESPEnabled = s; notify("XDarkHUB", "🪤 Trap ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
+togC(espC, 4, "🔫 Gun ESP", function(s) gunESPEnabled = s; notify("XDarkHUB", "🔫 Gun ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  SHERIFF TAB (С FLOATING BUTTONS)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local sheriffC = tabContents["Sheriff"]
+secT(sheriffC, 1, "⭐ SHERIFF TOOLS")
+
+-- TP TO GUN BUTTON
+do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 52)
+    b.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+    b.Text = "🔫 TP TO GUN"
+    b.TextColor3 = Color3.fromRGB(0, 0, 0)
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 16
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.LayoutOrder = 2
+    b.ZIndex = 2
+    b.Active = true
+    b.Parent = sheriffC
+    crn(b, 10)
+    stk(b, Color3.fromRGB(200, 200, 0), 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 200, 0)}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 255, 0)}, 0.15) end)
+    b.MouseButton1Click:Connect(function() clickSnd:Play(); teleportToGun() end)
+end
+
+-- TP TO GUN FLOATING BUTTON TOGGLE
+do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 52)
+    b.BackgroundColor3 = Color3.fromRGB(100, 100, 0)
+    b.Text = "📌 TOGGLE TP BUTTON ON SCREEN"
+    b.TextColor3 = COL.wht
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 14
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.LayoutOrder = 3
+    b.ZIndex = 2
+    b.Active = true
+    b.Parent = sheriffC
+    crn(b, 10)
+    stk(b, Color3.fromRGB(150, 150, 0), 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(150, 150, 0)}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(100, 100, 0)}, 0.15) end)
+    b.MouseButton1Click:Connect(function()
+        clickSnd:Play()
+        if floatingButtons["TP_TO_GUN"] then
+            removeFloatingButton("TP_TO_GUN")
+        else
+            createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 255, 0), teleportToGun, UDim2.new(0, 125, 0, 90))
+        end
+    end)
+end
+
+-- SHOOT MURDERER BUTTON
+do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 52)
+    b.BackgroundColor3 = A.base
+    b.Text = "🔫 SHOOT MURDERER"
+    b.TextColor3 = COL.wht
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 16
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.LayoutOrder = 4
+    b.ZIndex = 2
+    b.Active = true
+    b.Parent = sheriffC
+    crn(b, 10)
+    stk(b, A.neo, 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = A.neo}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = A.base}, 0.15) end)
+    b.MouseButton1Click:Connect(function() clickSnd:Play(); shootMurderer() end)
+end
+
+-- SHOOT MURDERER FLOATING BUTTON TOGGLE
+do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 52)
+    b.BackgroundColor3 = Color3.fromRGB(100, 20, 30)
+    b.Text = "📌 TOGGLE SHOOT BUTTON ON SCREEN"
+    b.TextColor3 = COL.wht
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 14
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.LayoutOrder = 5
+    b.ZIndex = 2
+    b.Active = true
+    b.Parent = sheriffC
+    crn(b, 10)
+    stk(b, Color3.fromRGB(150, 30, 40), 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(150, 30, 40)}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(100, 20, 30)}, 0.15) end)
+    b.MouseButton1Click:Connect(function()
+        clickSnd:Play()
+        if floatingButtons["SHOOT_MURDERER"] then
+            removeFloatingButton("SHOOT_MURDERER")
+        else
+            createFloatingButton("SHOOT_MURDERER", "🔫 SHOOT MURDERER", A.base, shootMurderer, UDim2.new(0, 125, 0, 150))
+        end
+    end)
+end
+
+-- FLING SHERIFF BUTTON
+do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, 0, 0, 52)
+    b.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+    b.Text = "⭐ FLING SHERIFF"
+    b.TextColor3 = COL.wht
+    b.Font = Enum.Font.GothamBlack
+    b.TextSize = 16
+    b.AutoButtonColor = false
+    b.BorderSizePixel = 0
+    b.LayoutOrder = 6
+    b.ZIndex = 2
+    b.Active = true
+    b.Parent = sheriffC
+    crn(b, 10)
+    stk(b, Color3.fromRGB(100, 200, 255), 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(100, 200, 255)}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(50, 150, 255)}, 0.15) end)
+    b.MouseButton1Click:Connect(function() clickSnd:Play(); flingSheriff() end)
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FARM TAB
+-- ═══════════════════════════════════════════════════════════════════════════════
 local fC = tabContents["Farm"]
 secT(fC, 1, "STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -1231,7 +1240,7 @@ do
     b.Size = UDim2.new(1, 0, 0, 52)
     b.BackgroundColor3 = A.base
     b.Text = "🔪 FLING MURDERER"
-    b.TextColor3 = C.wht
+    b.TextColor3 = COL.wht
     b.Font = Enum.Font.GothamBlack
     b.TextSize = 16
     b.AutoButtonColor = false
@@ -1247,55 +1256,12 @@ do
     b.MouseButton1Click:Connect(function() clickSnd:Play(); throwMurdererToSpace() end)
 end
 
--- FLING SHERIFF BUTTON
-do
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 52)
-    b.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-    b.Text = "⭐ FLING SHERIFF"
-    b.TextColor3 = C.wht
-    b.Font = Enum.Font.GothamBlack
-    b.TextSize = 16
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.LayoutOrder = 11
-    b.ZIndex = 2
-    b.Active = true
-    b.Parent = fC
-    crn(b, 10)
-    stk(b, Color3.fromRGB(100, 200, 255), 1.5)
-    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(100, 200, 255)}, 0.15) end)
-    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(50, 150, 255)}, 0.15) end)
-    b.MouseButton1Click:Connect(function() clickSnd:Play(); flingSheriff() end)
-end
-
--- 🔥 TELEPORT TO GUN BUTTON (ИСПРАВЛЕНО)
-do
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 52)
-    b.BackgroundColor3 = Color3.fromRGB(255, 255, 0)  -- Желтый
-    b.Text = "🔫 TP TO GUN"
-    b.TextColor3 = Color3.fromRGB(0, 0, 0)  -- Черный текст
-    b.Font = Enum.Font.GothamBlack
-    b.TextSize = 16
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.LayoutOrder = 12
-    b.ZIndex = 2
-    b.Active = true
-    b.Parent = fC
-    crn(b, 10)
-    stk(b, Color3.fromRGB(200, 200, 0), 1.5)
-    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 200, 0)}, 0.15) end)
-    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 255, 0)}, 0.15) end)
-    b.MouseButton1Click:Connect(function() clickSnd:Play(); teleportToGun() end)
-end
-
-togC(fC, 13, "Auto Farm", function(s) isActive = s; if s then startFarming(); notify("XDarkHUB", "Фарм ВКЛ", 2) else notify("XDarkHUB", "Фарм ВЫКЛ", 2) end end)
-togC(fC, 14, "Anti-AFK", function(s) antiAFK = s; notify("XDarkHUB", "Anti-AFK: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
+-- AUTO FARM TOGGLE
+togC(fC, 11, "Auto Farm", function(s) isActive = s; if s then notify("XDarkHUB", "Фарм ВКЛ", 2) else notify("XDarkHUB", "Фарм ВЫКЛ", 2) end end)
+togC(fC, 12, "Anti-AFK", function(s) antiAFK = s; notify("XDarkHUB", "Anti-AFK: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
 
 -- ЗАГЛУШКИ
-for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
+for _, name in ipairs({"Murderer", "Player"}) do
     local c = tabContents[name]
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(1, 0, 0, 35)
@@ -1344,7 +1310,7 @@ function updateBagUI()
     else bagV.Text = cc .. "/" .. MAX_BAG; bagV.TextColor3 = A.lit end
 end
 
-function stopFarming() farmStopped = true; updateBagUI() end
+function stopFarming() farmStopped = true; updateBagUI(); notify("XDarkHUB", "🛑 Фарм остановлен", 2) end
 
 -- ФАРМ
 function flyTo(pos, spd)
@@ -1417,7 +1383,7 @@ mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
 mBtn.BackgroundColor3 = A.base
 mBtn.Text = "X"
-mBtn.TextColor3 = C.wht
+mBtn.TextColor3 = COL.wht
 mBtn.Font = Enum.Font.GothamBlack
 mBtn.TextSize = 30
 mBtn.BorderSizePixel = 0
@@ -1464,10 +1430,6 @@ player.CharacterAdded:Connect(function(ch)
     character = ch; rootPart = ch:WaitForChild("HumanoidRootPart")
     visitedPositions = {}; farmStopped = false
     task.wait(1.5); checkRole(); updateRoleUI()
-    -- 🔥 ИСПРАВЛЕНО: Перезагружаем ESP при респауне
-    if espEnabled then
-        reloadESP()
-    end
 end)
 
 player.Idled:Connect(function()
@@ -1486,6 +1448,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-updateRoleUI(); updateBagUI(); switchTab("Farm")
-notify("XDarkHUB", "v32 загружен!", 3)
-notify("XDarkHUB", "🔥 ИСПРАВЛЕН ESP + TP к пистолету!", 3)
+updateRoleUI(); updateBagUI(); switchTab("Sheriff")
+notify("XDarkHUB", "v33 загружен!", 3)
+notify("XDarkHUB", "⭐ Sheriff floating buttons!", 3)
