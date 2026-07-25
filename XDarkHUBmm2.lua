@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · ULTRA PREMIUM v5.0
+--  XDarkHUB v7.0 · MM2 Autofarm
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -25,10 +25,8 @@ local bagFull = false
 local farmStopped = false
 local espEnabled = false
 local espHighlights = {}
-
 local MAX_BAG = 40
 
--- 🔥 ЗВУКИ
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -41,19 +39,14 @@ local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
 
--- 🔥 УВЕДОМЛЕНИЯ
 local function notify(title, text, duration)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = duration or 3
+            Title = title, Text = text, Duration = duration or 3
         })
     end)
-    print("[" .. title .. "] " .. text)
 end
 
--- 🔥 ОПРЕДЕЛЕНИЕ РОЛИ
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -64,9 +57,9 @@ local function getPlayerRole(p)
         if bp:FindFirstChild("Knife") or bp:FindFirstChild("MurdererSword") then return "Murderer" end
         if bp:FindFirstChild("Gun") or bp:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
-    local leaderstats = p:FindFirstChild("leaderstats")
-    if leaderstats then
-        for _, v in ipairs(leaderstats:GetChildren()) do
+    local ls = p:FindFirstChild("leaderstats")
+    if ls then
+        for _, v in ipairs(ls:GetChildren()) do
             if v.Name == "Role" and v.Value then return v.Value end
             if v.Value == "Murderer" or v.Value == "murderer" then return "Murderer" end
             if v.Value == "Sheriff" or v.Value == "sheriff" then return "Sheriff" end
@@ -75,20 +68,17 @@ local function getPlayerRole(p)
     return "Innocent"
 end
 
--- 🔥 УМНАЯ ПРОВЕРКА МОНЕТ ИГРОКА
 local function getPlayerCoins(p)
-    local leaderstats = p:FindFirstChild("leaderstats")
-    if leaderstats then
-        -- Ищем значение с монетами
-        for _, v in ipairs(leaderstats:GetChildren()) do
-            if v:IsA("IntValue") or v:IsA("NumberValue") then
+    local ls = p:FindFirstChild("leaderstats")
+    if ls then
+        for _, v in ipairs(ls:GetChildren()) do
+            if (v:IsA("IntValue") or v:IsA("NumberValue")) then
                 if v.Name:lower():find("coin") or v.Name:lower():find("money") or v.Name:lower():find("cash") then
                     return v.Value
                 end
             end
         end
-        -- Если не нашли по имени, берём первое числовое значение
-        for _, v in ipairs(leaderstats:GetChildren()) do
+        for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 return v.Value
             end
@@ -104,11 +94,11 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ULTRA PREMIUM UI СИСТЕМА v5.0
+--  ЦВЕТА
 -- ═══════════════════════════════════════════════════════════
 
 local COL = {
-    bg = Color3.fromRGB(3, 3, 6),
+    bg = Color3.fromRGB(2, 2, 5),
     panel = Color3.fromRGB(8, 8, 12),
     card = Color3.fromRGB(14, 14, 20),
     cardHov = Color3.fromRGB(22, 22, 30),
@@ -141,8 +131,8 @@ local function stroke(obj, color, th, trans)
     return s
 end
 
-local function tw(obj, props, t, style, dir)
-    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
+local function tw(obj, props, t, style)
+    local info = TweenInfo.new(t or 0.3, style or Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     return TweenService:Create(obj, info, props)
 end
 
@@ -168,7 +158,7 @@ killSound.Parent = gui
 deathSound.Parent = gui
 
 -- ═══════════════════════════════════════════════════════════
---  ФОН С ЧАСТИЦАМИ
+--  УЛУЧШЕННЫЕ ЧАСТИЦЫ (с анимацией свечения)
 -- ═══════════════════════════════════════════════════════════
 
 local bgFrame = Instance.new("Frame")
@@ -179,123 +169,120 @@ bgFrame.BorderSizePixel = 0
 bgFrame.ZIndex = 0
 bgFrame.Parent = gui
 
--- Анимированные частицы на фоне
-for i = 1, 15 do
+local bgGrad = Instance.new("UIGradient", bgFrame)
+bgGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 2, 8)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(2, 2, 5)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 2, 5)),
+})
+bgGrad.Rotation = 45
+
+local particleColors = {
+    ACCENT.base, ACCENT.neon, ACCENT.glow, ACCENT.light,
+    Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 100, 120)
+}
+
+for i = 1, 35 do
     local particle = Instance.new("Frame")
-    particle.Size = UDim2.new(0, math.random(2, 6), 0, math.random(2, 6))
+    local size = math.random(3, 14)
+    particle.Size = UDim2.new(0, size, 0, size)
     particle.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    particle.BackgroundColor3 = ACCENT.base
-    particle.BackgroundTransparency = 0.7
+    particle.BackgroundColor3 = particleColors[math.random(1, #particleColors)]
+    particle.BackgroundTransparency = math.random(40, 80) / 100
     particle.BorderSizePixel = 0
     particle.ZIndex = 0
     particle.Parent = bgFrame
-    corner(particle, 2)
+    corner(particle, math.random(2, 7))
     
-    -- Анимация движения частиц
     task.spawn(function()
         while particle.Parent do
             local targetPos = UDim2.new(math.random(), 0, math.random(), 0)
-            animate(particle, {Position = targetPos, BackgroundTransparency = math.random(50, 90) / 100}, math.random(8, 15), Enum.EasingStyle.Sine)
-            task.wait(math.random(8, 15))
+            local duration = math.random(12, 28)
+            animate(particle, {
+                Position = targetPos,
+                BackgroundTransparency = math.random(30, 85) / 100
+            }, duration, Enum.EasingStyle.Sine)
+            task.wait(duration)
         end
     end)
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ГЛАВНЫЙ ФРЕЙМ С GLASSMORPHISM
+--  ГЛАВНЫЙ ФРЕЙМ
 -- ═══════════════════════════════════════════════════════════
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 680, 0, 580)
-frame.Position = UDim2.new(0.5, -340, 0.5, -290)
+frame.Size = UDim2.new(0, 700, 0, 600)
+frame.Position = UDim2.new(0.5, -350, 0.5, -300)
 frame.BackgroundColor3 = COL.bg
-frame.BackgroundTransparency = 0.05
+frame.BackgroundTransparency = 0.03
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
 frame.ZIndex = 1
 frame.Parent = gui
-corner(frame, 18)
+corner(frame, 20)
 
--- Внешнее свечение
-local outerGlow = stroke(frame, ACCENT.neon, 2, 0.6)
+local outerGlow = stroke(frame, ACCENT.neon, 2, 0.5)
+local innerBorder = stroke(frame, ACCENT.base, 1, 0.2)
 
--- Внутренняя граница
-local innerBorder = stroke(frame, ACCENT.base, 1, 0.3)
-
--- Анимация свечения
 task.spawn(function()
     while frame.Parent do
-        animate(outerGlow, {Transparency = 0.4, Thickness = 3}, 2, Enum.EasingStyle.Sine)
-        task.wait(2)
-        animate(outerGlow, {Transparency = 0.7, Thickness = 2}, 2, Enum.EasingStyle.Sine)
-        task.wait(2)
+        animate(outerGlow, {Transparency = 0.3, Thickness = 3}, 2.5, Enum.EasingStyle.Sine)
+        task.wait(2.5)
+        animate(outerGlow, {Transparency = 0.7, Thickness = 2}, 2.5, Enum.EasingStyle.Sine)
+        task.wait(2.5)
     end
 end)
 
 -- ═══════════════════════════════════════════════════════════
---  ЗАГОЛОВОК С НЕОНОВЫМ ЭФФЕКТОМ
+--  ЗАГОЛОВОК
 -- ═══════════════════════════════════════════════════════════
 
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 65)
+titleBar.Size = UDim2.new(1, 0, 0, 70)
 titleBar.BackgroundColor3 = COL.panel
-titleBar.BackgroundTransparency = 0.1
+titleBar.BackgroundTransparency = 0.05
 titleBar.BorderSizePixel = 0
 titleBar.Active = true
 titleBar.ZIndex = 2
 titleBar.Parent = frame
-corner(titleBar, 18)
+corner(titleBar, 20)
 
--- Градиент заголовка
 local titleGrad = Instance.new("UIGradient", titleBar)
 titleGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 10, 22)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 12, 25)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(10, 6, 12)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 10, 22)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 12, 25)),
 })
 
--- Анимированный градиент
 task.spawn(function()
     local rotation = 0
     while frame.Parent do
-        rotation = rotation + 0.3
+        rotation = rotation + 0.4
         titleGrad.Rotation = rotation
         task.wait(0.05)
     end
 end)
 
--- Логотип X с неоновым свечением
 local logo = Instance.new("Frame")
-logo.Size = UDim2.new(0, 45, 0, 45)
-logo.Position = UDim2.new(0, 18, 0.5, -22)
+logo.Size = UDim2.new(0, 50, 0, 50)
+logo.Position = UDim2.new(0, 20, 0.5, -25)
 logo.BackgroundColor3 = ACCENT.base
 logo.BorderSizePixel = 0
 logo.ZIndex = 3
 logo.Parent = titleBar
-corner(logo, 14)
+corner(logo, 15)
 
--- Неоновое свечение логотипа
-local logoGlow = Instance.new("ImageLabel")
-logoGlow.Size = UDim2.new(1, 30, 1, 30)
-logoGlow.Position = UDim2.new(0, -15, 0, -15)
-logoGlow.BackgroundTransparency = 1
-logoGlow.Image = "rbxassetid://6753019765"
-logoGlow.ImageColor3 = ACCENT.neon
-logoGlow.ImageTransparency = 0.5
-logoGlow.ZIndex = 2
-logoGlow.Parent = logo
+local logoStroke = stroke(logo, ACCENT.neon, 2, 0.3)
 
-local logoStroke = stroke(logo, ACCENT.neon, 2, 0.4)
-
--- Пульсация логотипа
 task.spawn(function()
     while frame.Parent do
-        animate(logo, {Size = UDim2.new(0, 48, 0, 48)}, 1.2, Enum.EasingStyle.Sine)
-        animate(logoStroke, {Transparency = 0.2}, 1.2, Enum.EasingStyle.Sine)
-        task.wait(1.2)
-        animate(logo, {Size = UDim2.new(0, 45, 0, 45)}, 1.2, Enum.EasingStyle.Sine)
-        animate(logoStroke, {Transparency = 0.6}, 1.2, Enum.EasingStyle.Sine)
-        task.wait(1.2)
+        animate(logo, {Size = UDim2.new(0, 54, 0, 54)}, 1.5, Enum.EasingStyle.Sine)
+        animate(logoStroke, {Transparency = 0.1}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
+        animate(logo, {Size = UDim2.new(0, 50, 0, 50)}, 1.5, Enum.EasingStyle.Sine)
+        animate(logoStroke, {Transparency = 0.5}, 1.5, Enum.EasingStyle.Sine)
+        task.wait(1.5)
     end
 end)
 
@@ -304,37 +291,22 @@ logoX.Size = UDim2.new(1, 0, 1, 0)
 logoX.BackgroundTransparency = 1
 logoX.Text = "X"
 logoX.Font = Enum.Font.GothamBlack
-logoX.TextSize = 28
+logoX.TextSize = 32
 logoX.TextColor3 = COL.white
 logoX.ZIndex = 4
 logoX.Parent = logo
 
--- Заголовок с неоновым эффектом
 local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(1, -80, 1, 0)
-titleLbl.Position = UDim2.new(0, 75, 0, 0)
+titleLbl.Size = UDim2.new(1, -90, 1, 0)
+titleLbl.Position = UDim2.new(0, 85, 0, 0)
 titleLbl.BackgroundTransparency = 1
 titleLbl.Text = "XDarkHUB"
 titleLbl.Font = Enum.Font.GothamBlack
-titleLbl.TextSize = 28
+titleLbl.TextSize = 32
 titleLbl.TextColor3 = ACCENT.light
 titleLbl.TextXAlignment = Enum.TextXAlignment.Left
 titleLbl.ZIndex = 3
 titleLbl.Parent = titleBar
-
--- Тень текста
-local titleShadow = Instance.new("TextLabel")
-titleShadow.Size = UDim2.new(1, -80, 1, 0)
-titleShadow.Position = UDim2.new(0, 77, 0, 2)
-titleShadow.BackgroundTransparency = 1
-titleShadow.Text = "XDarkHUB"
-titleShadow.Font = Enum.Font.GothamBlack
-titleShadow.TextSize = 28
-titleShadow.TextColor3 = ACCENT.base
-titleShadow.TextTransparency = 0.5
-titleShadow.TextXAlignment = Enum.TextXAlignment.Left
-titleShadow.ZIndex = 2
-titleShadow.Parent = titleBar
 
 local textGrad = Instance.new("UIGradient", titleLbl)
 textGrad.Color = ColorSequence.new({
@@ -343,35 +315,32 @@ textGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, ACCENT.neon),
 })
 
--- Анимация градиента текста
 task.spawn(function()
     local offset = 0
     while frame.Parent do
-        offset = offset + 0.008
+        offset = offset + 0.01
         if offset > 1 then offset = 0 end
         textGrad.Offset = Vector2.new(offset, 0)
         task.wait(0.05)
     end
 end)
 
--- Версия
 local versionLbl = Instance.new("TextLabel")
-versionLbl.Size = UDim2.new(0, 130, 1, 0)
-versionLbl.Position = UDim2.new(1, -140, 0, 0)
+versionLbl.Size = UDim2.new(0, 140, 1, 0)
+versionLbl.Position = UDim2.new(1, -150, 0, 0)
 versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v5.0 · PREMIUM"
+versionLbl.Text = "v7.0 · PREMIUM"
 versionLbl.Font = Enum.Font.GothamBold
-versionLbl.TextSize = 11
+versionLbl.TextSize = 12
 versionLbl.TextColor3 = ACCENT.light
 versionLbl.TextXAlignment = Enum.TextXAlignment.Right
 versionLbl.TextTransparency = 0.3
 versionLbl.ZIndex = 3
 versionLbl.Parent = titleBar
 
--- Разделитель с неоновым эффектом
 local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -40, 0, 2)
-sep.Position = UDim2.new(0, 20, 0, 65)
+sep.Size = UDim2.new(1, -50, 0, 2)
+sep.Position = UDim2.new(0, 25, 0, 70)
 sep.BorderSizePixel = 0
 sep.ZIndex = 2
 sep.Parent = frame
@@ -379,9 +348,9 @@ corner(sep, 1)
 
 local sepGrad = Instance.new("UIGradient", sep)
 sepGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(3, 3, 6)),
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(2, 2, 5)),
     ColorSequenceKeypoint.new(0.5, ACCENT.neon),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(3, 3, 6)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(2, 2, 5)),
 })
 
 -- Перетаскивание
@@ -405,31 +374,30 @@ do
 end
 
 -- ═══════════════════════════════════════════════════════════
---  КОНТЕЙНЕР С АНИМАЦИЕЙ ПОЯВЛЕНИЯ
+--  КОНТЕЙНЕР
 -- ═══════════════════════════════════════════════════════════
 
 local container = Instance.new("Frame")
-container.Size = UDim2.new(1, 0, 1, -70)
-container.Position = UDim2.new(0, 0, 0, 70)
+container.Size = UDim2.new(1, 0, 1, -75)
+container.Position = UDim2.new(0, 0, 0, 75)
 container.BackgroundTransparency = 1
 container.Parent = frame
 
--- Анимация появления
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 animate(frame, {
-    Size = UDim2.new(0, 680, 0, 580),
-    Position = UDim2.new(0.5, -340, 0.5, -290)
-}, 0.6, Enum.EasingStyle.Back)
+    Size = UDim2.new(0, 700, 0, 600),
+    Position = UDim2.new(0.5, -350, 0.5, -300)
+}, 0.7, Enum.EasingStyle.Back)
 
 -- ═══════════════════════════════════════════════════════════
---  ЛЕВАЯ ПАНЕЛЬ
+--  ПАНЕЛИ
 -- ═══════════════════════════════════════════════════════════
 
 local leftPanel = Instance.new("Frame")
-leftPanel.Size = UDim2.new(0, 180, 1, 0)
+leftPanel.Size = UDim2.new(0, 190, 1, 0)
 leftPanel.BackgroundColor3 = COL.panel
-leftPanel.BackgroundTransparency = 0.1
+leftPanel.BackgroundTransparency = 0.05
 leftPanel.BorderSizePixel = 0
 leftPanel.ZIndex = 2
 leftPanel.Parent = container
@@ -440,19 +408,15 @@ leftGrad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 5, 8)),
 })
 
--- ═══════════════════════════════════════════════════════════
---  ПРАВАЯ ПАНЕЛЬ
--- ═══════════════════════════════════════════════════════════
-
 local rightPanel = Instance.new("Frame")
-rightPanel.Size = UDim2.new(1, -180, 1, 0)
-rightPanel.Position = UDim2.new(0, 180, 0, 0)
+rightPanel.Size = UDim2.new(1, -190, 1, 0)
+rightPanel.Position = UDim2.new(0, 190, 0, 0)
 rightPanel.BackgroundTransparency = 1
 rightPanel.ZIndex = 2
 rightPanel.Parent = container
 
 -- ═══════════════════════════════════════════════════════════
---  СИСТЕМА ВКЛАДОК
+--  ВКЛАДКИ
 -- ═══════════════════════════════════════════════════════════
 
 local tabs = {}
@@ -461,45 +425,40 @@ local currentTab = nil
 
 local function createTab(name, icon, order)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -26, 0, 54)
-    btn.Position = UDim2.new(0, 13, 0, 18 + (order - 1) * 60)
+    btn.Size = UDim2.new(1, -28, 0, 56)
+    btn.Position = UDim2.new(0, 14, 0, 20 + (order - 1) * 62)
     btn.BackgroundColor3 = COL.card
-    btn.BackgroundTransparency = 0.1
+    btn.BackgroundTransparency = 0.05
     btn.Text = ""
     btn.BorderSizePixel = 0
     btn.ZIndex = 3
     btn.Parent = leftPanel
-    corner(btn, 14)
+    corner(btn, 15)
     local btnStroke = stroke(btn, COL.border, 1)
 
     local iconLbl = Instance.new("TextLabel")
-    iconLbl.Size = UDim2.new(0, 48, 1, 0)
+    iconLbl.Size = UDim2.new(0, 50, 1, 0)
     iconLbl.BackgroundTransparency = 1
     iconLbl.Text = icon
     iconLbl.Font = Enum.Font.GothamBold
-    iconLbl.TextSize = 24
+    iconLbl.TextSize = 26
     iconLbl.TextColor3 = ACCENT.light
     iconLbl.ZIndex = 3
     iconLbl.Parent = btn
 
     local textLbl = Instance.new("TextLabel")
-    textLbl.Size = UDim2.new(1, -52, 1, 0)
-    textLbl.Position = UDim2.new(0, 52, 0, 0)
+    textLbl.Size = UDim2.new(1, -54, 1, 0)
+    textLbl.Position = UDim2.new(0, 54, 0, 0)
     textLbl.BackgroundTransparency = 1
     textLbl.Text = name
     textLbl.Font = Enum.Font.GothamBold
-    textLbl.TextSize = 14
+    textLbl.TextSize = 15
     textLbl.TextColor3 = COL.text
     textLbl.TextXAlignment = Enum.TextXAlignment.Left
     textLbl.ZIndex = 3
     textLbl.Parent = btn
 
-    tabs[name] = {
-        button = btn, 
-        icon = iconLbl, 
-        text = textLbl,
-        stroke = btnStroke
-    }
+    tabs[name] = {button = btn, icon = iconLbl, text = textLbl, stroke = btnStroke}
     return btn
 end
 
@@ -518,14 +477,14 @@ local function createTabContent(name)
     content.Parent = rightPanel
 
     local p = Instance.new("UIPadding", content)
-    p.PaddingLeft = UDim.new(0, 20)
-    p.PaddingRight = UDim.new(0, 20)
-    p.PaddingTop = UDim.new(0, 20)
-    p.PaddingBottom = UDim.new(0, 20)
+    p.PaddingLeft = UDim.new(0, 22)
+    p.PaddingRight = UDim.new(0, 22)
+    p.PaddingTop = UDim.new(0, 22)
+    p.PaddingBottom = UDim.new(0, 22)
 
     local l = Instance.new("UIListLayout", content)
     l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 12)
+    l.Padding = UDim.new(0, 14)
 
     tabContents[name] = content
     return content
@@ -533,7 +492,7 @@ end
 
 local function switchTab(name)
     for n, tab in pairs(tabs) do
-        animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.1}, 0.3)
+        animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.05}, 0.3)
         animate(tab.stroke, {Color = COL.border}, 0.3)
         tab.icon.TextColor3 = ACCENT.light
         tab.text.TextColor3 = COL.text
@@ -544,22 +503,13 @@ local function switchTab(name)
         animate(tabs[name].stroke, {Color = ACCENT.neon}, 0.3)
         tabs[name].icon.TextColor3 = ACCENT.neon
         tabs[name].text.TextColor3 = COL.white
-        
-        task.spawn(function()
-            for i = 1, 3 do
-                animate(tabs[name].stroke, {Transparency = 0.2}, 0.2)
-                task.wait(0.2)
-                animate(tabs[name].stroke, {Transparency = 0.6}, 0.2)
-                task.wait(0.2)
-            end
-        end)
     end
     
     for n, content in pairs(tabContents) do
         if n == name then
             content.Visible = true
-            content.Position = UDim2.new(0, 60, 0, 0)
-            animate(content, {Position = UDim2.new(0, 0, 0, 0)}, 0.4, Enum.EasingStyle.Back)
+            content.Position = UDim2.new(0, 70, 0, 0)
+            animate(content, {Position = UDim2.new(0, 0, 0, 0)}, 0.5, Enum.EasingStyle.Back)
         else
             content.Visible = false
         end
@@ -579,20 +529,16 @@ for name in pairs(tabs) do
 end
 
 for name, tab in pairs(tabs) do
-    tab.button.MouseButton1Click:Connect(function()
-        switchTab(name)
-    end)
-    
+    tab.button.MouseButton1Click:Connect(function() switchTab(name) end)
     tab.button.MouseEnter:Connect(function()
         if not (currentTab == name) then
             animate(tab.button, {BackgroundColor3 = COL.cardHov}, 0.2)
             animate(tab.stroke, {Color = ACCENT.light}, 0.2)
         end
     end)
-    
     tab.button.MouseLeave:Connect(function()
         if not (currentTab == name) then
-            animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.1}, 0.2)
+            animate(tab.button, {BackgroundColor3 = COL.card, BackgroundTransparency = 0.05}, 0.2)
             animate(tab.stroke, {Color = COL.border}, 0.2)
         end
     end)
@@ -604,12 +550,12 @@ end
 
 local function sectionTitle(parent, order, text)
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 26)
+    l.Size = UDim2.new(1, 0, 0, 28)
     l.BackgroundTransparency = 1
     l.Text = text
     l.TextColor3 = ACCENT.light
     l.Font = Enum.Font.GothamBold
-    l.TextSize = 12
+    l.TextSize = 13
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.LayoutOrder = order
     l.ZIndex = 2
@@ -618,36 +564,36 @@ end
 
 local function statRow(parent, order, name)
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 36)
+    row.Size = UDim2.new(1, 0, 0, 38)
     row.BackgroundColor3 = COL.card
-    row.BackgroundTransparency = 0.05
+    row.BackgroundTransparency = 0.02
     row.BorderSizePixel = 0
     row.LayoutOrder = order
     row.ZIndex = 2
     row.Parent = parent
-    corner(row, 12)
+    corner(row, 13)
     stroke(row, COL.border, 1)
 
     local n = Instance.new("TextLabel")
     n.Size = UDim2.new(0.6, 0, 1, 0)
-    n.Position = UDim2.new(0, 16, 0, 0)
+    n.Position = UDim2.new(0, 18, 0, 0)
     n.BackgroundTransparency = 1
     n.Text = name
     n.TextColor3 = COL.muted
     n.Font = Enum.Font.Gotham
-    n.TextSize = 12
+    n.TextSize = 13
     n.TextXAlignment = Enum.TextXAlignment.Left
     n.ZIndex = 2
     n.Parent = row
 
     local v = Instance.new("TextLabel")
-    v.Size = UDim2.new(0.4, -16, 1, 0)
+    v.Size = UDim2.new(0.4, -18, 1, 0)
     v.Position = UDim2.new(0.6, 0, 0, 0)
     v.BackgroundTransparency = 1
     v.Text = "0"
     v.TextColor3 = ACCENT.light
     v.Font = Enum.Font.GothamBold
-    v.TextSize = 13
+    v.TextSize = 14
     v.TextXAlignment = Enum.TextXAlignment.Right
     v.ZIndex = 2
     v.Parent = row
@@ -656,36 +602,36 @@ end
 
 local function toggleCard(parent, order, label, onToggle)
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 54)
     card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.05
+    card.BackgroundTransparency = 0.02
     card.BorderSizePixel = 0
     card.LayoutOrder = order
     card.ZIndex = 2
     card.Parent = parent
-    corner(card, 14)
+    corner(card, 15)
     local cs = stroke(card, COL.border, 1)
 
     local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -110, 1, 0)
-    t.Position = UDim2.new(0, 20, 0, 0)
+    t.Size = UDim2.new(1, -120, 1, 0)
+    t.Position = UDim2.new(0, 22, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = label
     t.TextColor3 = COL.text
     t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
+    t.TextSize = 15
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
     t.Parent = card
 
     local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 60, 0, 28)
-    pill.Position = UDim2.new(1, -70, 0.5, -14)
+    pill.Size = UDim2.new(0, 64, 0, 30)
+    pill.Position = UDim2.new(1, -74, 0.5, -15)
     pill.BackgroundColor3 = COL.border
     pill.BorderSizePixel = 0
     pill.ZIndex = 2
     pill.Parent = card
-    corner(pill, 14)
+    corner(pill, 15)
     local ps = stroke(pill, COL.border, 1)
 
     local pl = Instance.new("TextLabel")
@@ -694,7 +640,7 @@ local function toggleCard(parent, order, label, onToggle)
     pl.Text = "OFF"
     pl.TextColor3 = COL.muted
     pl.Font = Enum.Font.GothamBold
-    pl.TextSize = 10
+    pl.TextSize = 11
     pl.ZIndex = 2
     pl.Parent = pill
 
@@ -727,23 +673,14 @@ local function toggleCard(parent, order, label, onToggle)
         if onToggle then onToggle(state) end
     end)
 
-    btn.MouseEnter:Connect(function() 
-        if not state then 
-            animate(card, {BackgroundColor3 = COL.cardHov}, 0.2)
-        end 
-    end)
-    btn.MouseLeave:Connect(function() 
-        if not state then 
-            animate(card, {BackgroundColor3 = COL.card}, 0.2)
-        end 
-    end)
+    btn.MouseEnter:Connect(function() if not state then animate(card, {BackgroundColor3 = COL.cardHov}, 0.2) end end)
+    btn.MouseLeave:Connect(function() if not state then animate(card, {BackgroundColor3 = COL.card}, 0.2) end end)
 end
 
 -- ═══════════════════════════════════════════════════════════
 --  КОНТЕНТ ВКЛАДОК
 -- ═══════════════════════════════════════════════════════════
 
--- ESP
 local espContent = tabContents["ESP"]
 sectionTitle(espContent, 1, "👁️ VISUAL ESP")
 toggleCard(espContent, 2, "ESP Roles", function(state)
@@ -752,7 +689,6 @@ toggleCard(espContent, 2, "ESP Roles", function(state)
     notify("XDarkHUB", "ESP: " .. (state and "ON" or "OFF"), 2)
 end)
 
--- Auto Farm
 local farmContent = tabContents["Auto Farm"]
 sectionTitle(farmContent, 1, "📊 STATISTICS")
 local counterVal = statRow(farmContent, 2, "Coins Collected")
@@ -766,39 +702,39 @@ local roleVal = statRow(farmContent, 7, "Your Role")
 sectionTitle(farmContent, 8, "🎒 BAG STATUS")
 local bagVal = statRow(farmContent, 9, "Bag Full")
 
--- Лимит мешка
+-- Лимит
 do
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 54)
     card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.05
+    card.BackgroundTransparency = 0.02
     card.BorderSizePixel = 0
     card.LayoutOrder = 10
     card.ZIndex = 2
     card.Parent = farmContent
-    corner(card, 14)
+    corner(card, 15)
     stroke(card, COL.border, 1)
 
     local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -120, 1, 0)
-    t.Position = UDim2.new(0, 20, 0, 0)
+    t.Size = UDim2.new(1, -130, 1, 0)
+    t.Position = UDim2.new(0, 22, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = "🎯 Bag Limit:"
     t.TextColor3 = COL.text
     t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
+    t.TextSize = 15
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
     t.Parent = card
 
     local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 80, 0, 32)
-    pill.Position = UDim2.new(1, -90, 0.5, -16)
+    pill.Size = UDim2.new(0, 85, 0, 34)
+    pill.Position = UDim2.new(1, -95, 0.5, -17)
     pill.BackgroundColor3 = ACCENT.base
     pill.BorderSizePixel = 0
     pill.ZIndex = 2
     pill.Parent = card
-    corner(pill, 12)
+    corner(pill, 13)
     stroke(pill, ACCENT.neon, 1)
 
     local pillLabel = Instance.new("TextLabel")
@@ -807,7 +743,7 @@ do
     pillLabel.Text = tostring(MAX_BAG) .. " 🪙"
     pillLabel.TextColor3 = COL.white
     pillLabel.Font = Enum.Font.GothamBold
-    pillLabel.TextSize = 14
+    pillLabel.TextSize = 15
     pillLabel.ZIndex = 2
     pillLabel.Parent = pill
 
@@ -820,9 +756,9 @@ do
     btn.MouseButton1Click:Connect(function()
         if MAX_BAG == 40 then MAX_BAG = 50 else MAX_BAG = 40 end
         pillLabel.Text = tostring(MAX_BAG) .. " 🪙"
-        animate(pill, {Size = UDim2.new(0, 90, 0, 36)}, 0.15)
+        animate(pill, {Size = UDim2.new(0, 95, 0, 38)}, 0.15)
         task.wait(0.15)
-        animate(pill, {Size = UDim2.new(0, 80, 0, 32)}, 0.15)
+        animate(pill, {Size = UDim2.new(0, 85, 0, 34)}, 0.15)
         notify("XDarkHUB", "🎯 Лимит: " .. MAX_BAG, 2)
     end)
 end
@@ -830,36 +766,36 @@ end
 -- Скорость
 do
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 52)
+    card.Size = UDim2.new(1, 0, 0, 54)
     card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.05
+    card.BackgroundTransparency = 0.02
     card.BorderSizePixel = 0
     card.LayoutOrder = 11
     card.ZIndex = 2
     card.Parent = farmContent
-    corner(card, 14)
+    corner(card, 15)
     stroke(card, COL.border, 1)
 
     local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -120, 1, 0)
-    t.Position = UDim2.new(0, 20, 0, 0)
+    t.Size = UDim2.new(1, -130, 1, 0)
+    t.Position = UDim2.new(0, 22, 0, 0)
     t.BackgroundTransparency = 1
     t.Text = "⚡ Farm Speed"
     t.TextColor3 = COL.text
     t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
+    t.TextSize = 15
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.ZIndex = 2
     t.Parent = card
 
     local pill = Instance.new("Frame")
-    pill.Size = UDim2.new(0, 60, 0, 28)
-    pill.Position = UDim2.new(1, -70, 0.5, -14)
+    pill.Size = UDim2.new(0, 64, 0, 30)
+    pill.Position = UDim2.new(1, -74, 0.5, -15)
     pill.BackgroundColor3 = ACCENT.dim
     pill.BorderSizePixel = 0
     pill.ZIndex = 2
     pill.Parent = card
-    corner(pill, 14)
+    corner(pill, 15)
     stroke(pill, ACCENT.base, 1)
 
     local speedPillLbl = Instance.new("TextLabel")
@@ -868,7 +804,7 @@ do
     speedPillLbl.Text = tostring(flySpeed)
     speedPillLbl.TextColor3 = ACCENT.light
     speedPillLbl.Font = Enum.Font.GothamBold
-    speedPillLbl.TextSize = 12
+    speedPillLbl.TextSize = 13
     speedPillLbl.ZIndex = 2
     speedPillLbl.Parent = pill
 
@@ -886,7 +822,6 @@ do
     end)
 end
 
--- Auto Farm
 toggleCard(farmContent, 12, "⚙️ Auto Farm", function(state)
     isActive = state
     if state then 
@@ -897,7 +832,6 @@ toggleCard(farmContent, 12, "⚙️ Auto Farm", function(state)
     end
 end)
 
--- Anti-AFK
 toggleCard(farmContent, 13, "🛡️ Anti-AFK", function(state)
     antiAFK = state
     notify("XDarkHUB", "Anti-AFK: " .. (state and "ON" or "OFF"), 2)
@@ -906,17 +840,17 @@ end)
 -- Test Fling
 do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 54)
+    btn.Size = UDim2.new(1, 0, 0, 56)
     btn.BackgroundColor3 = ACCENT.base
     btn.Text = "🚀 TEST FLING"
     btn.TextColor3 = COL.white
     btn.Font = Enum.Font.GothamBlack
-    btn.TextSize = 15
+    btn.TextSize = 16
     btn.AutoButtonColor = false
     btn.LayoutOrder = 14
     btn.ZIndex = 2
     btn.Parent = farmContent
-    corner(btn, 14)
+    corner(btn, 15)
     stroke(btn, ACCENT.neon, 2)
     
     local btnGrad = Instance.new("UIGradient", btn)
@@ -926,14 +860,8 @@ do
     })
     btnGrad.Rotation = 90
     
-    btn.MouseEnter:Connect(function() 
-        animate(btn, {BackgroundColor3 = ACCENT.neon}, 0.2)
-        animate(btn, {Size = UDim2.new(1, 8, 0, 58)}, 0.2)
-    end)
-    btn.MouseLeave:Connect(function() 
-        animate(btn, {BackgroundColor3 = ACCENT.base}, 0.2)
-        animate(btn, {Size = UDim2.new(1, 0, 0, 54)}, 0.2)
-    end)
+    btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = ACCENT.neon}, 0.2) end)
+    btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = ACCENT.base}, 0.2) end)
     btn.MouseButton1Click:Connect(function()
         notify("XDarkHUB", "🔍 Запускаю тест флинга...", 2)
         throwMurdererToSpace()
@@ -943,18 +871,18 @@ end
 -- Reset
 do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 46)
+    btn.Size = UDim2.new(1, 0, 0, 48)
     btn.BackgroundColor3 = COL.card
-    btn.BackgroundTransparency = 0.05
+    btn.BackgroundTransparency = 0.02
     btn.Text = "🔄 Reset & Resume"
     btn.TextColor3 = ACCENT.light
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
+    btn.TextSize = 15
     btn.AutoButtonColor = false
     btn.LayoutOrder = 15
     btn.ZIndex = 2
     btn.Parent = farmContent
-    corner(btn, 14)
+    corner(btn, 15)
     stroke(btn, ACCENT.base, 1)
     btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = COL.cardHov}, 0.2) end)
     btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = COL.card}, 0.2) end)
@@ -977,36 +905,36 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     local content = tabContents[name]
     
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 55)
+    title.Size = UDim2.new(1, 0, 0, 60)
     title.BackgroundTransparency = 1
     title.Text = name == "Sheriff" and "⭐ SHERIFF" or name == "Murderer" and "🔪 MURDERER" or "🎯 PLAYER"
     title.TextColor3 = ACCENT.light
     title.Font = Enum.Font.GothamBlack
-    title.TextSize = 22
+    title.TextSize = 24
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.LayoutOrder = 1
     title.ZIndex = 2
     title.Parent = content
     
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 150)
+    card.Size = UDim2.new(1, 0, 0, 160)
     card.BackgroundColor3 = COL.card
-    card.BackgroundTransparency = 0.05
+    card.BackgroundTransparency = 0.02
     card.BorderSizePixel = 0
     card.LayoutOrder = 2
     card.ZIndex = 2
     card.Parent = content
-    corner(card, 16)
+    corner(card, 18)
     stroke(card, COL.border, 1)
     
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -28, 1, 0)
-    lbl.Position = UDim2.new(0, 14, 0, 0)
+    lbl.Size = UDim2.new(1, -30, 1, 0)
+    lbl.Position = UDim2.new(0, 15, 0, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = "🚧 Coming Soon...\n\nЭта функция будет добавлена в следующей версии."
     lbl.TextColor3 = COL.muted
     lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 14
+    lbl.TextSize = 15
     lbl.TextWrapped = true
     lbl.TextYAlignment = Enum.TextYAlignment.Top
     lbl.ZIndex = 2
@@ -1050,7 +978,6 @@ function stopFarming()
     notify("XDarkHUB", "🛑 Фарм остановлен", 2)
 end
 
--- 🔪 УБИЙЦА УБИВАЕТ ВСЕХ
 function cinematicMurdererKill()
     notify("XDarkHUB", "🔪 Убийца убивает всех!", 3)
     killSound:Play()
@@ -1083,12 +1010,9 @@ function cinematicMurdererKill()
         end
     end
     
-    notify("XDarkHUB", "🎯 Целей: " .. #targets, 2)
-    
     for _, p in ipairs(targets) do
-        local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
         local targetHum = p.Character:FindFirstChild("Humanoid")
-        if targetHrp and targetHum then
+        if targetHum then
             targetHum.PlatformStand = true
             targetHum.WalkSpeed = 0
             targetHum.JumpPower = 0
@@ -1123,7 +1047,6 @@ function cinematicMurdererKill()
     notify("XDarkHUB", "🔪 Все убиты!", 3)
 end
 
--- 🔥 ПРАВИЛЬНЫЙ ФЛИНГ (КЛАССИЧЕСКИЙ МЕТОД)
 function throwMurdererToSpace()
     notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
@@ -1152,7 +1075,6 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
-    -- Отключаем управление мардеру
     local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     if murdererHum then
         murdererHum.PlatformStand = true
@@ -1161,30 +1083,20 @@ function throwMurdererToSpace()
         murdererHum.AutoRotate = false
     end
     
-    -- Отключаем коллизии мардера
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
-    -- Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
         if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    -- 🔥 КЛАССИЧЕСКИЙ ФЛИНГ: создаём множество частей вокруг мардера
-    local flingParts = {}
-    
-    -- Создаём 12 частей разных размеров вокруг мардера
     for i = 1, 12 do
         local part = Instance.new("Part")
         part.Size = Vector3.new(math.random(3, 6), math.random(3, 6), math.random(3, 6))
-        part.Position = murdererHrp.Position + Vector3.new(
-            math.random(-3, 3),
-            math.random(-2, 4),
-            math.random(-3, 3)
-        )
+        part.Position = murdererHrp.Position + Vector3.new(math.random(-3, 3), math.random(-2, 4), math.random(-3, 3))
         part.Anchored = false
         part.CanCollide = false
         part.Transparency = 1
@@ -1192,29 +1104,21 @@ function throwMurdererToSpace()
         part.CustomPhysicalProperties = PhysicalProperties.new(0.1, 0.3, 0.5, 0.1, 0.1)
         part.Parent = workspace
         
-        -- WeldConstraint к мардеру
         local weld = Instance.new("WeldConstraint")
         weld.Part0 = part
         weld.Part1 = murdererHrp
         weld.Parent = part
         
-        -- BodyVelocity в случайном направлении (сильный вверх)
         local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(
-            math.random(-500, 500),
-            math.random(8000, 15000),
-            math.random(-500, 500)
-        )
+        bv.Velocity = Vector3.new(math.random(-500, 500), math.random(8000, 15000), math.random(-500, 500))
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         bv.P = math.huge
         bv.Parent = part
         
-        table.insert(flingParts, part)
         Debris:AddItem(part, 15)
         Debris:AddItem(bv, 15)
     end
     
-    -- BodyAngularVelocity к мардеру (вращение)
     local bodyAng = Instance.new("BodyAngularVelocity")
     bodyAng.AngularVelocity = Vector3.new(1500, 1500, 1500)
     bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
@@ -1222,7 +1126,6 @@ function throwMurdererToSpace()
     bodyAng.Parent = murdererHrp
     Debris:AddItem(bodyAng, 15)
     
-    -- Красный эффект
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(35, 35, 35)
     flash.Position = murdererHrp.Position
@@ -1284,11 +1187,8 @@ function startFarming()
             timerVal.Text = math.floor(elapsed) .. "s"
             local rate = elapsed > 0 and math.floor((collected / elapsed) * 3600) or 0
             rateVal.Text = tostring(rate)
-            
-            -- Умная проверка монет игрока
             local playerCoins = getPlayerCoins(player)
             playerCoinsVal.Text = tostring(playerCoins)
-            
             task.wait(0.1)
         end
     end)
@@ -1302,7 +1202,6 @@ function startFarming()
                 farmStopped = true
                 updateBagUI()
                 checkRole()
-
                 if isMurderer then
                     cinematicMurdererKill()
                 else
@@ -1316,13 +1215,10 @@ function startFarming()
     task.spawn(function()
         while isActive do
             if farmStopped then task.wait(1) continue end
-
             character = player.Character
             if not character then task.wait(0.5) continue end
-            
             rootPart = character:FindFirstChild("HumanoidRootPart")
             if not rootPart then task.wait(0.5) continue end
-
             checkRole()
 
             local closest, shortest = nil, math.huge
@@ -1335,7 +1231,6 @@ function startFarming()
                             break
                         end
                     end
-                    
                     if not isInsideCharacter and obj.Parent and obj:IsDescendantOf(workspace) and not visitedPositions[obj] then
                         local dist = (obj.Position - rootPart.Position).Magnitude
                         if dist < shortest and dist < 300 then
@@ -1349,15 +1244,11 @@ function startFarming()
             if closest then
                 local coinPos = closest.Position
                 local coinRef = closest
-                
                 if farmStopped then continue end
-                
                 local arrived = flyTo(coinPos, flySpeed)
                 if farmStopped then continue end
-
                 if arrived then
                     task.wait(0.3)
-                    
                     if coinRef.Parent and coinRef:IsDescendantOf(workspace) then
                         local isInsideCharacter = false
                         for _, p in ipairs(Players:GetPlayers()) do
@@ -1366,7 +1257,6 @@ function startFarming()
                                 break
                             end
                         end
-                        
                         if not isInsideCharacter then
                             local distToCoin = (coinRef.Position - rootPart.Position).Magnitude
                             if distToCoin < 5 then
@@ -1397,7 +1287,10 @@ function startFarming()
     end)
 end
 
--- Кнопка X с неоновым эффектом
+-- ═══════════════════════════════════════════════════════════
+--  КНОПКА МЕНЮ (СКРЫТИЕ ВМЕСТЕ С ФРЕЙМОМ)
+-- ═══════════════════════════════════════════════════════════
+
 local menuButton = Instance.new("TextButton")
 menuButton.Size = UDim2.new(0, 80, 0, 80)
 menuButton.Position = UDim2.new(0, 25, 1, -105)
@@ -1418,7 +1311,6 @@ menuGrad.Color = ColorSequence.new({
 })
 menuGrad.Rotation = 45
 
--- Пульсация кнопки
 task.spawn(function()
     while menuButton.Parent do
         animate(menuButton, {Size = UDim2.new(0, 85, 0, 85)}, 1.2, Enum.EasingStyle.Sine)
@@ -1451,8 +1343,11 @@ do
     end)
 end
 
+-- 🔥 ИСПРАВЛЕНИЕ: скрываем ВСЁ меню вместе с фоном
 menuButton.MouseButton1Click:Connect(function()
-    frame.Visible = not frame.Visible
+    local isVisible = frame.Visible
+    frame.Visible = not isVisible
+    bgFrame.Visible = not isVisible  -- Скрываем частицы тоже!
 end)
 
 function updateESP()
@@ -1514,6 +1409,6 @@ updateRoleUI()
 updateBagUI()
 switchTab("Auto Farm")
 
-notify("XDarkHUB", "✅ XDarkHUB v5.0 PREMIUM загружен!", 3)
-notify("XDarkHUB", "🎨 Ultra Premium UI с частицами", 3)
-notify("XDarkHUB", "🚀 Классический флинг через 12 частей!", 4)
+notify("XDarkHUB", "✅ v7.0 загружен!", 3)
+notify("XDarkHUB", "🎨 Улучшенные частицы", 3)
+notify("XDarkHUB", "🚀 Классический флинг!", 4)
