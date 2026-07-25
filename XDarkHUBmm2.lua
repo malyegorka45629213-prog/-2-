@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · НОВОЕ МЕНЮ
+--  XDarkHUB · MM2 Coin Autofarm · СИСТЕМА ВКЛАДОК
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -96,7 +96,6 @@ local COL = {
     text = Color3.fromRGB(245, 240, 250),
     muted = Color3.fromRGB(130, 120, 140),
     white = Color3.fromRGB(255, 255, 255),
-    divider = Color3.fromRGB(40, 30, 45),
 }
 local ACCENT = {
     base = Color3.fromRGB(220, 30, 50),
@@ -141,10 +140,10 @@ collectSound.Parent = gui
 killSound.Parent = gui
 deathSound.Parent = gui
 
--- 🔥 ГЛАВНЫЙ ФРЕЙМ (ШИРЕ ДЛЯ ДВУХ КОЛОНОК)
+-- 🔥 ГЛАВНЫЙ ФРЕЙМ
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 580, 0, 560)
-frame.Position = UDim2.new(0.5, -290, 0.5, -280)
+frame.Size = UDim2.new(0, 620, 0, 580)
+frame.Position = UDim2.new(0.5, -310, 0.5, -290)
 frame.BackgroundColor3 = COL.bg
 frame.BorderSizePixel = 0
 frame.ClipsDescendants = true
@@ -219,12 +218,11 @@ logoX.TextColor3 = COL.white
 logoX.ZIndex = 4
 logoX.Parent = logo
 
--- Версия справа
 local versionLbl = Instance.new("TextLabel")
 versionLbl.Size = UDim2.new(0, 100, 1, 0)
 versionLbl.Position = UDim2.new(1, -110, 0, 0)
 versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v2.0 · MM2"
+versionLbl.Text = "v3.0 · MM2"
 versionLbl.Font = Enum.Font.GothamBold
 versionLbl.TextSize = 11
 versionLbl.TextColor3 = ACCENT.light
@@ -233,7 +231,7 @@ versionLbl.TextTransparency = 0.3
 versionLbl.ZIndex = 3
 versionLbl.Parent = titleBar
 
--- 🔥 РАЗДЕЛИТЕЛЬ ПОД ЗАГОЛОВКОМ
+-- 🔥 РАЗДЕЛИТЕЛЬ
 local sep = Instance.new("Frame")
 sep.Size = UDim2.new(1, -20, 0, 2)
 sep.Position = UDim2.new(0, 10, 0, 55)
@@ -270,72 +268,181 @@ do
     end)
 end
 
--- 🔥 КОНТЕЙНЕР ДЛЯ ДВУХ КОЛОНОК
+-- 🔥 КОНТЕЙНЕР
 local container = Instance.new("Frame")
 container.Size = UDim2.new(1, 0, 1, -60)
 container.Position = UDim2.new(0, 0, 0, 60)
 container.BackgroundTransparency = 1
 container.Parent = frame
 
--- 🔥 ЛЕВАЯ КОЛОНКА (СТАТИСТИКА)
-local leftCol = Instance.new("ScrollingFrame")
-leftCol.Size = UDim2.new(0.5, -10, 1, 0)
-leftCol.Position = UDim2.new(0, 10, 0, 0)
-leftCol.BackgroundTransparency = 1
-leftCol.BorderSizePixel = 0
-leftCol.ScrollBarThickness = 3
-leftCol.ScrollBarImageColor3 = ACCENT.base
-leftCol.CanvasSize = UDim2.new(0, 0, 0, 0)
-leftCol.AutomaticCanvasSize = Enum.AutomaticSize.Y
-leftCol.ScrollingEnabled = true
-leftCol.ZIndex = 2
-leftCol.Parent = container
+-- 🔥 ЛЕВАЯ ПАНЕЛЬ (ВКЛАДКИ)
+local leftPanel = Instance.new("Frame")
+leftPanel.Size = UDim2.new(0, 160, 1, 0)
+leftPanel.Position = UDim2.new(0, 0, 0, 0)
+leftPanel.BackgroundColor3 = COL.panel
+leftPanel.BorderSizePixel = 0
+leftPanel.ZIndex = 2
+leftPanel.Parent = container
 
-do
-    local p = Instance.new("UIPadding", leftCol)
-    p.PaddingLeft = UDim.new(0, 5)
-    p.PaddingRight = UDim.new(0, 5)
-    p.PaddingTop = UDim.new(0, 5)
-    p.PaddingBottom = UDim.new(0, 10)
-    local l = Instance.new("UIListLayout", leftCol)
-    l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 6)
+local leftGrad = Instance.new("UIGradient", leftPanel)
+leftGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 12, 18)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 8, 12)),
+})
+leftGrad.Rotation = 0
+
+-- 🔥 ПРАВАЯ ПАНЕЛЬ (КОНТЕНТ)
+local rightPanel = Instance.new("Frame")
+rightPanel.Size = UDim2.new(1, -160, 1, 0)
+rightPanel.Position = UDim2.new(0, 160, 0, 0)
+rightPanel.BackgroundTransparency = 1
+rightPanel.ZIndex = 2
+rightPanel.Parent = container
+
+-- 🔥 ВКЛАДКИ (КНОПКИ СЛЕВА)
+local tabs = {}
+local currentTab = nil
+
+local function createTab(order, label, icon, tabId)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 48)
+    btn.Position = UDim2.new(0, 10, 0, 10 + (order - 1) * 54)
+    btn.BackgroundColor3 = COL.card
+    btn.Text = ""
+    btn.BorderSizePixel = 0
+    btn.ZIndex = 3
+    btn.Parent = leftPanel
+    corner(btn, 10)
+    stroke(btn, COL.border, 1)
+
+    local iconLbl = Instance.new("TextLabel")
+    iconLbl.Size = UDim2.new(0, 40, 1, 0)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.TextSize = 20
+    iconLbl.TextColor3 = ACCENT.light
+    iconLbl.ZIndex = 3
+    iconLbl.Parent = btn
+
+    local textLbl = Instance.new("TextLabel")
+    textLbl.Size = UDim2.new(1, -45, 1, 0)
+    textLbl.Position = UDim2.new(0, 45, 0, 0)
+    textLbl.BackgroundTransparency = 1
+    textLbl.Text = label
+    textLbl.Font = Enum.Font.GothamBold
+    textLbl.TextSize = 13
+    textLbl.TextColor3 = COL.text
+    textLbl.TextXAlignment = Enum.TextXAlignment.Left
+    textLbl.ZIndex = 3
+    textLbl.Parent = btn
+
+    tabs[tabId] = {
+        button = btn,
+        icon = iconLbl,
+        text = textLbl,
+        active = false
+    }
+
+    btn.MouseButton1Click:Connect(function()
+        switchTab(tabId)
+    end)
+
+    btn.MouseEnter:Connect(function()
+        if not tabs[tabId].active then
+            tw(btn, {BackgroundColor3 = COL.cardHov})
+        end
+    end)
+
+    btn.MouseLeave:Connect(function()
+        if not tabs[tabId].active then
+            tw(btn, {BackgroundColor3 = COL.card})
+        end
+    end)
+
+    return btn
 end
 
--- 🔥 ПРАВАЯ КОЛОНКА (КНОПКИ)
-local rightCol = Instance.new("ScrollingFrame")
-rightCol.Size = UDim2.new(0.5, -10, 1, 0)
-rightCol.Position = UDim2.new(0.5, 0, 0, 0)
-rightCol.BackgroundTransparency = 1
-rightCol.BorderSizePixel = 0
-rightCol.ScrollBarThickness = 3
-rightCol.ScrollBarImageColor3 = ACCENT.base
-rightCol.CanvasSize = UDim2.new(0, 0, 0, 0)
-rightCol.AutomaticCanvasSize = Enum.AutomaticSize.Y
-rightCol.ScrollingEnabled = true
-rightCol.ZIndex = 2
-rightCol.Parent = container
+local function switchTab(tabId)
+    -- Деактивируем все вкладки
+    for id, tab in pairs(tabs) do
+        tab.active = false
+        tw(tab.button, {BackgroundColor3 = COL.card})
+        tab.icon.TextColor3 = ACCENT.light
+        tab.text.TextColor3 = COL.text
+    end
 
-do
-    local p = Instance.new("UIPadding", rightCol)
-    p.PaddingLeft = UDim.new(0, 5)
-    p.PaddingRight = UDim.new(0, 5)
-    p.PaddingTop = UDim.new(0, 5)
-    p.PaddingBottom = UDim.new(0, 10)
-    local l = Instance.new("UIListLayout", rightCol)
-    l.SortOrder = Enum.SortOrder.LayoutOrder
-    l.Padding = UDim.new(0, 6)
+    -- Активируем выбранную
+    if tabs[tabId] then
+        tabs[tabId].active = true
+        tw(tabs[tabId].button, {BackgroundColor3 = ACCENT.dark})
+        tabs[tabId].icon.TextColor3 = ACCENT.glow
+        tabs[tabId].text.TextColor3 = COL.white
+    end
+
+    -- Показываем контент
+    showTabContent(tabId)
+    currentTab = tabId
 end
 
--- 🔥 ЗАГОЛОВОК СЕКЦИИ
+-- Создаём вкладки
+createTab(1, "Sheriff", "⭐", "sheriff")
+createTab(2, "Murderer", "🔪", "murderer")
+createTab(3, "ESP", "👁️", "esp")
+createTab(4, "Player", "🎯", "player")
+createTab(5, "Auto Farm", "⚙️", "farm")
+
+-- 🔥 КОНТЕНТ ВКЛАДОК
+local tabContents = {}
+
+local function createTabContent(tabId)
+    local content = Instance.new("ScrollingFrame")
+    content.Size = UDim2.new(1, 0, 1, 0)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.ScrollBarThickness = 3
+    content.ScrollBarImageColor3 = ACCENT.base
+    content.CanvasSize = UDim2.new(0, 0, 0, 0)
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    content.ScrollingEnabled = true
+    content.ZIndex = 2
+    content.Visible = false
+    content.Parent = rightPanel
+
+    local p = Instance.new("UIPadding", content)
+    p.PaddingLeft = UDim.new(0, 15)
+    p.PaddingRight = UDim.new(0, 15)
+    p.PaddingTop = UDim.new(0, 15)
+    p.PaddingBottom = UDim.new(0, 15)
+
+    local l = Instance.new("UIListLayout", content)
+    l.SortOrder = Enum.SortOrder.LayoutOrder
+    l.Padding = UDim.new(0, 8)
+
+    tabContents[tabId] = content
+    return content
+end
+
+-- Создаём контент для каждой вкладки
+for _, tabId in ipairs({"sheriff", "murderer", "esp", "player", "farm"}) do
+    createTabContent(tabId)
+end
+
+local function showTabContent(tabId)
+    for id, content in pairs(tabContents) do
+        content.Visible = (id == tabId)
+    end
+end
+
+-- 🔥 UI КОМПОНЕНТЫ
 local function sectionTitle(parent, order, text, icon)
     local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 0, 22)
+    l.Size = UDim2.new(1, 0, 0, 24)
     l.BackgroundTransparency = 1
     l.Text = icon .. "  " .. text
     l.TextColor3 = ACCENT.light
     l.Font = Enum.Font.GothamBold
-    l.TextSize = 11
+    l.TextSize = 12
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.LayoutOrder = order
     l.ZIndex = 2
@@ -343,10 +450,9 @@ local function sectionTitle(parent, order, text, icon)
     return l
 end
 
--- 🔥 КНОПКА-ПЕРЕКЛЮЧАТЕЛЬ (С ИКОНКОЙ)
 local function toggleCard(parent, order, label, icon, onToggle)
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 48)
+    card.Size = UDim2.new(1, 0, 0, 50)
     card.BackgroundColor3 = COL.card
     card.BorderSizePixel = 0
     card.LayoutOrder = order
@@ -355,18 +461,8 @@ local function toggleCard(parent, order, label, icon, onToggle)
     corner(card, 10)
     local cs = stroke(card, COL.border, 1)
 
-    -- Градиент на карточке
-    local cardGrad = Instance.new("UIGradient", card)
-    cardGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COL.card),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 18, 25)),
-    })
-    cardGrad.Rotation = 90
-
-    -- Иконка
     local iconLbl = Instance.new("TextLabel")
     iconLbl.Size = UDim2.new(0, 40, 1, 0)
-    iconLbl.Position = UDim2.new(0, 0, 0, 0)
     iconLbl.BackgroundTransparency = 1
     iconLbl.Text = icon
     iconLbl.Font = Enum.Font.GothamBold
@@ -375,7 +471,6 @@ local function toggleCard(parent, order, label, icon, onToggle)
     iconLbl.ZIndex = 2
     iconLbl.Parent = card
 
-    -- Текст
     local t = Instance.new("TextLabel")
     t.Size = UDim2.new(1, -100, 1, 0)
     t.Position = UDim2.new(0, 40, 0, 0)
@@ -388,7 +483,6 @@ local function toggleCard(parent, order, label, icon, onToggle)
     t.ZIndex = 2
     t.Parent = card
 
-    -- Pill
     local pill = Instance.new("Frame")
     pill.Size = UDim2.new(0, 50, 0, 24)
     pill.Position = UDim2.new(1, -58, 0.5, -12)
@@ -426,7 +520,6 @@ local function toggleCard(parent, order, label, icon, onToggle)
             tw(ps, {Color = ACCENT.light})
             pl.Text = "ON"
             tw(pl, {TextColor3 = COL.white})
-            iconLbl.TextColor3 = ACCENT.glow
         else
             tw(card, {BackgroundColor3 = COL.card})
             tw(cs, {Color = COL.border})
@@ -434,7 +527,6 @@ local function toggleCard(parent, order, label, icon, onToggle)
             tw(ps, {Color = COL.border})
             pl.Text = "OFF"
             tw(pl, {TextColor3 = COL.muted})
-            iconLbl.TextColor3 = ACCENT.light
         end
     end
 
@@ -453,68 +545,9 @@ local function toggleCard(parent, order, label, icon, onToggle)
     }
 end
 
--- 🔥 КНОПКА-ЗАГЛУШКА (ДЛЯ SHERIFF, MURDERER, PLAYER)
-local function placeholderCard(parent, order, label, icon, statusText)
-    local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 48)
-    card.BackgroundColor3 = COL.card
-    card.BorderSizePixel = 0
-    card.LayoutOrder = order
-    card.ZIndex = 2
-    card.Parent = parent
-    corner(card, 10)
-    stroke(card, COL.border, 1)
-
-    local cardGrad = Instance.new("UIGradient", card)
-    cardGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COL.card),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 18, 25)),
-    })
-    cardGrad.Rotation = 90
-
-    local iconLbl = Instance.new("TextLabel")
-    iconLbl.Size = UDim2.new(0, 40, 1, 0)
-    iconLbl.BackgroundTransparency = 1
-    iconLbl.Text = icon
-    iconLbl.Font = Enum.Font.GothamBold
-    iconLbl.TextSize = 20
-    iconLbl.TextColor3 = COL.muted
-    iconLbl.ZIndex = 2
-    iconLbl.Parent = card
-
-    local t = Instance.new("TextLabel")
-    t.Size = UDim2.new(1, -100, 1, 0)
-    t.Position = UDim2.new(0, 40, 0, 0)
-    t.BackgroundTransparency = 1
-    t.Text = label
-    t.TextColor3 = COL.muted
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 13
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.ZIndex = 2
-    t.Parent = card
-
-    local statusLbl = Instance.new("TextLabel")
-    statusLbl.Size = UDim2.new(0, 60, 0, 22)
-    statusLbl.Position = UDim2.new(1, -68, 0.5, -11)
-    statusLbl.BackgroundColor3 = COL.off
-    statusLbl.BorderSizePixel = 0
-    statusLbl.Text = statusText or "SOON"
-    statusLbl.TextColor3 = COL.muted
-    statusLbl.Font = Enum.Font.GothamBold
-    statusLbl.TextSize = 9
-    statusLbl.ZIndex = 2
-    statusLbl.Parent = card
-    corner(statusLbl, 11)
-    stroke(statusLbl, COL.border, 1)
-
-    return card
-end
-
--- 🔥 СТРОКА СТАТИСТИКИ
 local function statRow(parent, order, name, icon)
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, 0, 0, 32)
+    row.Size = UDim2.new(1, 0, 0, 34)
     row.BackgroundColor3 = COL.card
     row.BorderSizePixel = 0
     row.LayoutOrder = order
@@ -560,38 +593,44 @@ local function statRow(parent, order, name, icon)
 end
 
 -- ═══════════════════════════════════════════════════════════
---  ЛЕВАЯ КОЛОНКА — СТАТИСТИКА
+--  КОНТЕНТ ВКЛАДКИ ESP
 -- ═══════════════════════════════════════════════════════════
 
-sectionTitle(leftCol, 1, "STATISTICS", "📊")
-local counterVal = statRow(leftCol, 2, "Coins Collected", "🪙")
-local timerVal = statRow(leftCol, 3, "Time Active", "⏱️")
-local rateVal = statRow(leftCol, 4, "Coins / Hour", "⚡")
+local espContent = tabContents["esp"]
+sectionTitle(espContent, 1, "VISUAL ESP", "👁️")
+local espToggle = toggleCard(espContent, 2, "ESP Roles", "👁️", function(state)
+    espEnabled = state
+    updateESP()
+    notify("XDarkHUB", "ESP: " .. (state and "ВКЛ" or "ВЫКЛ"), 2)
+end)
 
-sectionTitle(leftCol, 5, "ROLE INFO", "🎭")
-local roleVal = statRow(leftCol, 6, "Your Role", "👤")
+-- ═══════════════════════════════════════════════════════════
+--  КОНТЕНТ ВКЛАДКИ AUTO FARM
+-- ═══════════════════════════════════════════════════════════
 
-sectionTitle(leftCol, 7, "BAG STATUS", "🎒")
-local bagVal = statRow(leftCol, 8, "Bag Full", "📦")
+local farmContent = tabContents["farm"]
+sectionTitle(farmContent, 1, "STATISTICS", "📊")
+local counterVal = statRow(farmContent, 2, "Coins Collected", "🪙")
+local timerVal = statRow(farmContent, 3, "Time Active", "⏱️")
+local rateVal = statRow(farmContent, 4, "Coins / Hour", "⚡")
+
+sectionTitle(farmContent, 5, "ROLE INFO", "🎭")
+local roleVal = statRow(farmContent, 6, "Your Role", "👤")
+
+sectionTitle(farmContent, 7, "BAG STATUS", "🎒")
+local bagVal = statRow(farmContent, 8, "Bag Full", "📦")
 
 -- Лимит мешка
 do
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 48)
+    card.Size = UDim2.new(1, 0, 0, 50)
     card.BackgroundColor3 = COL.card
     card.BorderSizePixel = 0
     card.LayoutOrder = 9
     card.ZIndex = 2
-    card.Parent = leftCol
+    card.Parent = farmContent
     corner(card, 10)
     stroke(card, COL.border, 1)
-
-    local cardGrad = Instance.new("UIGradient", card)
-    cardGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COL.card),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 18, 25)),
-    })
-    cardGrad.Rotation = 90
 
     local iconLbl = Instance.new("TextLabel")
     iconLbl.Size = UDim2.new(0, 40, 1, 0)
@@ -651,83 +690,17 @@ do
     end)
 end
 
--- Reset
-do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
-    btn.BackgroundColor3 = COL.card
-    btn.Text = "🔄  Reset & Resume"
-    btn.TextColor3 = ACCENT.light
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.AutoButtonColor = false
-    btn.LayoutOrder = 10
-    btn.ZIndex = 2
-    btn.Parent = leftCol
-    corner(btn, 10)
-    stroke(btn, ACCENT.base, 1)
-    btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3 = COL.cardHov}) end)
-    btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3 = COL.card}) end)
-    btn.MouseButton1Click:Connect(function()
-        collected = 0
-        startTime = tick()
-        counterVal.Text = "0"
-        timerVal.Text = "0s"
-        rateVal.Text = "0"
-        bagFull = false
-        farmStopped = false
-        visitedPositions = {}
-        updateBagUI()
-        notify("XDarkHUB", "🔄 Сброшено!", 2)
-    end)
-end
-
--- ═══════════════════════════════════════════════════════════
---  ПРАВАЯ КОЛОНКА — КНОПКИ
--- ═══════════════════════════════════════════════════════════
-
-sectionTitle(rightCol, 1, "ROLES", "👥")
-local sheriffToggle = placeholderCard(rightCol, 2, "Sheriff", "⭐", "SOON")
-local murdererToggle = placeholderCard(rightCol, 3, "Murderer", "🔪", "SOON")
-
-sectionTitle(rightCol, 4, "VISUALS", "👁️")
-local espToggle = toggleCard(rightCol, 5, "ESP Roles", "👁️", function(state)
-    espEnabled = state
-    updateESP()
-    notify("XDarkHUB", "ESP: " .. (state and "ВКЛ" or "ВЫКЛ"), 2)
-end)
-
-local playerToggle = placeholderCard(rightCol, 6, "Player ESP", "🎯", "SOON")
-
-sectionTitle(rightCol, 7, "FARM", "🌾")
-local farmToggle = toggleCard(rightCol, 8, "Auto Farm", "⚙️", function(state)
-    isActive = state
-    if state then 
-        startFarming()
-        notify("XDarkHUB", "✅ Auto Farm ВКЛЮЧЕН!", 2)
-    else
-        notify("XDarkHUB", "❌ Auto Farm ВЫКЛЮЧЕН!", 2)
-    end
-end)
-
 -- Скорость
 do
     local card = Instance.new("Frame")
-    card.Size = UDim2.new(1, 0, 0, 48)
+    card.Size = UDim2.new(1, 0, 0, 50)
     card.BackgroundColor3 = COL.card
     card.BorderSizePixel = 0
-    card.LayoutOrder = 9
+    card.LayoutOrder = 10
     card.ZIndex = 2
-    card.Parent = rightCol
+    card.Parent = farmContent
     corner(card, 10)
     stroke(card, COL.border, 1)
-
-    local cardGrad = Instance.new("UIGradient", card)
-    cardGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COL.card),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(22, 18, 25)),
-    })
-    cardGrad.Rotation = 90
 
     local iconLbl = Instance.new("TextLabel")
     iconLbl.Size = UDim2.new(0, 40, 1, 0)
@@ -785,34 +758,69 @@ do
     end)
 end
 
+-- Auto Farm кнопка
+local farmToggle = toggleCard(farmContent, 11, "Auto Farm", "⚙️", function(state)
+    isActive = state
+    if state then 
+        startFarming()
+        notify("XDarkHUB", "✅ Auto Farm ВКЛЮЧЕН!", 2)
+    else
+        notify("XDarkHUB", "❌ Auto Farm ВЫКЛЮЧЕН!", 2)
+    end
+end)
+
 -- Test Fling
 do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 48)
+    btn.Size = UDim2.new(1, 0, 0, 50)
     btn.BackgroundColor3 = ACCENT.base
     btn.Text = "🚀  ТЕСТ ФЛИНГ"
     btn.TextColor3 = COL.white
     btn.Font = Enum.Font.GothamBlack
     btn.TextSize = 14
     btn.AutoButtonColor = false
-    btn.LayoutOrder = 10
+    btn.LayoutOrder = 12
     btn.ZIndex = 2
-    btn.Parent = rightCol
+    btn.Parent = farmContent
     corner(btn, 10)
     stroke(btn, ACCENT.glow, 2)
-    
-    local btnGrad = Instance.new("UIGradient", btn)
-    btnGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, ACCENT.base),
-        ColorSequenceKeypoint.new(1, ACCENT.dark),
-    })
-    btnGrad.Rotation = 90
     
     btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3 = ACCENT.glow}) end)
     btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3 = ACCENT.base}) end)
     btn.MouseButton1Click:Connect(function()
         notify("XDarkHUB", "🔍 Запускаю тест флинга...", 2)
         throwMurdererToSpace()
+    end)
+end
+
+-- Reset
+do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 42)
+    btn.BackgroundColor3 = COL.card
+    btn.Text = "🔄  Reset & Resume"
+    btn.TextColor3 = ACCENT.light
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = 13
+    btn.ZIndex = 2
+    btn.Parent = farmContent
+    corner(btn, 10)
+    stroke(btn, ACCENT.base, 1)
+    btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3 = COL.cardHov}) end)
+    btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3 = COL.card}) end)
+    btn.MouseButton1Click:Connect(function()
+        collected = 0
+        startTime = tick()
+        counterVal.Text = "0"
+        timerVal.Text = "0s"
+        rateVal.Text = "0"
+        bagFull = false
+        farmStopped = false
+        visitedPositions = {}
+        updateBagUI()
+        notify("XDarkHUB", "🔄 Сброшено!", 2)
     end)
 end
 
@@ -904,23 +912,6 @@ function cinematicMurdererKill()
     
     notify("XDarkHUB", "🔒 Цели зафиксированы!", 2)
     
-    local flash = Instance.new("Part")
-    flash.Size = Vector3.new(30, 30, 30)
-    flash.Position = hrp.Position
-    flash.Anchored = true
-    flash.CanCollide = false
-    flash.Material = Enum.Material.Neon
-    flash.Color = ACCENT.base
-    flash.Transparency = 0.4
-    flash.Parent = workspace
-    Debris:AddItem(flash, 3)
-    
-    local light = Instance.new("PointLight")
-    light.Brightness = 25
-    light.Range = 60
-    light.Color = ACCENT.base
-    light.Parent = flash
-    
     task.wait(0.5)
     
     for i, p in ipairs(targets) do
@@ -934,17 +925,7 @@ function cinematicMurdererKill()
                 if p.Character and p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
-                local hitEffect = Instance.new("Part")
-                hitEffect.Size = Vector3.new(2, 2, 2)
-                hitEffect.Position = targetHrp.Position
-                hitEffect.Anchored = true
-                hitEffect.CanCollide = false
-                hitEffect.Material = Enum.Material.Neon
-                hitEffect.Color = ACCENT.base
-                hitEffect.Transparency = 0.3
-                hitEffect.Parent = workspace
-                Debris:AddItem(hitEffect, 0.5)
-                notify("XDarkHUB", "💀 " .. i .. "/" .. #targets .. " " .. p.Name, 1)
+                notify("XDarkHUB", "💀 " .. i .. "/" .. #targets, 1)
             end
         end
     end
@@ -956,125 +937,91 @@ function cinematicMurdererKill()
     notify("XDarkHUB", "🔪 Все убиты!", 3)
 end
 
--- 🔥 ФЛИНГ МАРДЕРА (СИЛА ТОЛЬКО К МАРДЕРУ)
+-- 🔥 ФЛИНГ МАРДЕРА (ПЕРСОНАЖ КРУТИТСЯ ВОКРУГ)
 function throwMurdererToSpace()
     notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
     
     local murdererPlayer = nil
-    local foundRoles = {}
-    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local role = getPlayerRole(p)
-            table.insert(foundRoles, p.Name .. ": " .. role)
             if role == "Murderer" then
                 murdererPlayer = p
+                break
             end
         end
     end
     
-    if not murdererPlayer then
-        notify("XDarkHUB", "❌ Мардер не найден!", 4)
-        notify("XDarkHUB", "Роли: " .. table.concat(foundRoles, ", "), 5)
-        bagFull = false
-        collected = 0
-        counterVal.Text = "0"
-        return
-    end
-    
-    if not murdererPlayer.Character then
-        notify("XDarkHUB", "❌ Нет Character!", 3)
-        bagFull = false
-        collected = 0
-        counterVal.Text = "0"
+    if not murdererPlayer or not murdererPlayer.Character then
+        notify("XDarkHUB", "❌ Мардер не найден!", 3)
         return
     end
     
     local murdererHrp = murdererPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not murdererHrp then
         notify("XDarkHUB", "❌ Нет HRP!", 3)
-        bagFull = false
-        collected = 0
-        counterVal.Text = "0"
         return
     end
     
-    local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
-    
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
+    -- Отключаем управление мардеру
+    local murdererHum = murdererPlayer.Character:FindFirstChild("Humanoid")
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
         murdererHum.JumpPower = 0
-        murdererHum.AutoRotate = false
     end
     
+    -- Отключаем коллизии мардера
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
-    for _, v in ipairs(murdererHrp:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") or v:IsA("AlignPosition") or v:IsA("AlignOrientation") then
-            v:Destroy()
+    -- 🔥 ПЕРСОНАЖ ТЕЛЕПОРТИРУЕТСЯ К МАРДЕРУ И КРУТИТСЯ
+    character = player.Character
+    rootPart = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if rootPart then
+        notify("XDarkHUB", "🌀 Кручусь вокруг мардера!", 3)
+        
+        local radius = 4
+        local totalSpins = 60
+        
+        for i = 1, totalSpins do
+            if not murdererHrp.Parent or not rootPart.Parent then break end
+            
+            local angle = math.rad(i * 20)
+            local height = i * 25
+            
+            local offset = Vector3.new(
+                math.cos(angle) * radius,
+                height,
+                math.sin(angle) * radius
+            )
+            
+            rootPart.CFrame = CFrame.new(murdererHrp.Position + offset, murdererHrp.Position)
+            task.wait(0.02)
         end
+        
+        notify("XDarkHUB", "🚀 Выбрасываю мардера!", 2)
+        
+        -- Мощный импульс мардеру
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, 15000, 0)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Parent = murdererHrp
+        Debris:AddItem(bodyVel, 10)
+        
+        local bodyAng = Instance.new("BodyAngularVelocity")
+        bodyAng.AngularVelocity = Vector3.new(800, 800, 800)
+        bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyAng.Parent = murdererHrp
+        Debris:AddItem(bodyAng, 10)
+        
+        notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетел!", 3)
     end
-    
-    notify("XDarkHUB", "⚡ Применяю силу к мардеру...", 2)
-    
-    -- 🔥 СИЛА ТОЛЬКО К МАРДЕРУ
-    local bodyVel = Instance.new("BodyVelocity")
-    bodyVel.Velocity = Vector3.new(0, 10000, 0)
-    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVel.P = math.huge
-    bodyVel.Parent = murdererHrp
-    
-    local bodyAng = Instance.new("BodyAngularVelocity")
-    bodyAng.AngularVelocity = Vector3.new(1000, 1000, 1000)
-    bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bodyAng.P = math.huge
-    bodyAng.Parent = murdererHrp
-    
-    local flash = Instance.new("Part")
-    flash.Size = Vector3.new(30, 30, 30)
-    flash.Position = murdererHrp.Position
-    flash.Anchored = true
-    flash.CanCollide = false
-    flash.Material = Enum.Material.Neon
-    flash.Color = ACCENT.base
-    flash.Transparency = 0.3
-    flash.Parent = workspace
-    Debris:AddItem(flash, 4)
-    
-    local light = Instance.new("PointLight")
-    light.Brightness = 30
-    light.Range = 70
-    light.Color = ACCENT.base
-    light.Parent = flash
-    
-    task.spawn(function()
-        for i = 1, 60 do
-            task.wait(0.05)
-            if murdererHrp.Parent then
-                local trail = Instance.new("Part")
-                trail.Size = Vector3.new(2, 2, 2)
-                trail.Position = murdererHrp.Position
-                trail.Anchored = true
-                trail.CanCollide = false
-                trail.Material = Enum.Material.Neon
-                trail.Color = ACCENT.base
-                trail.Transparency = 0.2
-                trail.Parent = workspace
-                Debris:AddItem(trail, 2)
-            end
-        end
-    end)
-    
-    Debris:AddItem(bodyVel, 10)
-    Debris:AddItem(bodyAng, 10)
-    
-    notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетает!", 3)
     
     bagFull = false
     collected = 0
@@ -1110,7 +1057,7 @@ function startFarming()
     rateVal.Text = "0"
     updateRoleUI()
     updateBagUI()
-    notify("XDarkHUB", "🚀 Фарм запущен! Лимит: " .. MAX_BAG, 3)
+    notify("XDarkHUB", "🚀 Фарм запущен!", 3)
 
     task.spawn(function()
         while isActive do
@@ -1205,7 +1152,7 @@ function startFarming()
                                 updateBagUI()
                                 visitedPositions[coinRef] = true
                                 if collected % 10 == 0 then
-                                    notify("XDarkHUB", "✅ Собрано: " .. collected .. "/" .. MAX_BAG, 2)
+                                    notify("XDarkHUB", "✅ " .. collected .. "/" .. MAX_BAG, 2)
                                 end
                             else
                                 visitedPositions[coinRef] = true
@@ -1239,13 +1186,6 @@ menuButton.ZIndex = 10
 menuButton.Parent = gui
 corner(menuButton, 35)
 stroke(menuButton, ACCENT.glow, 2)
-
-local menuGrad = Instance.new("UIGradient", menuButton)
-menuGrad.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, ACCENT.glow),
-    ColorSequenceKeypoint.new(1, ACCENT.dark),
-})
-menuGrad.Rotation = 45
 
 do
     local dragging, dragStart, startPos = false, nil, nil
@@ -1282,7 +1222,7 @@ menuButton.MouseButton1Click:Connect(function()
     frame.Visible = not frame.Visible
 end)
 
--- 🔥 ESP ПОДСВЕТКА
+-- 🔥 ESP
 function updateESP()
     for _, highlight in pairs(espHighlights) do
         if highlight then highlight:Destroy() end
@@ -1344,6 +1284,9 @@ end)
 updateRoleUI()
 updateBagUI()
 
-notify("XDarkHUB", "✅ XDarkHUB v2.0 загружен!", 3)
-notify("XDarkHUB", "🎨 Новое меню с двумя колонками", 3)
-notify("XDarkHUB", "🔴 Sheriff/Murderer/Player — скоро", 4)
+-- Показываем вкладку Auto Farm по умолчанию
+switchTab("farm")
+
+notify("XDarkHUB", "✅ XDarkHUB v3.0 загружен!", 3)
+notify("XDarkHUB", "🎨 Система вкладок слева", 3)
+notify("XDarkHUB", "🚀 Флинг: кручусь вокруг мардера!", 4)
