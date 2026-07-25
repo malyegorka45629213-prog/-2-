@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · УВЕДОМЛЕНИЯ ДЛЯ ПЛАНШЕТА
+--  XDarkHUB · MM2 Coin Autofarm · ТЕСТ ФЛИНГ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -40,7 +40,6 @@ local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
 
--- 🔥 ФУНКЦИЯ УВЕДОМЛЕНИЙ ДЛЯ ПЛАНШЕТА
 local function notify(title, text, duration)
     pcall(function()
         game.StarterGui:SetCore("SendNotification", {
@@ -52,28 +51,42 @@ local function notify(title, text, duration)
     print("📢 [" .. title .. "] " .. text)
 end
 
+-- 🔥 УЛУЧШЕННЫЙ ПОИСК МАРДЕРА
 local function getPlayerRole(p)
+    -- Вариант 1: Character (нож/пистолет)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
         if p.Character:FindFirstChild("Gun") or p.Character:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
+    
+    -- Вариант 2: Backpack
     if p:FindFirstChild("Backpack") then
         local bp = p.Backpack
         if bp:FindFirstChild("Knife") or bp:FindFirstChild("MurdererSword") then return "Murderer" end
         if bp:FindFirstChild("Gun") or bp:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
+    
+    -- Вариант 3: leaderstats
     local leaderstats = p:FindFirstChild("leaderstats")
     if leaderstats then
-        local rv = leaderstats:FindFirstChild("Role")
-        if rv and rv.Value then return rv.Value end
+        for _, v in ipairs(leaderstats:GetChildren()) do
+            if v.Name == "Role" and v.Value then return v.Value end
+            if v.Value == "Murderer" or v.Value == "murderer" then return "Murderer" end
+            if v.Value == "Sheriff" or v.Value == "sheriff" then return "Sheriff" end
+        end
     end
+    
+    -- Вариант 4: player.Role
     local rv = p:FindFirstChild("Role")
     if rv and rv:IsA("StringValue") then return rv.Value end
+    
+    -- Вариант 5: playerstats
     local ps = p:FindFirstChild("playerstats")
     if ps then
         local rv2 = ps:FindFirstChild("Role")
         if rv2 and rv2.Value then return rv2.Value end
     end
+    
     return "Innocent"
 end
 
@@ -81,6 +94,7 @@ local function checkRole()
     local role = getPlayerRole(player)
     isMurderer = (role == "Murderer")
     isSheriff = (role == "Sheriff")
+    notify("XDarkHUB", "🎭 Твоя роль: " .. role, 2)
 end
 
 local COL = {
@@ -427,7 +441,7 @@ end
 function stopFarming()
     farmStopped = true
     updateBagUI()
-    notify("XDarkHUB", "Фарм остановлен", 2)
+    notify("XDarkHUB", "🛑 Фарм остановлен", 2)
 end
 
 function cinematicMurdererKill()
@@ -503,25 +517,27 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 УПРОЩЁННЫЙ ФЛИНГ С УВЕДОМЛЕНИЯМИ
+-- 🔥 ФЛИНГ С УВЕДОМЛЕНИЯМИ
 function throwMurdererToSpace()
-    notify("XDarkHUB", "🚀 ФЛИНГ МАРДЕРА!", 4)
+    notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
     
-    -- 🔥 Ищем мардера
     local murdererPlayer = nil
+    local foundRoles = {}
+    
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player then
             local role = getPlayerRole(p)
+            table.insert(foundRoles, p.Name .. ": " .. role)
             if role == "Murderer" then
                 murdererPlayer = p
-                break
             end
         end
     end
     
     if not murdererPlayer then
-        notify("XDarkHUB", "❌ Мардер не найден!", 3)
+        notify("XDarkHUB", "❌ Мардер не найден!", 4)
+        notify("XDarkHUB", "Роли: " .. table.concat(foundRoles, ", "), 5)
         bagFull = false
         collected = 0
         counterVal.Text = "0"
@@ -549,7 +565,6 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
-    -- 🔥 Отключаем управление
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
@@ -557,19 +572,16 @@ function throwMurdererToSpace()
         murdererHum.AutoRotate = false
     end
     
-    -- 🔥 Отключаем коллизии
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
-    -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
         if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    -- 🔥 СОЗДАЁМ ФЛИНГ-ЧАСТЬ
     local flingPart = Instance.new("Part")
     flingPart.Name = "XDarkHUB_Fling"
     flingPart.Size = Vector3.new(4, 4, 4)
@@ -581,27 +593,23 @@ function throwMurdererToSpace()
     flingPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
     flingPart.Parent = workspace
     
-    -- 🔥 WeldConstraint
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = flingPart
     weld.Part1 = murdererHrp
     weld.Parent = flingPart
     
-    -- 🔥 BodyVelocity
     local flingVel = Instance.new("BodyVelocity")
     flingVel.Velocity = Vector3.new(0, 15000, 0)
     flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     flingVel.P = math.huge
     flingVel.Parent = flingPart
     
-    -- 🔥 BodyAngularVelocity
     local flingAng = Instance.new("BodyAngularVelocity")
     flingAng.AngularVelocity = Vector3.new(800, 800, 800)
     flingAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     flingAng.P = math.huge
     flingAng.Parent = flingPart
     
-    -- 🔥 Красный эффект
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(25, 25, 25)
     flash.Position = murdererHrp.Position
@@ -619,7 +627,6 @@ function throwMurdererToSpace()
     light.Color = ACCENT.base
     light.Parent = flash
     
-    -- 🔥 Красный след
     task.spawn(function()
         for i = 1, 50 do
             task.wait(0.05)
@@ -796,17 +803,47 @@ end
 
 local farmToggle = toggleCard(1, "Auto Farm", function(state)
     isActive = state
-    if state then startFarming() end
+    if state then 
+        startFarming()
+        notify("XDarkHUB", "✅ Auto Farm ВКЛЮЧЕН!", 2)
+    else
+        notify("XDarkHUB", "❌ Auto Farm ВЫКЛЮЧЕН!", 2)
+    end
 end)
 
 local afkToggle = toggleCard(2, "Anti-AFK", function(state)
     antiAFK = state
+    notify("XDarkHUB", "Anti-AFK: " .. (state and "ВКЛ" or "ВЫКЛ"), 2)
 end)
 
 local espToggle = toggleCard(3, "ESP Roles", function(state)
     espEnabled = state
     updateESP()
+    notify("XDarkHUB", "ESP: " .. (state and "ВКЛ" or "ВЫКЛ"), 2)
 end)
+
+-- 🔥 КНОПКА ТЕСТ ФЛИНГ
+do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 46)
+    btn.BackgroundColor3 = ACCENT.base
+    btn.Text = "🚀 ТЕСТ ФЛИНГ"
+    btn.TextColor3 = COL.white
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = 15
+    btn.ZIndex = 2
+    btn.Parent = body
+    corner(btn, 10)
+    stroke(btn, ACCENT.light, 1)
+    btn.MouseEnter:Connect(function() tw(btn, {BackgroundColor3 = ACCENT.light}) end)
+    btn.MouseLeave:Connect(function() tw(btn, {BackgroundColor3 = ACCENT.base}) end)
+    btn.MouseButton1Click:Connect(function()
+        notify("XDarkHUB", "🔍 Запускаю тест флинга...", 2)
+        throwMurdererToSpace()
+    end)
+end
 
 local speedCard = Instance.new("Frame")
 speedCard.Size = UDim2.new(1, 0, 0, 46)
@@ -947,10 +984,10 @@ do
         farmStopped = false
         visitedPositions = {}
         updateBagUI()
+        notify("XDarkHUB", "🔄 Сброшено!", 2)
     end)
 end
 
--- 🔥 ПЕРЕТАСКИВАЕМАЯ КНОПКА X
 local menuButton = Instance.new("TextButton")
 menuButton.Size = UDim2.new(0, 65, 0, 65)
 menuButton.Position = UDim2.new(0, 15, 1, -85)
@@ -1060,5 +1097,6 @@ end)
 updateRoleUI()
 updateBagUI()
 
-notify("XDarkHUB", "✅ Скрипт загружен!", 3)
+notify("XDarkHUB", "✅ XDarkHUB загружен!", 3)
 notify("XDarkHUB", "🔴 Кнопка X перетаскиваемая", 3)
+notify("XDarkHUB", "🚀 Нажми ТЕСТ ФЛИНГ для проверки!", 4)
