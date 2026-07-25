@@ -1,7 +1,7 @@
--- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v30 · MM2 AUTOFARM                          ║
--- ║   TRAP ESP + TELEPORT TO TRAP + FLOATING BUTTON                              ║
--- ╚══════════════════════════════════════════════════════════════════════════════╝
+-- ═══════════════════════════════════════════════════════════
+--  XDarkHUB v31 · MM2 AUTOFARM
+--  ИСПРАВЛЕН TP К ПИСТОЛЕТУ + GUN ESP
+-- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -15,9 +15,6 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  STATE VARIABLES
--- ═══════════════════════════════════════════════════════════════════════════════
 local visitedPositions = {}
 local isActive = false
 local flySpeed = 16
@@ -31,13 +28,13 @@ local bagFull = false
 local farmStopped = false
 local espEnabled = false
 local trapESPEnabled = false
+local gunESPEnabled = false
 local espHighlights = {}
 local trapHighlights = {}
+local gunHighlights = {}
 local MAX_BAG = 40
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  SOUNDS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗВУКИ
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -51,9 +48,7 @@ local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  NOTIFICATIONS (RUSSIAN)
--- ═══════════════════════════════════════════════════════════════════════════════
+-- УВЕДОМЛЕНИЯ
 local function notify(title, text, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -64,9 +59,9 @@ local function notify(title, text, duration)
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  FIND ROLES
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+--  ПОИСК РОЛЕЙ И ОБЪЕКТОВ
+-- ═══════════════════════════════════════════════════════════
 local function getPlayerRole(p)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
@@ -107,6 +102,44 @@ local function findSheriff()
     return nil
 end
 
+-- 🔥 ИСПРАВЛЕНО: Поиск карты (из YARHM)
+local function getMap()
+    for _, o in ipairs(workspace:GetChildren()) do
+        if o:FindFirstChild("CoinContainer") and o:FindFirstChild("Spawns") then
+            return o
+        end
+    end
+    return nil
+end
+
+-- 🔥 ИСПРАВЛЕНО: Поиск пистолета (из YARHM)
+local function findGunDrop()
+    local map = getMap()
+    if map then
+        local gunDrop = map:FindFirstChild("GunDrop")
+        if gunDrop then
+            return gunDrop
+        end
+    end
+    -- Fallback поиск
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "GunDrop" then
+            return obj
+        end
+    end
+    return nil
+end
+
+-- 🔥 ИСПРАВЛЕНО: Поиск ловушки (из YARHM)
+local function findTrap()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "Trap" and (obj.Parent:IsA("Folder") or obj.Parent:IsA("Model")) then
+            return obj
+        end
+    end
+    return nil
+end
+
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
@@ -133,39 +166,18 @@ local function checkRole()
     isSheriff = (r == "Sheriff")
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  FIND TRAP (FROM YARHM)
--- ═══════════════════════════════════════════════════════════════════════════════
-local function findTrap()
-    local closestTrap = nil
-    local shortestDistance = math.huge
-    local myHRP = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return nil end
-    
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj.Name == "Trap" and (obj.Parent:IsA("Folder") or obj.Parent:IsA("Model")) then
-            local trapPos = obj:IsA("BasePart") and obj.Position or obj:GetPivot().Position
-            if trapPos then
-                local distance = (myHRP.Position - trapPos).Magnitude
-                if distance < shortestDistance then
-                    shortestDistance = distance
-                    closestTrap = obj
-                end
-            end
-        end
-    end
-    return closestTrap
-end
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  TRAP ESP (FROM YARHM)
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+--  TRAP ESP (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════
 local function addTrapESP(trap)
     if not trap then return end
+    
+    -- Делаем ловушку видимой
     if trap:IsA("BasePart") then
         trap.Transparency = 0
     end
     
+    -- Создаем Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "TrapHighlight_" .. tostring(trap)
     highlight.Adornee = trap
@@ -176,7 +188,7 @@ local function addTrapESP(trap)
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Parent = trap
     
-    -- BillboardGui with label
+    -- Создаем BillboardGui с надписью
     local bgui = Instance.new("BillboardGui")
     bgui.Name = "TrapLabel"
     bgui.AlwaysOnTop = true
@@ -203,20 +215,20 @@ local function addTrapESP(trap)
 end
 
 local function reloadTrapESP()
-    -- Clear old highlights
+    -- Удаляем старые highlights
     for _, h in ipairs(trapHighlights) do
         if h and h.Parent then h:Destroy() end
     end
     trapHighlights = {}
     
-    -- Remove old labels
+    -- Удаляем старые labels
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "TrapLabel" then obj:Destroy() end
     end
     
     if not trapESPEnabled then return end
     
-    -- Add new highlights
+    -- Добавляем новые highlights
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj.Name == "Trap" and (obj.Parent:IsA("Folder") or obj.Parent:IsA("Model")) then
             addTrapESP(obj)
@@ -224,7 +236,7 @@ local function reloadTrapESP()
     end
 end
 
--- Listen for new traps (FROM YARHM)
+-- Слушаем новые ловушки (из YARHM)
 workspace.DescendantAdded:Connect(function(ch)
     if trapESPEnabled and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
         addTrapESP(ch)
@@ -232,197 +244,138 @@ workspace.DescendantAdded:Connect(function(ch)
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TELEPORT TO TRAP
--- ═══════════════════════════════════════════════════════════════════════════════
-function teleportToTrap()
-    local trap = findTrap()
-    if not trap then
-        notify("XDarkHUB", "❌ Ловушка не найдена!", 2)
+-- ═══════════════════════════════════════════════════════════
+--  🔥 GUN ESP (ИЗ YARHM - ИСПРАВЛЕНО)
+-- ═══════════════════════════════════════════════════════════
+local function addGunESP(gun)
+    if not gun then return end
+    
+    -- Создаем Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "GunHighlight_" .. tostring(gun)
+    highlight.Adornee = gun
+    highlight.FillColor = Color3.fromRGB(255, 255, 0)  -- Желтый
+    highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = gun
+    
+    -- Создаем BillboardGui с надписью
+    local bgui = Instance.new("BillboardGui")
+    bgui.Name = "GunLabel"
+    bgui.AlwaysOnTop = true
+    bgui.Size = UDim2.new(0, 120, 0, 35)
+    bgui.StudsOffset = Vector3.new(0, 4, 0)
+    bgui.Adornee = gun
+    bgui.Parent = gun
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "🔫 DROPPED GUN"
+    label.TextColor3 = Color3.fromRGB(255, 255, 0)
+    label.Font = Enum.Font.GothamBold
+    label.TextScaled = true
+    label.Parent = bgui
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(200, 200, 0)
+    stroke.Thickness = 2
+    stroke.Parent = label
+    
+    table.insert(gunHighlights, highlight)
+end
+
+local function reloadGunESP()
+    -- Удаляем старые highlights
+    for _, h in ipairs(gunHighlights) do
+        if h and h.Parent then h:Destroy() end
+    end
+    gunHighlights = {}
+    
+    -- Удаляем старые labels
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj.Name == "GunLabel" then obj:Destroy() end
+    end
+    
+    if not gunESPEnabled then return end
+    
+    -- Добавляем новые highlights
+    local gun = findGunDrop()
+    if gun then
+        addGunESP(gun)
+        notify("XDarkHUB", "🔫 Пистолет найден!", 3)
+    end
+end
+
+-- Слушаем появление пистолета (из YARHM)
+workspace.DescendantAdded:Connect(function(ch)
+    if gunESPEnabled and ch.Name == "GunDrop" then
+        addGunESP(ch)
+        notify("XDarkHUB", "🔫 Пистолет брошен! Найди желтую подсветку.", 3)
+    end
+end)
+
+workspace.DescendantRemoving:Connect(function(ch)
+    if gunESPEnabled and ch.Name == "GunDrop" then
+        -- Удаляем highlights
+        for _, h in ipairs(gunHighlights) do
+            if h and h.Parent then h:Destroy() end
+        end
+        gunHighlights = {}
+        notify("XDarkHUB", "🔫 Кто-то взял пистолет.", 2)
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════
+--  🔥 TELEPORT TO GUN (ИЗ YARHM - ИСПРАВЛЕНО)
+-- ═══════════════════════════════════════════════════════════
+function teleportToGun()
+    local gun = findGunDrop()
+    if not gun then
+        notify("XDarkHUB", "❌ Нет пистолета для телепортации!", 2)
         return
     end
     
     character = player.Character
-    rootPart = character and character:FindFirstChild("HumanoidRootPart")
-    if not rootPart then
+    if not character then
         notify("XDarkHUB", "❌ Нет персонажа!", 2)
         return
     end
     
-    local trapPos = trap:IsA("BasePart") and trap.Position or trap:GetPivot().Position
-    if not trapPos then
-        notify("XDarkHUB", "❌ Нет позиции ловушки!", 2)
-        return
-    end
+    -- Сохраняем предыдущую позицию (из YARHM)
+    local previousPosition = character:GetPivot()
     
-    -- Save previous position
-    local previousPosition = rootPart.CFrame
+    -- Телепортируемся к пистолету (из YARHM)
+    character:PivotTo(gun:GetPivot())
     
-    -- Teleport to trap
-    rootPart.CFrame = CFrame.new(trapPos + Vector3.new(0, 5, 0))
-    notify("XDarkHUB", "🪤 Телепорт к ловушке!", 2)
+    notify("XDarkHUB", "🔫 Телепорт к пистолету!", 2)
     
-    -- Teleport effect
+    -- Ждем получения пистолета (из YARHM)
+    character.Backpack.ChildAdded:Wait()
+    
+    -- Возвращаемся на предыдущую позицию (из YARHM)
+    character:PivotTo(previousPosition)
+    
+    notify("XDarkHUB", "✅ Пистолет получен!", 2)
+    
+    -- Эффект телепортации
     local effect = Instance.new("Part")
     effect.Size = Vector3.new(5, 5, 5)
     effect.Position = rootPart.Position
     effect.Anchored = true
     effect.CanCollide = false
     effect.Material = Enum.Material.Neon
-    effect.Color = Color3.fromRGB(255, 0, 0)
+    effect.Color = Color3.fromRGB(255, 255, 0)
     effect.Transparency = 0.3
     effect.Parent = workspace
     Debris:AddItem(effect, 1)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  FLOATING BUTTON FOR TP TO TRAP (FROM YARHM)
--- ═══════════════════════════════════════════════════════════════════════════════
-local floatingButton = nil
-local floatingButtonVisible = false
-
-function createFloatingButton()
-    if floatingButton then
-        floatingButton:Destroy()
-        floatingButton = nil
-    end
-    
-    floatingButton = Instance.new("TextButton")
-    floatingButton.Name = "TPToTrapButton"
-    floatingButton.Size = UDim2.new(0, 120, 0, 50)
-    floatingButton.Position = UDim2.new(0, 125, 0, 90)
-    floatingButton.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    floatingButton.Text = "🪤 TP TO TRAP"
-    floatingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    floatingButton.Font = Enum.Font.GothamBold
-    floatingButton.TextSize = 14
-    floatingButton.TextScaled = true
-    floatingButton.AutoButtonColor = false
-    floatingButton.ZIndex = 999
-    floatingButton.Parent = player:WaitForChild("PlayerGui"):WaitForChild("AutoFarmGui")
-    
-    local corner = Instance.new("UICorner", floatingButton)
-    corner.CornerRadius = UDim.new(0, 10)
-    
-    local stroke = Instance.new("UIStroke", floatingButton)
-    stroke.Color = Color3.fromRGB(255, 0, 0)
-    stroke.Thickness = 2
-    
-    local padding = Instance.new("UIPadding", floatingButton)
-    padding.PaddingTop = UDim.new(0, 5)
-    padding.PaddingBottom = UDim.new(0, 5)
-    padding.PaddingLeft = UDim.new(0, 5)
-    padding.PaddingRight = UDim.new(0, 5)
-    
-    -- Click handler
-    floatingButton.MouseButton1Click:Connect(function()
-        clickSnd:Play()
-        teleportToTrap()
-    end)
-    
-    -- Ripple effect on click
-    floatingButton.MouseButton1Down:Connect(function(x, y)
-        TweenService:Create(floatingButton, TweenInfo.new(0.1), {
-            Size = UDim2.new(0, 115, 0, 48)
-        }):Play()
-        
-        local ripple = Instance.new("Frame")
-        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        ripple.BackgroundTransparency = 1
-        ripple.Position = UDim2.fromOffset(x - floatingButton.AbsolutePosition.X, y - floatingButton.AbsolutePosition.Y)
-        ripple.Size = UDim2.fromOffset(50, 50)
-        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        ripple.Parent = floatingButton
-        
-        local rippleCorner = Instance.new("UICorner", ripple)
-        rippleCorner.CornerRadius = UDim.new(1, 0)
-        
-        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-            BackgroundTransparency = 0.6,
-            Size = UDim2.fromOffset(150, 150)
-        }):Play()
-        
-        task.spawn(function()
-            task.wait(0.5)
-            if ripple and ripple.Parent then ripple:Destroy() end
-        end)
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            if floatingButton and floatingButton.Parent then
-                TweenService:Create(floatingButton, TweenInfo.new(0.1), {
-                    Size = UDim2.new(0, 120, 0, 50)
-                }):Play()
-            end
-        end
-    end)
-    
-    -- Draggable
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-    
-    floatingButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = floatingButton.Position
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            floatingButton.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-    
-    -- Animate appearance
-    floatingButton.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(floatingButton, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 120, 0, 50)
-    }):Play()
-    
-    floatingButtonVisible = true
-    notify("XDarkHUB", "🪤 Кнопка TP к ловушке создана!", 3)
-end
-
-function removeFloatingButton()
-    if floatingButton then
-        TweenService:Create(floatingButton, TweenInfo.new(0.3), {
-            Size = UDim2.new(0, 0, 0, 0)
-        }):Play()
-        task.wait(0.3)
-        floatingButton:Destroy()
-        floatingButton = nil
-        floatingButtonVisible = false
-        notify("XDarkHUB", "🪤 Кнопка TP к ловушке удалена!", 2)
-    end
-end
-
-function toggleFloatingButton()
-    if floatingButtonVisible then
-        removeFloatingButton()
-    else
-        createFloatingButton()
-    end
-end
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  FLING FROM YARHM (WORKING)
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+--  FLING ИЗ YARHM (РАБОЧИЙ)
+-- ═══════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -446,8 +399,8 @@ function miniFling(playerToFling)
     if TCharacter:FindFirstChildOfClass("Accessory") then
         Accessory = TCharacter:FindFirstChildOfClass("Accessory")
     end
-    if Accessory and Accessory:FindFirstChild("Handle") then
-        Handle = Accessory.Handle
+    if Accessory and Accessory:FindFirstChild("handle") then
+        Handle = Accessory.handle
     end
     
     if Character and Humanoid and RootPart then
@@ -591,9 +544,9 @@ function flingSheriff()
     initialCoins = getPlayerCoins(player)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  COLORS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════════
+--  ЦВЕТА
+-- ═══════════════════════════════════════════════════════════
 local C = {
     bg = Color3.fromRGB(8, 8, 12),
     panel = Color3.fromRGB(12, 12, 18),
@@ -613,9 +566,7 @@ local A = {
     soft = Color3.fromRGB(190, 45, 70),
 }
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI HELPERS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- UI HELPERS
 local function crn(o, r)
     local c = Instance.new("UICorner", o)
     c.CornerRadius = UDim.new(0, r or 8)
@@ -638,9 +589,7 @@ local function ani(o, p, t, s)
     TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  CLEANUP + GUI
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ОЧИСТКА
 do
     local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
     if old then old:Destroy() end
@@ -656,9 +605,7 @@ killSound.Parent = gui
 deathSound.Parent = gui
 clickSnd.Parent = gui
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  BACKGROUND WITH PARTICLES
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФОН С ЧАСТИЦАМИ
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C.bg
@@ -706,9 +653,7 @@ for i = 1, 28 do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  MAIN FRAME
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ГЛАВНЫЙ ФРЕЙМ
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
 frame.Position = UDim2.new(0.5, -400, 0.5, -300)
@@ -737,9 +682,7 @@ ani(frame, {
     Position = UDim2.new(0.5, -400, 0.5, -300)
 }, 0.6, Enum.EasingStyle.Back)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  HEADER
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗАГОЛОВОК
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 60)
 tBar.BackgroundColor3 = C.panel
@@ -799,7 +742,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 80, 1, 0)
 vLbl.Position = UDim2.new(1, -90, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v30]"
+vLbl.Text = "[v31]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 12
 vLbl.TextColor3 = C.mut
@@ -807,9 +750,7 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  DRAGGING
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ПЕРЕТАСКИВАНИЕ
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -828,9 +769,7 @@ do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  CONTAINER
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КОНТЕЙНЕР
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -65)
 ctr.Position = UDim2.new(0, 0, 0, 65)
@@ -861,9 +800,7 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TABS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ВКЛАДКИ
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -997,9 +934,7 @@ for n, t in pairs(tabs) do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI COMPONENTS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- UI КОМПОНЕНТЫ
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 26)
@@ -1155,11 +1090,7 @@ local function togC(par, ord, label, onTog)
     btn.MouseLeave:Connect(function() if not st then cd.BackgroundTransparency = 1 end end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT
--- ═══════════════════════════════════════════════════════════════════════════════
-
--- ESP TAB
+-- КОНТЕНТ ВКЛАДОК
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
 togC(espC, 2, "ESP Roles", function(s) espEnabled = s; notify("XDarkHUB", "ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
@@ -1168,8 +1099,12 @@ togC(espC, 3, "🪤 Trap ESP", function(s)
     reloadTrapESP()
     notify("XDarkHUB", "🪤 Trap ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
 end)
+togC(espC, 4, "🔫 Gun ESP", function(s) 
+    gunESPEnabled = s
+    reloadGunESP()
+    notify("XDarkHUB", "🔫 Gun ESP: " .. (s and "ВКЛ" or "ВЫКЛ"), 2)
+end)
 
--- FARM TAB
 local fC = tabContents["Farm"]
 secT(fC, 1, "STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -1225,13 +1160,13 @@ do
     b.MouseButton1Click:Connect(function() clickSnd:Play(); flingSheriff() end)
 end
 
--- TP TO TRAP BUTTON (WITH FLOATING BUTTON OPTION)
+-- 🔥 TELEPORT TO GUN BUTTON (ИСПРАВЛЕНО)
 do
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(1, 0, 0, 52)
-    b.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
-    b.Text = "🪤 TP TO TRAP"
-    b.TextColor3 = C.wht
+    b.BackgroundColor3 = Color3.fromRGB(255, 255, 0)  -- Желтый
+    b.Text = "🔫 TP TO GUN"
+    b.TextColor3 = Color3.fromRGB(0, 0, 0)  -- Черный текст
     b.Font = Enum.Font.GothamBlack
     b.TextSize = 16
     b.AutoButtonColor = false
@@ -1241,40 +1176,51 @@ do
     b.Active = true
     b.Parent = fC
     crn(b, 10)
-    stk(b, Color3.fromRGB(255, 150, 50), 1.5)
-    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 150, 50)}, 0.15) end)
-    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 100, 0)}, 0.15) end)
-    b.MouseButton1Click:Connect(function() clickSnd:Play(); teleportToTrap() end)
+    stk(b, Color3.fromRGB(200, 200, 0), 1.5)
+    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 200, 0)}, 0.15) end)
+    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(255, 255, 0)}, 0.15) end)
+    b.MouseButton1Click:Connect(function() clickSnd:Play(); teleportToGun() end)
 end
 
--- FLOATING BUTTON TOGGLE
-do
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, 0, 0, 52)
-    b.BackgroundColor3 = Color3.fromRGB(100, 0, 255)
-    b.Text = "📌 TOGGLE FLOATING BUTTON"
-    b.TextColor3 = C.wht
-    b.Font = Enum.Font.GothamBlack
-    b.TextSize = 14
-    b.AutoButtonColor = false
-    b.BorderSizePixel = 0
-    b.LayoutOrder = 13
-    b.ZIndex = 2
-    b.Active = true
-    b.Parent = fC
-    crn(b, 10)
-    stk(b, Color3.fromRGB(150, 100, 255), 1.5)
-    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(150, 100, 255)}, 0.15) end)
-    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = Color3.fromRGB(100, 0, 255)}, 0.15) end)
-    b.MouseButton1Click:Connect(function() clickSnd:Play(); toggleFloatingButton() end)
+togC(fC, 13, "Auto Farm", function(s) isActive = s; if s then startFarming(); notify("XDarkHUB", "Фарм ВКЛ", 2) else notify("XDarkHUB", "Фарм ВЫКЛ", 2) end end)
+togC(fC, 14, "Anti-AFK", function(s) antiAFK = s; notify("XDarkHUB", "Anti-AFK: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
+
+-- ЗАГЛУШКИ
+for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
+    local c = tabContents[name]
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1, 0, 0, 35)
+    t.BackgroundTransparency = 1
+    t.Text = name:upper()
+    t.TextColor3 = A.soft
+    t.Font = Enum.Font.GothamBlack
+    t.TextSize = 20
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.LayoutOrder = 1
+    t.ZIndex = 2
+    t.Parent = c
+    local cd = Instance.new("Frame")
+    cd.Size = UDim2.new(1, 0, 0, 120)
+    cd.BackgroundTransparency = 1
+    cd.LayoutOrder = 2
+    cd.ZIndex = 2
+    cd.Parent = c
+    crn(cd, 10)
+    stk(cd, C.bdr, 1, 0.5)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -25, 1, 0)
+    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "Coming Soon"
+    lbl.TextColor3 = C.mut
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 15
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 2
+    lbl.Parent = cd
 end
 
-togC(fC, 14, "Auto Farm", function(s) isActive = s; if s then startFarming(); notify("XDarkHUB", "Фарм ВКЛ", 2) else notify("XDarkHUB", "Фарм ВЫКЛ", 2) end end)
-togC(fC, 15, "Anti-AFK", function(s) antiAFK = s; notify("XDarkHUB", "Anti-AFK: " .. (s and "ВКЛ" or "ВЫКЛ"), 2) end)
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI FUNCTIONS
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФУНКЦИИ UI
 function updateRoleUI()
     checkRole()
     if isMurderer then roleV.Text = "Murderer"; roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -1291,9 +1237,7 @@ end
 
 function stopFarming() farmStopped = true; updateBagUI() end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  FARM
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФАРМ
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     local d = (pos - rootPart.Position).Magnitude; local dur = math.max(0.1, d / spd)
@@ -1358,9 +1302,7 @@ function startFarming()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  MENU BUTTON
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КНОПКА МЕНЮ
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
@@ -1409,9 +1351,6 @@ mBtn.MouseButton1Click:Connect(function()
     bgF.Visible = not v
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  SYSTEM EVENTS
--- ═══════════════════════════════════════════════════════════════════════════════
 player.CharacterAdded:Connect(function(ch)
     character = ch; rootPart = ch:WaitForChild("HumanoidRootPart")
     visitedPositions = {}; farmStopped = false
@@ -1434,9 +1373,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  INITIALIZATION
--- ═══════════════════════════════════════════════════════════════════════════════
 updateRoleUI(); updateBagUI(); switchTab("Farm")
-notify("XDarkHUB", "v30 загружен!", 3)
-notify("XDarkHUB", "🪤 Trap ESP + TP + Floating Button", 3)
+notify("XDarkHUB", "v31 загружен!", 3)
+notify("XDarkHUB", "🔫 Исправлен TP к пистолету + Gun ESP!", 3)
