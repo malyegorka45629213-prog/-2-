@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v19 · LIGHT SPEED FLING                    ║
--- ║   РАСКРУТКА СО СКОРОСТЬЮ СВЕТА + ТЕЛЕПОРТ В МАРДЕРА                         ║
+-- ║                         XDarkHUB v20 · ULTRA SPEED FLING                    ║
+-- ║   МАКСИМАЛЬНАЯ СКОРОСТЬ + МОЩНЕЙШИЙ ВЫКИД                                   ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -307,7 +307,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v19]"
+vLbl.Text = "[v20]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -1082,13 +1082,12 @@ function cinematicMurdererKill()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🚀 LIGHT SPEED FLING - РАСКРУТКА СО СКОРОСТЬЮ СВЕТА + ТЕЛЕПОРТ В МАРДЕРА
+--  🚀 ULTRA SPEED FLING - МАКСИМАЛЬНАЯ СКОРОСТЬ + МОЩНЕЙШИЙ ВЫКИД
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "LIGHT SPEED FLING!", 3)
+    notify("XDarkHUB", "ULTRA SPEED FLING!", 3)
     deathSound:Play()
     
-    -- Поиск мардера
     local mp = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and getPlayerRole(p) == "Murderer" then
@@ -1107,7 +1106,6 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", mp.Name, 2)
     
-    -- Отключение управления мардеру
     local mhu = mp.Character:FindFirstChild("Humanoid")
     if mhu then
         mhu.PlatformStand = true
@@ -1116,7 +1114,6 @@ function throwMurdererToSpace()
         mhu.AutoRotate = false
     end
     
-    -- Отключение коллизий мардера
     for _, pt in ipairs(mp.Character:GetDescendants()) do
         if pt:IsA("BasePart") then pt.CanCollide = false end
     end
@@ -1126,32 +1123,31 @@ function throwMurdererToSpace()
     if not rootPart then return end
     
     local startPos = rootPart.Position
-    local radius = 3
-    local totalTeleports = 200  -- 🔥 200 телепортов (очень много)
+    local radius = 2.5
+    local totalTeleports = 500  -- 🔥 500 телепортов (максимум)
     
-    -- 🔥 BodyVelocity на мардере для постоянного импульса
+    -- 🔥 ПОСТОЯННЫЙ ИМПУЛЬС НА МАРДЕРЕ
     local constantBv = Instance.new("BodyVelocity")
-    constantBv.Velocity = Vector3.new(0, 5000, 0)
+    constantBv.Velocity = Vector3.new(0, 10000, 0)
     constantBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     constantBv.P = math.huge
     constantBv.Parent = mh
-    Debris:AddItem(constantBv, 10)
+    Debris:AddItem(constantBv, 15)
     
-    -- 🔥 BodyAngularVelocity на мардере для вращения
     local constantBa = Instance.new("BodyAngularVelocity")
-    constantBa.AngularVelocity = Vector3.new(3000, 3000, 3000)
+    constantBa.AngularVelocity = Vector3.new(5000, 5000, 5000)
     constantBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     constantBa.P = math.huge
     constantBa.Parent = mh
-    Debris:AddItem(constantBa, 10)
+    Debris:AddItem(constantBa, 15)
     
-    -- 🔥 ЦИКЛ БЫСТРОЙ РАСКРУТКИ С ТЕЛЕПОРТАМИ
+    -- 🔥 ЦИКЛ МАКСИМАЛЬНОЙ СКОРОСТИ
     for i = 1, totalTeleports do
         if not mh.Parent or not rootPart.Parent then break end
         
-        -- 🔥 РАСКРУТКА ВОКРУГ МАРДЕРА (каждые 1-2 кадра)
-        local angle = math.rad(i * 72)  -- 🔥 72 градуса за шаг = очень быстро
-        local height = math.sin(i * 0.5) * 3  -- Волнообразная высота
+        -- 🔥 144 ГРАДУСА ЗА ШАГ = МАКСИМАЛЬНАЯ СКОРОСТЬ
+        local angle = math.rad(i * 144)
+        local height = math.sin(i * 0.8) * 4
         
         local offset = Vector3.new(
             math.cos(angle) * radius,
@@ -1159,104 +1155,100 @@ function throwMurdererToSpace()
             math.sin(angle) * radius
         )
         
-        -- 🔥 ТЕЛЕПОРТ ВОКРУГ МАРДЕРА
         rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
         
-        -- 🔥 КАЖДЫЙ 10-Й ТЕЛЕПОРТ - В МАРДЕРА
-        if i % 10 == 0 then
-            -- 🔥 РЕЗКИЙ ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ
-            rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -0.5)
+        -- 🔥 КАЖДЫЙ 5-Й ТЕЛЕПОРТ - В МАРДЕРА
+        if i % 5 == 0 then
+            rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -0.3)
             
-            -- 🔥 МОЩНЫЙ ИМПУЛЬС МАРДЕРУ
+            -- 🔥 МОЩНЕЙШИЙ ИМПУЛЬС
             local hitBv = Instance.new("BodyVelocity")
-            hitBv.Velocity = Vector3.new(0, 15000, 0)
+            hitBv.Velocity = Vector3.new(0, 25000, 0)
             hitBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
             hitBv.P = math.huge
             hitBv.Parent = mh
-            Debris:AddItem(hitBv, 0.3)
+            Debris:AddItem(hitBv, 0.2)
             
-            -- 🔥 КРАСНАЯ ВСПЫШКА ПРИ УДАРЕ
+            -- 🔥 ЯРКАЯ КРАСНАЯ ВСПЫШКА
             local hit = Instance.new("Part")
-            hit.Size = Vector3.new(5, 5, 5)
+            hit.Size = Vector3.new(6, 6, 6)
             hit.Position = mh.Position
             hit.Anchored = true
             hit.CanCollide = false
             hit.Material = Enum.Material.Neon
             hit.Color = A.neo
-            hit.Transparency = 0.1
+            hit.Transparency = 0.05
             hit.Parent = workspace
-            Debris:AddItem(hit, 0.2)
+            Debris:AddItem(hit, 0.15)
             
             local lt = Instance.new("PointLight")
-            lt.Brightness = 30
-            lt.Range = 40
+            lt.Brightness = 40
+            lt.Range = 50
             lt.Color = A.neo
             lt.Parent = hit
         end
         
-        -- 🔥 БЕЗ ЗАДЕРЖКИ - МАКСИМАЛЬНАЯ СКОРОСТЬ
+        -- 🔥 БЕЗ ЗАДЕРЖКИ
         RunService.Heartbeat:Wait()
         
-        -- 🔥 ПРОВЕРКА: мардер улетел достаточно далеко?
         local distance = (mh.Position - startPos).Magnitude
-        if distance > 200 then
+        if distance > 300 then
             notify("XDarkHUB", "Flinged!", 2)
             break
         end
     end
     
-    -- 🔥 ФИНАЛЬНЫЙ СУПЕР МОЩНЫЙ ВЫКИД
+    -- 🔥 ФИНАЛЬНЫЙ УБОЙНЫЙ ВЫКИД
     local finalBv = Instance.new("BodyVelocity")
-    finalBv.Velocity = Vector3.new(0, 200000, 0)
+    finalBv.Velocity = Vector3.new(0, 500000, 0)
     finalBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     finalBv.P = math.huge
     finalBv.Parent = mh
-    Debris:AddItem(finalBv, 25)
+    Debris:AddItem(finalBv, 30)
     
     local finalBa = Instance.new("BodyAngularVelocity")
-    finalBa.AngularVelocity = Vector3.new(8000, 8000, 8000)
+    finalBa.AngularVelocity = Vector3.new(10000, 10000, 10000)
     finalBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     finalBa.P = math.huge
     finalBa.Parent = mh
-    Debris:AddItem(finalBa, 25)
+    Debris:AddItem(finalBa, 30)
     
-    -- 🔥 БОЛЬШАЯ КРАСНАЯ ВСПЫШКА
+    -- 🔥 ОГРОМНАЯ ВСПЫШКА
     local fl = Instance.new("Part")
-    fl.Size = Vector3.new(70, 70, 70)
+    fl.Size = Vector3.new(100, 100, 100)
     fl.Position = mh.Position
     fl.Anchored = true
     fl.CanCollide = false
     fl.Material = Enum.Material.Neon
     fl.Color = A.neo
-    fl.Transparency = 0.1
+    fl.Transparency = 0.05
     fl.Parent = workspace
-    Debris:AddItem(fl, 6)
+    Debris:AddItem(fl, 8)
     
     local lt = Instance.new("PointLight")
-    lt.Brightness = 80
-    lt.Range = 200
+    lt.Brightness = 100
+    lt.Range = 250
     lt.Color = A.neo
     lt.Parent = fl
     
-    -- 🔥 ДЛИННЫЙ КРАСНЫЙ СЛЕД ЗА МАРДЕРОМ
+    -- 🔥 ДЛИННЕЙШИЙ СЛЕД
     task.spawn(function()
-        for i = 1, 300 do
-            task.wait(0.01)
+        for i = 1, 500 do
+            task.wait(0.005)
             if not mh.Parent then break end
             local trail = Instance.new("Part")
-            trail.Size = Vector3.new(4, 4, 4)
+            trail.Size = Vector3.new(5, 5, 5)
             trail.Position = mh.Position
             trail.Anchored = true
             trail.CanCollide = false
             trail.Material = Enum.Material.Neon
             trail.Color = A.neo
-            trail.Transparency = 0.1
+            trail.Transparency = 0.05
             trail.Parent = workspace
-            Debris:AddItem(trail, 5)
+            Debris:AddItem(trail, 6)
         end
     end)
     
-    -- 🔥 ВОЗВРАТ ПЕРСОНАЖА НА МЕСТО
     rootPart.CFrame = CFrame.new(startPos)
     
     notify("XDarkHUB", mp.Name .. " Flung!", 3)
@@ -1524,5 +1516,5 @@ updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v19 Loaded", 3)
-notify("XDarkHUB", "LIGHT SPEED FLING", 3)
+notify("XDarkHUB", "v20 Loaded", 3)
+notify("XDarkHUB", "ULTRA SPEED FLING", 3)
