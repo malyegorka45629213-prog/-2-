@@ -18,6 +18,17 @@ local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
+--  GUI INIT (ОДИН РАЗ)
+-- ═══════════════════════════════════════════════════════════════════════════════
+do local old = player:WaitForChild("PlayerGui"):FindFirstChild("XDarkHUB_GUI") if old then old:Destroy() end end
+local guiUI = Instance.new("ScreenGui")
+guiUI.Name = "XDarkHUB_GUI"
+guiUI.ResetOnSpawn = false
+guiUI.IgnoreGuiInset = true
+guiUI.DisplayOrder = 999
+guiUI.Parent = player:WaitForChild("PlayerGui")
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local visitedPositions = {}
@@ -37,7 +48,7 @@ local gunESPEnabled = false
 local MAX_BAG = 40
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ПЕРЕМЕННЫЕ (ИЗ YARHM)
+--  MM2 ПЕРЕМЕННЫЕ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local playerESP = false
 local sheriffAimbot = false
@@ -67,15 +78,19 @@ local killAuraCon = nil
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
+collectSound.Parent = guiUI
 local killSound = Instance.new("Sound")
 killSound.SoundId = "rbxassetid://9120392731"
 killSound.Volume = 0.8
+killSound.Parent = guiUI
 local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
+deathSound.Parent = guiUI
 local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
+clickSnd.Parent = guiUI
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  УВЕДОМЛЕНИЯ
@@ -89,7 +104,7 @@ local function notify(title, text, duration)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ФУНКЦИИ (ИЗ YARHM)
+--  MM2 ФУНКЦИИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function findMurderer()
     for _, i in ipairs(Players:GetPlayers()) do
@@ -169,10 +184,10 @@ local function findNearestPlayer()
 end
 
 local function getPredictedPosition(targetPlayer)
-    local player = targetPlayer
-    pcall(function() player = targetPlayer.Character end)
-    local playerHRP = player:FindFirstChild("UpperTorso") or player:FindFirstChild("HumanoidRootPart")
-    local playerHum = player:FindFirstChild("Humanoid")
+    local p = targetPlayer
+    pcall(function() p = targetPlayer.Character end)
+    local playerHRP = p:FindFirstChild("UpperTorso") or p:FindFirstChild("HumanoidRootPart")
+    local playerHum = p:FindFirstChild("Humanoid")
     if not playerHRP or not playerHum then return Vector3.new(0,0,0) end
     local velocity = playerHRP.AssemblyLinearVelocity
     local playerMoveDirection = playerHum.MoveDirection
@@ -197,7 +212,7 @@ local function getClosestModelToPlayer(pl, models)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MINI FLING (ИЗ YARHM)
+--  MINI FLING
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
@@ -338,20 +353,23 @@ function miniFling(playerToFling)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ESP ФУНКЦИИ (ИЗ YARHM)
+--  ESP ФУНКЦИИ (ИСПРАВЛЕНО: gui -> guiUI)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local espHighlights = {}
 
 local function reloadESP()
     if not playerESP then return end
-    for _, h in pairs(espHighlights) do if h then h:Destroy() end end
+    for key, h in pairs(espHighlights) do 
+        if h and h:IsA("Highlight") then 
+            h:Destroy() 
+        end 
+    end
     espHighlights = {}
     
-    local listplayers = Players:GetChildren()
-    for _, pl in ipairs(listplayers) do
+    for _, pl in ipairs(Players:GetPlayers()) do
         if pl == localplayer and hideMeEsp then continue end
-        if pl.Character ~= nil then
-            local ch = pl.Character
+        local ch = pl.Character
+        if ch and ch:FindFirstChild("HumanoidRootPart") then
             task.spawn(function()
                 local color
                 if pl == findMurderer() then
@@ -369,7 +387,7 @@ local function reloadESP()
                 h.OutlineTransparency = 0
                 h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                 h.Adornee = ch
-                h.Parent = gui
+                h.Parent = guiUI
                 espHighlights[ch] = h
             end)
         end
@@ -377,9 +395,10 @@ local function reloadESP()
 end
 
 local function reloadTrapESP()
-    for _, obj in pairs(espHighlights) do
+    for key, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Trap") then
             obj:Destroy()
+            espHighlights[key] = nil
         end
     end
     if not trapDetection then return end
@@ -394,16 +413,17 @@ local function reloadTrapESP()
             h.OutlineTransparency = 0
             h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             h.Adornee = v
-            h.Parent = gui
+            h.Parent = guiUI
             espHighlights[v] = h
         end
     end
 end
 
 local function reloadGunESP()
-    for _, obj in pairs(espHighlights) do
+    for key, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Gun") then
             obj:Destroy()
+            espHighlights[key] = nil
         end
     end
     if not gunDropESP then return end
@@ -418,13 +438,13 @@ local function reloadGunESP()
         h.OutlineTransparency = 0
         h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         h.Adornee = gun
-        h.Parent = gui
+        h.Parent = guiUI
         espHighlights[gun] = h
     end
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ДЕЙСТВИЯ (ИЗ YARHM)
+--  MM2 ДЕЙСТВИЯ
 -- ═══════════════════════════════════════════════════════════════════════════════
 function shootMurderer()
     if findSheriff() ~= localplayer then
@@ -671,7 +691,7 @@ function copySheriffName()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  AUTO SHOOT LOOP (ИЗ YARHM)
+--  AUTO SHOOT LOOP
 -- ═══════════════════════════════════════════════════════════════════════════════
 task.spawn(function()
     while task.wait(1) do
@@ -752,7 +772,7 @@ function toggleKillAura(state)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  AUTO GET GUN ON DROP (ИЗ YARHM)
+--  AUTO GET GUN ON DROP
 -- ═══════════════════════════════════════════════════════════════════════════════
 workspace.DescendantAdded:Connect(function(ch)
     if trapDetection and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
@@ -791,7 +811,7 @@ workspace.ChildAdded:Connect(function(chi)
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  PLAYER DATA LISTENER (ИЗ YARHM)
+--  PLAYER DATA LISTENER
 -- ═══════════════════════════════════════════════════════════════════════════════
 pcall(function()
     if game.ReplicatedStorage:FindFirstChild("Remotes") then
@@ -821,58 +841,62 @@ local function createFloatingButton(name, text, color, callback, position)
     
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 150, 0, 50)
+    button.Size = UDim2.new(0, 160, 0, 55)
     button.Position = position or UDim2.new(0, 125, 0, 90)
-    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
+    button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    button.BackgroundTransparency = 0.4
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextScaled = true
     button.Font = Enum.Font.GothamBold
     button.AutoButtonColor = false
     button.ClipsDescendants = true
-    button.Parent = gui
+    button.Parent = guiUI
     
     local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 12)
     
     local stroke = Instance.new("UIStroke", button)
-    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Color = Color3.fromRGB(255, 50, 80)
     stroke.Thickness = 2
+    stroke.Transparency = 0.3
+    
+    local grad = Instance.new("UIGradient", button)
+    grad.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 80)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 30, 100)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 150, 255))
+    }
+    grad.Rotation = 45
+    grad.Transparency = NumberSequence.new{
+        NumberSequenceKeypoint.new(0, 0.7),
+        NumberSequenceKeypoint.new(0.5, 0.85),
+        NumberSequenceKeypoint.new(1, 0.7)
+    }
+    
+    task.spawn(function()
+        local rot = 45
+        while button.Parent do
+            rot = rot + 0.5
+            grad.Rotation = rot
+            task.wait(0.05)
+        end
+    end)
     
     button.MouseButton1Click:Connect(function()
         clickSnd:Play()
         callback()
     end)
     
-    -- Ripple effect
-    button.MouseButton1Down:Connect(function(x, y)
-        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 145, 0, 48)}):Play()
-        local ripple = Instance.new("Frame")
-        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        ripple.BackgroundTransparency = 1
-        ripple.Position = UDim2.fromOffset(x - button.AbsolutePosition.X, y - button.AbsolutePosition.Y)
-        ripple.Size = UDim2.fromOffset(50, 50)
-        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
-        ripple.Parent = button
-        local rippleCorner = Instance.new("UICorner", ripple)
-        rippleCorner.CornerRadius = UDim.new(1, 0)
-        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
-            BackgroundTransparency = 0.6,
-            Size = UDim2.fromOffset(150, 150)
-        }):Play()
-        task.spawn(function()
-            task.wait(0.5)
-            if ripple and ripple.Parent then ripple:Destroy() end
-        end)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
     end)
     
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 150, 0, 50)}):Play()
-        end
-    end)
-    
-    -- Draggable
     local dragging = false
     local dragStart = nil
     local startPos = nil
@@ -903,10 +927,9 @@ local function createFloatingButton(name, text, color, callback, position)
         end
     end)
     
-    -- Animate appearance
     button.Size = UDim2.new(0, 0, 0, 0)
     TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 150, 0, 50)
+        Size = UDim2.new(0, 160, 0, 55)
     }):Play()
     
     floatingButtons[name] = button
@@ -950,69 +973,8 @@ local A_COL = {
 local function crn(o, r) local c = Instance.new("UICorner", o) c.CornerRadius = UDim.new(0, r or 8) end
 local function stk(o, c, t, tr) local s = Instance.new("UIStroke", o) s.Color = c s.Thickness = t or 1 s.Transparency = tr or 0 end
 local function grd(o, cs, rot) local g = Instance.new("UIGradient", o) g.Color = ColorSequence.new(cs) g.Rotation = rot or 0 end
-local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play() end
+local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play end
 
-do local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui") if old then old:Destroy() end end
-
-local guiUI = Instance.new("ScreenGui")
-guiUI.Name = "AutoFarmGui"
-guiUI.ResetOnSpawn = false
-guiUI.IgnoreGuiInset = true
-guiUI.Parent = player:WaitForChild("PlayerGui")
-collectSound.Parent = guiUI
-killSound.Parent = guiUI
-deathSound.Parent = guiUI
-clickSnd.Parent = guiUI
-
--- Background particles
-local bgF = Instance.new("Frame")
-bgF.Size = UDim2.new(1, 0, 1, 0)
-bgF.BackgroundColor3 = C_COL.bg
-bgF.BackgroundTransparency = 0.08
-bgF.BorderSizePixel = 0
-bgF.ZIndex = 0
-bgF.Parent = guiUI
-crn(bgF, 0)
-grd(bgF, {
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 4, 14)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8, 8, 12)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 4, 10))
-}, 45)
-
-task.spawn(function()
-    local rotation = 0
-    while bgF.Parent do
-        rotation = rotation + 0.15
-        bgF.UIGradient.Rotation = rotation
-        task.wait(0.05)
-    end
-end)
-
-local pCols = {A_COL.base, A_COL.neo, A_COL.lit, Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 115, 135)}
-for i = 1, 28 do
-    local sz = math.random(2, 11)
-    local p = Instance.new("Frame")
-    p.Size = UDim2.new(0, sz, 0, sz)
-    p.Position = UDim2.new(math.random(), 0, math.random(), 0)
-    p.BackgroundColor3 = pCols[math.random(1, #pCols)]
-    p.BackgroundTransparency = math.random(45, 82) / 100
-    p.BorderSizePixel = 0
-    p.ZIndex = 0
-    p.Parent = bgF
-    crn(p, math.random(1, 5))
-    task.spawn(function()
-        while p.Parent do
-            local d = math.random(16, 36)
-            ani(p, {
-                Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundTransparency = math.random(35, 82) / 100
-            }, d, Enum.EasingStyle.Sine)
-            task.wait(d)
-        end
-    end)
-end
-
--- Main frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
 frame.Position = UDim2.new(0.5, -400, 0.5, -300)
@@ -1033,10 +995,6 @@ topLine.BorderSizePixel = 0
 topLine.ZIndex = 3
 topLine.Parent = frame
 crn(topLine, 1)
-
-frame.Size = UDim2.new(0, 0, 0, 0)
-frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-ani(frame, {Size = UDim2.new(0, 800, 0, 600), Position = UDim2.new(0.5, -400, 0.5, -300)}, 0.6, Enum.EasingStyle.Back)
 
 -- Header
 local tBar = Instance.new("Frame")
@@ -1565,7 +1523,6 @@ mkBtn(playerC, 3, "🗺️ TELEPORT TO MAP", Color3.fromRGB(50, 150, 50), telepo
 
 secT(playerC, 4, "⚙️ SETTINGS")
 
--- Shoot offset input
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1613,7 +1570,6 @@ do
     end)
 end
 
--- Offset to ping multiplier
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1700,9 +1656,8 @@ togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
 --  UI UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
-    local r = getPlayerRole(player)
-    isMurderer = (r == "Murderer")
-    isSheriff = (r == "Sheriff")
+    isMurderer = (findMurderer() == localplayer)
+    isSheriff = (findSheriff() == localplayer)
 end
 
 local function getPlayerCoins(p)
@@ -1759,7 +1714,6 @@ function stopFarming()
     notify("XDarkHUB", "Stopped")
 end
 
--- Farm loop
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     local d = (pos - rootPart.Position).Magnitude
@@ -1897,7 +1851,6 @@ mBtn.MouseButton1Click:Connect(function()
     clickSnd:Play()
     local v = frame.Visible
     frame.Visible = not v
-    bgF.Visible = not v
 end)
 
 player.CharacterAdded:Connect(function(ch)
