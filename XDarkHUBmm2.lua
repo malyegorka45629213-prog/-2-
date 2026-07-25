@@ -1,6 +1,5 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v25 · MM2 AUTOFARM                          ║
--- ║   РАБОЧИЙ FLING ИЗ YARHM · ПОЛНАЯ ВЕРСИЯ                                     ║
+-- ║                         XDarkHUB v26 · FIXED FLING                           ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -30,9 +29,7 @@ local espEnabled = false
 local espHighlights = {}
 local MAX_BAG = 40
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ЗВУКИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗВУКИ
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
@@ -49,9 +46,7 @@ local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  УВЕДОМЛЕНИЯ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- УВЕДОМЛЕНИЯ
 local function notify(title, text, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
@@ -63,26 +58,36 @@ local function notify(title, text, duration)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ПОИСК РОЛЕЙ
+--  ПОИСК РОЛЕЙ (ИСПРАВЛЕНО)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function findMurderer()
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i.Backpack:FindFirstChild("Knife") then return i end
+    -- Сначала проверяем Backpack
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Backpack:FindFirstChild("Knife") then
+            return p
+        end
     end
-    for _, i in ipairs(Players:GetPlayers()) do
-        if not i.Character then continue end
-        if i.Character:FindFirstChild("Knife") then return i end
+    -- Потом проверяем Character
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("Knife") then
+            return p
+        end
     end
     return nil
 end
 
 local function findSheriff()
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i.Backpack:FindFirstChild("Gun") then return i end
+    -- Сначала проверяем Backpack
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Backpack:FindFirstChild("Gun") then
+            return p
+        end
     end
-    for _, i in ipairs(Players:GetPlayers()) do
-        if not i.Character then continue end
-        if i.Character:FindFirstChild("Gun") then return i end
+    -- Потом проверяем Character
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("Gun") then
+            return p
+        end
     end
     return nil
 end
@@ -132,9 +137,14 @@ local function checkRole()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🔥 РАБОЧИЙ FLING ИЗ YARHM (SKIDFLING)
+--  FLING (ИСПРАВЛЕНО - ИЗ YARHM С ОЧИСТКОЙ)
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
+    if not playerToFling or not playerToFling.Character then
+        notify("XDarkHUB", "No valid character to fling.")
+        return
+    end
+    
     local LocalPlayer = Players.LocalPlayer
     local Character = LocalPlayer.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -266,6 +276,7 @@ function miniFling(playerToFling)
             notify("XDarkHUB", "Can't find a proper part to fling.")
         end
         
+        -- 🔥 ОЧИСТКА ПОСЛЕ FLING (ИСПРАВЛЕНО)
         BV:Destroy()
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         workspace.CurrentCamera.CameraSubject = Humanoid
@@ -283,7 +294,13 @@ function miniFling(playerToFling)
             task.wait()
         until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
         
-        workspace.FallenPartsDestroyHeight = getgenv().FPDH
+        -- 🔥 ВОССТАНОВЛЕНИЕ FallenPartsDestroyHeight
+        workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
+        
+        -- 🔥 ЗАДЕРЖКА ДЛЯ ВОССТАНОВЛЕНИЯ СИСТЕМЫ
+        task.wait(2)
+        
+        notify("XDarkHUB", "Fling completed! System restored.")
     else
         notify("XDarkHUB", "No valid character.")
     end
@@ -310,6 +327,7 @@ function flingSheriff()
     end
     notify("XDarkHUB", "Flinging sheriff: " .. sheriff.Name, 3)
     miniFling(sheriff)
+    initialCoins = getPlayerCoins(player)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -359,9 +377,7 @@ local function ani(o, p, t, s)
     TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ОЧИСТКА
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ОЧИСТКА
 do
     local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
     if old then old:Destroy() end
@@ -377,9 +393,7 @@ killSound.Parent = gui
 deathSound.Parent = gui
 clickSnd.Parent = gui
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФОН С ЧАСТИЦАМИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФОН С ЧАСТИЦАМИ
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C.bg
@@ -427,9 +441,7 @@ for i = 1, 28 do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ГЛАВНЫЙ ФРЕЙМ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ГЛАВНЫЙ ФРЕЙМ
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 640, 0, 540)
 frame.Position = UDim2.new(0.5, -320, 0.5, -270)
@@ -458,9 +470,7 @@ ani(frame, {
     Position = UDim2.new(0.5, -320, 0.5, -270)
 }, 0.6, Enum.EasingStyle.Back)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ЗАГОЛОВОК
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ЗАГОЛОВОК
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 54)
 tBar.BackgroundColor3 = C.panel
@@ -520,7 +530,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v25]"
+vLbl.Text = "[v26]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -528,9 +538,7 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ПЕРЕТАСКИВАНИЕ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ПЕРЕТАСКИВАНИЕ
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -549,9 +557,7 @@ do
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕЙНЕР
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КОНТЕЙНЕР
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -56)
 ctr.Position = UDim2.new(0, 0, 0, 56)
@@ -582,9 +588,7 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ВКЛАДКИ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ВКЛАДКИ
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -698,9 +702,7 @@ createTab("Farm", "⚙️", 5)
 for n in pairs(tabs) do createTabContent(n) end
 for n, t in pairs(tabs) do t.btn.MouseButton1Click:Connect(function() clickSnd:Play(); switchTab(n) end) end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  UI КОМПОНЕНТЫ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- UI КОМПОНЕНТЫ
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 24); l.BackgroundTransparency = 1; l.Text = txt; l.TextColor3 = A.soft; l.Font = Enum.Font.GothamBold; l.TextSize = 12; l.TextXAlignment = Enum.TextXAlignment.Left; l.LayoutOrder = ord; l.ZIndex = 2; l.Parent = par
@@ -757,9 +759,7 @@ local function togC(par, ord, label, onTog)
     btn.MouseLeave:Connect(function() if not st then cd.BackgroundTransparency = 1 end end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КОНТЕНТ ВКЛАДОК
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КОНТЕНТ ВКЛАДОК
 local espC = tabContents["ESP"]
 secT(espC, 1, "VISUAL")
 togC(espC, 2, "ESP Roles", function(s) espEnabled = s; updateESP(); notify("XDarkHUB", "ESP: " .. (s and "ON" or "OFF"), 2) end)
@@ -833,9 +833,7 @@ for _, name in ipairs({"Sheriff", "Murderer", "Player"}) do
     lbl.Size = UDim2.new(1, -20, 1, 0); lbl.Position = UDim2.new(0, 10, 0, 0); lbl.BackgroundTransparency = 1; lbl.Text = "Coming Soon"; lbl.TextColor3 = C.mut; lbl.Font = Enum.Font.Gotham; lbl.TextSize = 14; lbl.TextXAlignment = Enum.TextXAlignment.Left; lbl.ZIndex = 2; lbl.Parent = cd
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ФУНКЦИИ UI
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ФУНКЦИИ UI
 function updateRoleUI()
     checkRole()
     if isMurderer then roleV.Text = "Murderer"; roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -954,9 +952,7 @@ function startFarming()
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  КНОПКА МЕНЮ
--- ═══════════════════════════════════════════════════════════════════════════════
+-- КНОПКА МЕНЮ
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 60, 0, 60); mBtn.Position = UDim2.new(0, 20, 1, -80)
 mBtn.BackgroundColor3 = A.base; mBtn.Text = "X"; mBtn.TextColor3 = C.wht; mBtn.Font = Enum.Font.GothamBlack; mBtn.TextSize = 26
@@ -987,9 +983,7 @@ end
 
 mBtn.MouseButton1Click:Connect(function() clickSnd:Play(); local v = frame.Visible; frame.Visible = not v; bgF.Visible = not v end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  ESP
--- ═══════════════════════════════════════════════════════════════════════════════
+-- ESP
 function updateESP()
     for _, h in pairs(espHighlights) do if h then h:Destroy() end end; espHighlights = {}
     if not espEnabled then return end
@@ -1020,5 +1014,5 @@ RunService.Stepped:Connect(function()
 end)
 
 updateRoleUI(); updateBagUI(); switchTab("Farm")
-notify("XDarkHUB", "v25 Loaded", 3)
-notify("XDarkHUB", "Working Fling from YARHM!", 3)
+notify("XDarkHUB", "v26 Loaded", 3)
+notify("XDarkHUB", "Fixed Fling + Sheriff Support!", 3)
