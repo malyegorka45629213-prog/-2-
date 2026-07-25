@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v18 · HYPER FLING                          ║
--- ║   ОЧЕНЬ БЫСТРАЯ РАСКРУТКА + МОЩНЫЙ ВЫКИД МАРДЕРА                            ║
+-- ║                         XDarkHUB v19 · LIGHT SPEED FLING                    ║
+-- ║   РАСКРУТКА СО СКОРОСТЬЮ СВЕТА + ТЕЛЕПОРТ В МАРДЕРА                         ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -307,7 +307,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v18]"
+vLbl.Text = "[v19]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -1082,10 +1082,10 @@ function cinematicMurdererKill()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🚀 HYPER FLING - ОЧЕНЬ БЫСТРАЯ РАСКРУТКА + ВЫКИД МАРДЕРА
+--  🚀 LIGHT SPEED FLING - РАСКРУТКА СО СКОРОСТЬЮ СВЕТА + ТЕЛЕПОРТ В МАРДЕРА
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
-    notify("XDarkHUB", "HYPER FLING!", 3)
+    notify("XDarkHUB", "LIGHT SPEED FLING!", 3)
     deathSound:Play()
     
     -- Поиск мардера
@@ -1127,72 +1127,79 @@ function throwMurdererToSpace()
     
     local startPos = rootPart.Position
     local radius = 3
-    local totalCycles = 25  -- 🔥 25 циклов (было 15)
-    local spinsPerCycle = 60  -- 🔥 60 оборотов за цикл (было 20)
+    local totalTeleports = 200  -- 🔥 200 телепортов (очень много)
     
-    -- 🔥 ЦИКЛ ОЧЕНЬ БЫСТРОЙ РАСКРУТКИ
-    for cycle = 1, totalCycles do
+    -- 🔥 BodyVelocity на мардере для постоянного импульса
+    local constantBv = Instance.new("BodyVelocity")
+    constantBv.Velocity = Vector3.new(0, 5000, 0)
+    constantBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    constantBv.P = math.huge
+    constantBv.Parent = mh
+    Debris:AddItem(constantBv, 10)
+    
+    -- 🔥 BodyAngularVelocity на мардере для вращения
+    local constantBa = Instance.new("BodyAngularVelocity")
+    constantBa.AngularVelocity = Vector3.new(3000, 3000, 3000)
+    constantBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    constantBa.P = math.huge
+    constantBa.Parent = mh
+    Debris:AddItem(constantBa, 10)
+    
+    -- 🔥 ЦИКЛ БЫСТРОЙ РАСКРУТКИ С ТЕЛЕПОРТАМИ
+    for i = 1, totalTeleports do
         if not mh.Parent or not rootPart.Parent then break end
         
-        -- 🔥 СУПЕР БЫСТРАЯ РАСКРУТКА (60 оборотов за цикл)
-        for i = 1, spinsPerCycle do
-            if not mh.Parent or not rootPart.Parent then break end
+        -- 🔥 РАСКРУТКА ВОКРУГ МАРДЕРА (каждые 1-2 кадра)
+        local angle = math.rad(i * 72)  -- 🔥 72 градуса за шаг = очень быстро
+        local height = math.sin(i * 0.5) * 3  -- Волнообразная высота
+        
+        local offset = Vector3.new(
+            math.cos(angle) * radius,
+            height,
+            math.sin(angle) * radius
+        )
+        
+        -- 🔥 ТЕЛЕПОРТ ВОКРУГ МАРДЕРА
+        rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
+        
+        -- 🔥 КАЖДЫЙ 10-Й ТЕЛЕПОРТ - В МАРДЕРА
+        if i % 10 == 0 then
+            -- 🔥 РЕЗКИЙ ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ
+            rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -0.5)
             
-            local angle = math.rad(i * 18)  -- 🔥 18 градусов (было 36) = 2x быстрее
-            local height = math.sin(i * 0.3) * 2  -- 🔥 Волнообразная высота
+            -- 🔥 МОЩНЫЙ ИМПУЛЬС МАРДЕРУ
+            local hitBv = Instance.new("BodyVelocity")
+            hitBv.Velocity = Vector3.new(0, 15000, 0)
+            hitBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            hitBv.P = math.huge
+            hitBv.Parent = mh
+            Debris:AddItem(hitBv, 0.3)
             
-            local offset = Vector3.new(
-                math.cos(angle) * radius,
-                height,
-                math.sin(angle) * radius
-            )
+            -- 🔥 КРАСНАЯ ВСПЫШКА ПРИ УДАРЕ
+            local hit = Instance.new("Part")
+            hit.Size = Vector3.new(5, 5, 5)
+            hit.Position = mh.Position
+            hit.Anchored = true
+            hit.CanCollide = false
+            hit.Material = Enum.Material.Neon
+            hit.Color = A.neo
+            hit.Transparency = 0.1
+            hit.Parent = workspace
+            Debris:AddItem(hit, 0.2)
             
-            rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
-            task.wait(0.001)  -- 🔥 Минимальная задержка (было 0.01) = 10x быстрее
+            local lt = Instance.new("PointLight")
+            lt.Brightness = 30
+            lt.Range = 40
+            lt.Color = A.neo
+            lt.Parent = hit
         end
         
-        -- 🔥 МОЩНЫЙ ТЕЛЕПОРТ ВПЛОТНУЮ К МАРДЕРУ
-        rootPart.CFrame = mh.CFrame * CFrame.new(0, 0, -0.8)
-        
-        -- 🔥 ОГРОМНЫЙ ИМПУЛЬС МАРДЕРУ
-        local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 8000, 0)  -- 🔥 8000 (было 3000)
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.P = math.huge
-        bv.Parent = mh
-        Debris:AddItem(bv, 0.5)
-        
-        -- 🔥 БЫСТРОЕ ВРАЩЕНИЕ МАРДЕРА
-        local ba = Instance.new("BodyAngularVelocity")
-        ba.AngularVelocity = Vector3.new(2000, 2000, 2000)  -- 🔥 2000 (было 500)
-        ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        ba.P = math.huge
-        ba.Parent = mh
-        Debris:AddItem(ba, 0.5)
-        
-        -- 🔥 КРАСНЫЙ ЭФФЕКТ ПРИ КАЖДОМ УДАРЕ
-        local hit = Instance.new("Part")
-        hit.Size = Vector3.new(4, 4, 4)
-        hit.Position = mh.Position
-        hit.Anchored = true
-        hit.CanCollide = false
-        hit.Material = Enum.Material.Neon
-        hit.Color = A.neo
-        hit.Transparency = 0.1
-        hit.Parent = workspace
-        Debris:AddItem(hit, 0.3)
-        
-        local lt = Instance.new("PointLight")
-        lt.Brightness = 20
-        lt.Range = 30
-        lt.Color = A.neo
-        lt.Parent = hit
-        
-        task.wait(0.05)
+        -- 🔥 БЕЗ ЗАДЕРЖКИ - МАКСИМАЛЬНАЯ СКОРОСТЬ
+        RunService.Heartbeat:Wait()
         
         -- 🔥 ПРОВЕРКА: мардер улетел достаточно далеко?
         local distance = (mh.Position - startPos).Magnitude
-        if distance > 150 then
+        if distance > 200 then
             notify("XDarkHUB", "Flinged!", 2)
             break
         end
@@ -1200,52 +1207,52 @@ function throwMurdererToSpace()
     
     -- 🔥 ФИНАЛЬНЫЙ СУПЕР МОЩНЫЙ ВЫКИД
     local finalBv = Instance.new("BodyVelocity")
-    finalBv.Velocity = Vector3.new(0, 100000, 0)  -- 🔥 100000 (было 50000)
+    finalBv.Velocity = Vector3.new(0, 200000, 0)
     finalBv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     finalBv.P = math.huge
     finalBv.Parent = mh
-    Debris:AddItem(finalBv, 20)
+    Debris:AddItem(finalBv, 25)
     
     local finalBa = Instance.new("BodyAngularVelocity")
-    finalBa.AngularVelocity = Vector3.new(5000, 5000, 5000)  -- 🔥 5000 (было 3000)
+    finalBa.AngularVelocity = Vector3.new(8000, 8000, 8000)
     finalBa.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     finalBa.P = math.huge
     finalBa.Parent = mh
-    Debris:AddItem(finalBa, 20)
+    Debris:AddItem(finalBa, 25)
     
     -- 🔥 БОЛЬШАЯ КРАСНАЯ ВСПЫШКА
     local fl = Instance.new("Part")
-    fl.Size = Vector3.new(60, 60, 60)
+    fl.Size = Vector3.new(70, 70, 70)
     fl.Position = mh.Position
     fl.Anchored = true
     fl.CanCollide = false
     fl.Material = Enum.Material.Neon
     fl.Color = A.neo
-    fl.Transparency = 0.15
+    fl.Transparency = 0.1
     fl.Parent = workspace
-    Debris:AddItem(fl, 5)
+    Debris:AddItem(fl, 6)
     
     local lt = Instance.new("PointLight")
-    lt.Brightness = 60
-    lt.Range = 150
+    lt.Brightness = 80
+    lt.Range = 200
     lt.Color = A.neo
     lt.Parent = fl
     
     -- 🔥 ДЛИННЫЙ КРАСНЫЙ СЛЕД ЗА МАРДЕРОМ
     task.spawn(function()
-        for i = 1, 200 do
-            task.wait(0.02)
+        for i = 1, 300 do
+            task.wait(0.01)
             if not mh.Parent then break end
             local trail = Instance.new("Part")
-            trail.Size = Vector3.new(3, 3, 3)
+            trail.Size = Vector3.new(4, 4, 4)
             trail.Position = mh.Position
             trail.Anchored = true
             trail.CanCollide = false
             trail.Material = Enum.Material.Neon
             trail.Color = A.neo
-            trail.Transparency = 0.15
+            trail.Transparency = 0.1
             trail.Parent = workspace
-            Debris:AddItem(trail, 4)
+            Debris:AddItem(trail, 5)
         end
     end)
     
@@ -1517,5 +1524,5 @@ updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v18 Loaded", 3)
-notify("XDarkHUB", "HYPER FLING System", 3)
+notify("XDarkHUB", "v19 Loaded", 3)
+notify("XDarkHUB", "LIGHT SPEED FLING", 3)
