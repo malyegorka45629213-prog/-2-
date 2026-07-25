@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · ПОЛНАЯ ВЕРСИЯ
+--  XDarkHUB · MM2 Coin Autofarm · ИСПРАВЛЕННАЯ ВЕРСИЯ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -432,6 +432,7 @@ function stopFarming()
     notify("XDarkHUB", "🛑 Фарм остановлен", 2)
 end
 
+-- 🔥 УБИЙЦА УБИВАЕТ ВСЕХ (ИСПРАВЛЕНО - ЦЕЛИ ОСТАЮТСЯ НА МЕСТЕ)
 function cinematicMurdererKill()
     notify("XDarkHUB", "🔪 Убийца убивает всех!", 3)
     killSound:Play()
@@ -464,37 +465,81 @@ function cinematicMurdererKill()
         end
     end
     
-    local myLook = hrp.CFrame.LookVector
-    for i, p in ipairs(targets) do
+    notify("XDarkHUB", "🎯 Целей: " .. #targets, 2)
+    
+    -- 🔥 ОТКЛЮЧАЕМ УПРАВЛЕНИЕ ВСЕМ ЦЕЛЯМ (они остаются на месте!)
+    for _, p in ipairs(targets) do
         local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
         local targetHum = p.Character:FindFirstChild("Humanoid")
-        if targetHrp then
-            local offset = myLook * (2 + (i - 1) * 1.5)
-            targetHrp.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
-            if targetHum then
-                targetHum.PlatformStand = true
-                targetHum.WalkSpeed = 0
-                targetHum.JumpPower = 0
-            end
+        if targetHrp and targetHum then
+            targetHum.PlatformStand = true
+            targetHum.WalkSpeed = 0
+            targetHum.JumpPower = 0
+            targetHum.AutoRotate = false
+            
+            -- Отключаем коллизии
             for _, part in ipairs(p.Character:GetDescendants()) do
                 if part:IsA("BasePart") then part.CanCollide = false end
             end
         end
     end
     
+    notify("XDarkHUB", "🔒 Цели зафиксированы!", 2)
+    
+    -- 🔥 Красная вспышка
+    local flash = Instance.new("Part")
+    flash.Size = Vector3.new(30, 30, 30)
+    flash.Position = hrp.Position
+    flash.Anchored = true
+    flash.CanCollide = false
+    flash.Material = Enum.Material.Neon
+    flash.Color = ACCENT.base
+    flash.Transparency = 0.4
+    flash.Parent = workspace
+    Debris:AddItem(flash, 3)
+    
+    local light = Instance.new("PointLight")
+    light.Brightness = 25
+    light.Range = 60
+    light.Color = ACCENT.base
+    light.Parent = flash
+    
     task.wait(0.5)
     
-    for _, p in ipairs(targets) do
+    -- 🔥 УБИВАЕМ ВСЕХ ПО ОЧЕРЕДИ (я телепортируюсь к ним, они остаются на месте)
+    for i, p in ipairs(targets) do
         if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
             if targetHrp then
+                -- 🔥 Телепортируюсь вплотную к цели
                 hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -1.5)
-                task.wait(0.1)
-                if myKnife and myKnife.Parent == character then myKnife:Activate() end
+                task.wait(0.15)
+                
+                -- 🔥 Активируем нож
+                if myKnife and myKnife.Parent == character then 
+                    myKnife:Activate() 
+                end
+                
                 task.wait(0.05)
+                
+                -- 🔥 Наносим урон
                 if p.Character and p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
+                
+                -- 🔥 Эффект удара
+                local hitEffect = Instance.new("Part")
+                hitEffect.Size = Vector3.new(2, 2, 2)
+                hitEffect.Position = targetHrp.Position
+                hitEffect.Anchored = true
+                hitEffect.CanCollide = false
+                hitEffect.Material = Enum.Material.Neon
+                hitEffect.Color = ACCENT.base
+                hitEffect.Transparency = 0.3
+                hitEffect.Parent = workspace
+                Debris:AddItem(hitEffect, 0.5)
+                
+                notify("XDarkHUB", "💀 " .. i .. "/" .. #targets .. " " .. p.Name, 1)
             end
         end
     end
@@ -503,9 +548,11 @@ function cinematicMurdererKill()
     bagFull = false
     collected = 0
     counterVal.Text = "0"
+    
+    notify("XDarkHUB", "🔪 Все убиты!", 3)
 end
 
--- 🔥 НАСТОЯЩИЙ ФЛИНГ ЧЕРЕЗ ФИЗИКУ (6 ЧАСТЕЙ)
+-- 🔥 ПЕРСОНАЖ КРУТИТСЯ ВОКРУГ МАРДЕРА (ИСПРАВЛЕНО)
 function throwMurdererToSpace()
     notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
@@ -553,6 +600,7 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
+    -- 🔥 Отключаем управление мардеру
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
@@ -560,68 +608,115 @@ function throwMurdererToSpace()
         murdererHum.AutoRotate = false
     end
     
+    -- 🔥 Отключаем коллизии мардера
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
+    -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
-        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") or v:IsA("AlignPosition") then
+        if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    notify("XDarkHUB", "🔧 Создаю 6 флинг-частей...", 2)
+    -- 🔥 ПРОВЕРКА: есть ли у нас персонаж?
+    character = player.Character
+    rootPart = character and character:FindFirstChild("HumanoidRootPart")
+    local myHum = character and character:FindFirstChild("Humanoid")
     
-    local positions = {
-        Vector3.new(0, 3, 0),
-        Vector3.new(0, -3, 0),
-        Vector3.new(3, 0, 0),
-        Vector3.new(-3, 0, 0),
-        Vector3.new(0, 0, 3),
-        Vector3.new(0, 0, -3),
-    }
-    
-    for i, offset in ipairs(positions) do
-        local part = Instance.new("Part")
-        part.Name = "FlingPart_" .. i
-        part.Size = Vector3.new(3, 3, 3)
-        part.Position = murdererHrp.Position + offset
-        part.Anchored = false
-        part.CanCollide = false
-        part.Transparency = 1
-        part.Massless = true
-        part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-        part.Parent = workspace
+    if rootPart and myHum then
+        -- 🔥 ПЕРСОНАЖ ЖИВ - КРУТИМСЯ ВОКРУГ МАРДЕРА!
+        notify("XDarkHUB", "🌀 Кручусь вокруг мардера!", 3)
         
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = part
-        weld.Part1 = murdererHrp
-        weld.Parent = part
+        local startPos = rootPart.Position
+        local radius = 4
+        local spinSpeed = 0.02
+        local totalSpins = 80
         
-        local bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 3000, 0)
-        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bv.P = math.huge
-        bv.Parent = part
+        -- 🔥 Включаем коллизии у нашего персонажа
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then part.CanCollide = true end
+        end
         
-        Debris:AddItem(part, 10)
-        Debris:AddItem(bv, 10)
+        -- 🔥 Быстрое вращение вокруг мардера
+        for i = 1, totalSpins do
+            if not murdererHrp.Parent or not rootPart.Parent then
+                notify("XDarkHUB", "⚠️ Прервано!", 2)
+                break
+            end
+            
+            local angle = math.rad(i * 18)
+            local height = i * 15
+            
+            local offset = Vector3.new(
+                math.cos(angle) * radius,
+                height,
+                math.sin(angle) * radius
+            )
+            
+            -- 🔥 Телепортируем нашего персонажа вокруг мардера
+            rootPart.CFrame = CFrame.new(murdererHrp.Position + offset, murdererHrp.Position)
+            
+            -- 🔥 Красный след от нашего персонажа
+            local trail = Instance.new("Part")
+            trail.Size = Vector3.new(1, 1, 1)
+            trail.Position = rootPart.Position
+            trail.Anchored = true
+            trail.CanCollide = false
+            trail.Material = Enum.Material.Neon
+            trail.Color = ACCENT.base
+            trail.Transparency = 0.3
+            trail.Parent = workspace
+            Debris:AddItem(trail, 1)
+            
+            task.wait(spinSpeed)
+        end
+        
+        notify("XDarkHUB", "🚀 Выбрасываю мардера!", 2)
+        
+        -- 🔥 После вращения - мощный импульс мардеру
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, 10000, 0)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.P = math.huge
+        bodyVel.Parent = murdererHrp
+        Debris:AddItem(bodyVel, 10)
+        
+        local bodyAng = Instance.new("BodyAngularVelocity")
+        bodyAng.AngularVelocity = Vector3.new(500, 500, 500)
+        bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyAng.P = math.huge
+        bodyAng.Parent = murdererHrp
+        Debris:AddItem(bodyAng, 10)
+        
+        -- 🔥 Возвращаем нашего персонажа на исходную позицию
+        rootPart.CFrame = CFrame.new(startPos)
+        
+        notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетел!", 3)
+        
+    else
+        -- 🔥 ПЕРСОНАЖ В ЛОББИ - ПРОСТОЙ ФЛИНГ
+        notify("XDarkHUB", "📍 В лобби - простой флинг", 2)
+        
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.Velocity = Vector3.new(0, 10000, 0)
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.P = math.huge
+        bodyVel.Parent = murdererHrp
+        Debris:AddItem(bodyVel, 10)
+        
+        local bodyAng = Instance.new("BodyAngularVelocity")
+        bodyAng.AngularVelocity = Vector3.new(500, 500, 500)
+        bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bodyAng.P = math.huge
+        bodyAng.Parent = murdererHrp
+        Debris:AddItem(bodyAng, 10)
+        
+        notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетел!", 3)
     end
     
-    local bodyAng = Instance.new("BodyAngularVelocity")
-    bodyAng.AngularVelocity = Vector3.new(1000, 1000, 1000)
-    bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bodyAng.P = math.huge
-    bodyAng.Parent = murdererHrp
-    Debris:AddItem(bodyAng, 10)
-    
-    local bodyVel = Instance.new("BodyVelocity")
-    bodyVel.Velocity = Vector3.new(0, 2000, 0)
-    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVel.P = math.huge
-    bodyVel.Parent = murdererHrp
-    Debris:AddItem(bodyVel, 10)
-    
+    -- 🔥 Красный эффект
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(30, 30, 30)
     flash.Position = murdererHrp.Position
@@ -638,26 +733,6 @@ function throwMurdererToSpace()
     light.Range = 70
     light.Color = ACCENT.base
     light.Parent = flash
-    
-    task.spawn(function()
-        for i = 1, 60 do
-            task.wait(0.05)
-            if murdererHrp.Parent then
-                local trail = Instance.new("Part")
-                trail.Size = Vector3.new(2, 2, 2)
-                trail.Position = murdererHrp.Position
-                trail.Anchored = true
-                trail.CanCollide = false
-                trail.Material = Enum.Material.Neon
-                trail.Color = ACCENT.base
-                trail.Transparency = 0.2
-                trail.Parent = workspace
-                Debris:AddItem(trail, 2)
-            end
-        end
-    end)
-    
-    notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетает!", 3)
     
     bagFull = false
     collected = 0
