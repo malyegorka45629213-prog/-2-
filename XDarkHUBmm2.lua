@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
---  XDarkHUB · MM2 Coin Autofarm · ТЕСТ ФЛИНГ
+--  XDarkHUB · MM2 Coin Autofarm · ПОЛНАЯ ВЕРСИЯ
 -- ═══════════════════════════════════════════════════════════
 
 local Players = game:GetService("Players")
@@ -51,22 +51,16 @@ local function notify(title, text, duration)
     print("📢 [" .. title .. "] " .. text)
 end
 
--- 🔥 УЛУЧШЕННЫЙ ПОИСК МАРДЕРА
 local function getPlayerRole(p)
-    -- Вариант 1: Character (нож/пистолет)
     if p.Character then
         if p.Character:FindFirstChild("Knife") or p.Character:FindFirstChild("MurdererSword") then return "Murderer" end
         if p.Character:FindFirstChild("Gun") or p.Character:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
-    
-    -- Вариант 2: Backpack
     if p:FindFirstChild("Backpack") then
         local bp = p.Backpack
         if bp:FindFirstChild("Knife") or bp:FindFirstChild("MurdererSword") then return "Murderer" end
         if bp:FindFirstChild("Gun") or bp:FindFirstChild("SheriffGun") then return "Sheriff" end
     end
-    
-    -- Вариант 3: leaderstats
     local leaderstats = p:FindFirstChild("leaderstats")
     if leaderstats then
         for _, v in ipairs(leaderstats:GetChildren()) do
@@ -75,18 +69,13 @@ local function getPlayerRole(p)
             if v.Value == "Sheriff" or v.Value == "sheriff" then return "Sheriff" end
         end
     end
-    
-    -- Вариант 4: player.Role
     local rv = p:FindFirstChild("Role")
     if rv and rv:IsA("StringValue") then return rv.Value end
-    
-    -- Вариант 5: playerstats
     local ps = p:FindFirstChild("playerstats")
     if ps then
         local rv2 = ps:FindFirstChild("Role")
         if rv2 and rv2.Value then return rv2.Value end
     end
-    
     return "Innocent"
 end
 
@@ -94,7 +83,6 @@ local function checkRole()
     local role = getPlayerRole(player)
     isMurderer = (role == "Murderer")
     isSheriff = (role == "Sheriff")
-    notify("XDarkHUB", "🎭 Твоя роль: " .. role, 2)
 end
 
 local COL = {
@@ -517,7 +505,7 @@ function cinematicMurdererKill()
     counterVal.Text = "0"
 end
 
--- 🔥 ФЛИНГ С УВЕДОМЛЕНИЯМИ
+-- 🔥 ПРЯМОЙ ФЛИНГ (БЕЗ FLING-ЧАСТИ)
 function throwMurdererToSpace()
     notify("XDarkHUB", "🚀 НАЧИНАЮ ФЛИНГ!", 4)
     deathSound:Play()
@@ -565,6 +553,7 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", "✅ Мардер: " .. murdererPlayer.Name, 2)
     
+    -- 🔥 Отключаем управление
     if murdererHum then
         murdererHum.PlatformStand = true
         murdererHum.WalkSpeed = 0
@@ -572,47 +561,43 @@ function throwMurdererToSpace()
         murdererHum.AutoRotate = false
     end
     
+    -- 🔥 Отключаем коллизии
     for _, part in ipairs(murdererPlayer.Character:GetDescendants()) do
         if part:IsA("BasePart") then part.CanCollide = false end
     end
     
+    -- 🔥 Убираем старые velocity
     for _, v in ipairs(murdererHrp:GetChildren()) do
         if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    local flingPart = Instance.new("Part")
-    flingPart.Name = "XDarkHUB_Fling"
-    flingPart.Size = Vector3.new(4, 4, 4)
-    flingPart.Position = murdererHrp.Position + Vector3.new(0, 3, 0)
-    flingPart.Anchored = false
-    flingPart.CanCollide = false
-    flingPart.Transparency = 1
-    flingPart.Massless = true
-    flingPart.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
-    flingPart.Parent = workspace
+    -- 🔥 ТЕЛЕПОРТИРУЕМ МАРДЕРА ВЫСОКО ВВЕРХ
+    local startPos = murdererHrp.Position
+    murdererHrp.CFrame = CFrame.new(startPos + Vector3.new(0, 500, 0))
+    notify("XDarkHUB", "📍 Телепортирован на 500 вверх", 2)
     
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = flingPart
-    weld.Part1 = murdererHrp
-    weld.Parent = flingPart
+    -- 🔥 BodyVelocity НАПРЯМУЮ НА МАРДЕРА
+    local bodyVel = Instance.new("BodyVelocity")
+    bodyVel.Velocity = Vector3.new(0, 5000, 0)
+    bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVel.P = math.huge
+    bodyVel.Parent = murdererHrp
+    Debris:AddItem(bodyVel, 10)
     
-    local flingVel = Instance.new("BodyVelocity")
-    flingVel.Velocity = Vector3.new(0, 15000, 0)
-    flingVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    flingVel.P = math.huge
-    flingVel.Parent = flingPart
+    -- 🔥 BodyAngularVelocity НАПРЯМУЮ НА МАРДЕРА
+    local bodyAng = Instance.new("BodyAngularVelocity")
+    bodyAng.AngularVelocity = Vector3.new(500, 500, 500)
+    bodyAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyAng.P = math.huge
+    bodyAng.Parent = murdererHrp
+    Debris:AddItem(bodyAng, 10)
     
-    local flingAng = Instance.new("BodyAngularVelocity")
-    flingAng.AngularVelocity = Vector3.new(800, 800, 800)
-    flingAng.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    flingAng.P = math.huge
-    flingAng.Parent = flingPart
-    
+    -- 🔥 Красный эффект
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(25, 25, 25)
-    flash.Position = murdererHrp.Position
+    flash.Position = startPos
     flash.Anchored = true
     flash.CanCollide = false
     flash.Material = Enum.Material.Neon
@@ -627,6 +612,7 @@ function throwMurdererToSpace()
     light.Color = ACCENT.base
     light.Parent = flash
     
+    -- 🔥 Красный след
     task.spawn(function()
         for i = 1, 50 do
             task.wait(0.05)
@@ -644,10 +630,6 @@ function throwMurdererToSpace()
             end
         end
     end)
-    
-    Debris:AddItem(flingPart, 10)
-    Debris:AddItem(flingVel, 10)
-    Debris:AddItem(flingAng, 10)
     
     notify("XDarkHUB", "🚀 " .. murdererPlayer.Name .. " улетает!", 3)
     
