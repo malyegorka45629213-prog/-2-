@@ -1,5 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v14 · PREMIUM                             ║
+-- ║                         XDarkHUB v15 · PREMIUM                             ║
+-- ║   УМНАЯ СИСТЕМА МОНЕТ + РАБОЧИЙ ФЛИНГ ДЛЯ ВСЕХ                             ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -18,6 +19,7 @@ local visitedPositions = {}
 local isActive = false
 local flySpeed = 16
 local collected = 0
+local initialCoins = 0  -- 🔥 Начальное количество монет
 local startTime = 0
 local antiAFK = false
 local isMurderer = false
@@ -80,20 +82,35 @@ local function getPlayerRole(p)
     return "Innocent"
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  🔥 УМНАЯ СИСТЕМА МОНЕТ
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
     if ls then
+        -- Ищем значение с монетами по имени
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 local name = v.Name:lower()
-                if name:find("coin") or name:find("money") then return v.Value end
+                if name:find("coin") or name:find("money") or name:find("cash") or name:find("gold") then
+                    return v.Value
+                end
             end
         end
+        -- Если не нашли по имени, берём первое числовое значение
         for _, v in ipairs(ls:GetChildren()) do
-            if v:IsA("IntValue") or v:IsA("NumberValue") then return v.Value end
+            if v:IsA("IntValue") or v:IsA("NumberValue") then
+                return v.Value
+            end
         end
     end
     return 0
+end
+
+-- 🔥 Получить РАЗНИЦУ монет (сколько собрали)
+local function getCollectedCoins()
+    local currentCoins = getPlayerCoins(player)
+    return currentCoins - initialCoins
 end
 
 local function checkRole()
@@ -314,7 +331,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 60, 1, 0)
 vLbl.Position = UDim2.new(1, -70, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v14]"
+vLbl.Text = "[v15]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 11
 vLbl.TextColor3 = C.mut
@@ -909,7 +926,7 @@ do
     b.MouseLeave:Connect(function() b.BackgroundTransparency = 1 end)
     b.MouseButton1Click:Connect(function()
         clickSnd:Play()
-        collected = 0
+        initialCoins = getPlayerCoins(player)
         startTime = tick()
         counterV.Text = "0"
         timerV.Text = "0s"
@@ -975,14 +992,15 @@ function updateRoleUI()
 end
 
 function updateBagUI()
+    local collectedCoins = getCollectedCoins()
     if farmStopped then
         bagV.Text = "Stopped"
         bagV.TextColor3 = Color3.fromRGB(255, 80, 80)
-    elseif bagFull then
+    elseif collectedCoins >= MAX_BAG then
         bagV.Text = "Full"
         bagV.TextColor3 = Color3.fromRGB(255, 200, 0)
     else
-        bagV.Text = collected .. "/" .. MAX_BAG
+        bagV.Text = collectedCoins .. "/" .. MAX_BAG
         bagV.TextColor3 = A.lit
     end
 end
@@ -993,7 +1011,7 @@ function stopFarming()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🔪 УБИЙЦА УБИВАЕТ ВСЕХ (ИСПРАВЛЕНО - ИГРОКИ ПЕРЕД ТОБОЙ)
+--  🔪 УБИЙЦА УБИВАЕТ ВСЕХ
 -- ═══════════════════════════════════════════════════════════════════════════════
 function cinematicMurdererKill()
     notify("XDarkHUB", "Kill All", 3)
@@ -1006,7 +1024,6 @@ function cinematicMurdererKill()
     local hum = character:FindFirstChild("Humanoid")
     if not hrp or not hum then return end
     
-    -- Поиск ножа
     local k = character:FindFirstChild("Knife") or character:FindFirstChild("MurdererSword")
     if not k then
         k = player:FindFirstChild("Backpack") and (player.Backpack:FindFirstChild("Knife") or player.Backpack:FindFirstChild("MurdererSword"))
@@ -1021,7 +1038,6 @@ function cinematicMurdererKill()
     hum:EquipTool(k)
     task.wait(0.3)
     
-    -- Сбор всех целей
     local tgts = {}
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
@@ -1029,36 +1045,27 @@ function cinematicMurdererKill()
         end
     end
     
-    -- 🔥 ИСПРАВЛЕНИЕ: Телепортируем всех ПЕРЕД собой в линию
-    local myLook = hrp.CFrame.LookVector  -- Направление куда смотрим
-    local myRight = hrp.CFrame.RightVector  -- Направление вправо
+    local myLook = hrp.CFrame.LookVector
+    local myRight = hrp.CFrame.RightVector
     
     for i, p in ipairs(tgts) do
         local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
         local targetHum = p.Character:FindFirstChild("Humanoid")
         if targetHrp and targetHum then
-            -- 🔥 Игроки стоят ПЕРЕД нами в линию
-            -- Расставляем их полукругом перед нами
-            local distance = 5  -- Расстояние от нас
-            local spread = (i - (#tgts + 1) / 2) * 2.5  -- Распределение по ширине
-            
+            local distance = 5
+            local spread = (i - (#tgts + 1) / 2) * 2.5
             local newPos = hrp.Position + myLook * distance + myRight * spread
-            targetHrp.CFrame = CFrame.new(newPos, hrp.Position)  -- Смотрят на нас
-            
-            -- Фиксируем их
+            targetHrp.CFrame = CFrame.new(newPos, hrp.Position)
             targetHum.PlatformStand = true
             targetHum.WalkSpeed = 0
             targetHum.JumpPower = 0
             targetHum.AutoRotate = false
-            
-            -- Отключаем коллизии
             for _, pt in ipairs(p.Character:GetDescendants()) do
                 if pt:IsA("BasePart") then pt.CanCollide = false end
             end
         end
     end
     
-    -- 🔥 Красная вспышка вокруг нас
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(30, 30, 30)
     flash.Position = hrp.Position
@@ -1078,25 +1085,17 @@ function cinematicMurdererKill()
     
     task.wait(0.5)
     
-    -- 🔥 Убиваем всех по очереди
     for i, p in ipairs(tgts) do
         if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
             local targetHrp = p.Character:FindFirstChild("HumanoidRootPart")
             if targetHrp then
-                -- Телепорт вплотную к цели (перед ней)
                 hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 0, -1.5)
                 task.wait(0.12)
-                
-                -- Активируем нож
                 if k and k.Parent == character then k:Activate() end
                 task.wait(0.05)
-                
-                -- Наносим урон
                 if p.Character:FindFirstChild("Humanoid") then
                     p.Character.Humanoid:TakeDamage(100)
                 end
-                
-                -- 🔥 Эффект удара
                 local hit = Instance.new("Part")
                 hit.Size = Vector3.new(2, 2, 2)
                 hit.Position = targetHrp.Position
@@ -1107,27 +1106,24 @@ function cinematicMurdererKill()
                 hit.Transparency = 0.3
                 hit.Parent = workspace
                 Debris:AddItem(hit, 0.5)
-                
                 notify("XDarkHUB", i .. "/" .. #tgts, 1)
             end
         end
     end
     
     task.wait(0.3)
-    bagFull = false
-    collected = 0
+    initialCoins = getPlayerCoins(player)
     counterV.Text = "0"
     notify("XDarkHUB", "Done", 2)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  🚀 ФЛИНГ МАРДЕРА (ВИЗУАЛЬНО КРАСИВЫЙ)
+--  🚀 ФЛИНГ МАРДЕРА (РАБОЧИЙ ДЛЯ ВСЕХ)
 -- ═══════════════════════════════════════════════════════════════════════════════
 function throwMurdererToSpace()
     notify("XDarkHUB", "Fling Start", 3)
     deathSound:Play()
     
-    -- Поиск мардера
     local mp = nil
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and getPlayerRole(p) == "Murderer" then
@@ -1146,7 +1142,6 @@ function throwMurdererToSpace()
     
     notify("XDarkHUB", mp.Name, 2)
     
-    -- Отключение управления мардеру
     local mhu = mp.Character:FindFirstChild("Humanoid")
     if mhu then
         mhu.PlatformStand = true
@@ -1155,19 +1150,16 @@ function throwMurdererToSpace()
         mhu.AutoRotate = false
     end
     
-    -- Отключение коллизий мардера
     for _, pt in ipairs(mp.Character:GetDescendants()) do
         if pt:IsA("BasePart") then pt.CanCollide = false end
     end
     
-    -- Удаление старых velocity
     for _, v in ipairs(mh:GetChildren()) do
         if v:IsA("BodyVelocity") or v:IsA("BodyAngularVelocity") or v:IsA("BodyGyro") then
             v:Destroy()
         end
     end
     
-    -- 🔥 ВИЗУАЛЬНЫЙ ЭФФЕКТ: Персонаж крутится вокруг мардера
     character = player.Character
     rootPart = character:FindFirstChild("HumanoidRootPart")
     
@@ -1176,7 +1168,6 @@ function throwMurdererToSpace()
         local radius = 5
         local totalSpins = 60
         
-        -- 🔥 Красный след вокруг мардера
         task.spawn(function()
             for i = 1, 80 do
                 if not mh.Parent then break end
@@ -1199,30 +1190,22 @@ function throwMurdererToSpace()
             end
         end)
         
-        -- 🔥 Персонаж крутится вокруг мардера
         for i = 1, totalSpins do
             if not mh.Parent or not rootPart.Parent then break end
-            
             local angle = math.rad(i * 24)
-            local height = i * 1.5  -- Поднимаемся с каждым оборотом
-            
+            local height = i * 1.5
             local offset = Vector3.new(
                 math.cos(angle) * radius,
                 height,
                 math.sin(angle) * radius
             )
-            
-            -- Крутимся вокруг мардера
             rootPart.CFrame = CFrame.new(mh.Position + offset, mh.Position)
-            
             task.wait(0.02)
         end
         
-        -- Возвращаем персонажа на место
         rootPart.CFrame = CFrame.new(startPos)
     end
     
-    -- 🔥 Красная вспышка
     local fl = Instance.new("Part")
     fl.Size = Vector3.new(40, 40, 40)
     fl.Position = mh.Position
@@ -1240,63 +1223,61 @@ function throwMurdererToSpace()
     lt.Color = A.neo
     lt.Parent = fl
     
-    -- 🔥 Создаём флинг-часть
+    -- 🔥 СОЗДАЁМ FLING-ЧАСТЬ С ОГРОМНОЙ МАССОЙ
     local flingPart = Instance.new("Part")
     flingPart.Name = "FlingPart"
-    flingPart.Size = Vector3.new(10, 10, 10)
+    flingPart.Size = Vector3.new(15, 15, 15)
     flingPart.Position = mh.Position
     flingPart.Anchored = false
     flingPart.CanCollide = false
     flingPart.Transparency = 1
     flingPart.Massless = false
-    flingPart.CustomPhysicalProperties = PhysicalProperties.new(100, 0.3, 0.5, 100, 1000)
+    flingPart.CustomPhysicalProperties = PhysicalProperties.new(1000, 0.3, 0.5, 100, 10000)
     flingPart.Parent = workspace
     
-    -- WeldConstraint
+    -- WeldConstraint к мардеру
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = flingPart
     weld.Part1 = mh
     weld.Parent = flingPart
     
-    -- BodyVelocity
+    -- BodyVelocity на часть (ОГРОМНАЯ СИЛА)
     local bv = Instance.new("BodyVelocity")
-    bv.Velocity = Vector3.new(0, 20000, 0)
+    bv.Velocity = Vector3.new(0, 50000, 0)
     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     bv.P = math.huge
     bv.Parent = flingPart
     
-    -- BodyAngularVelocity
+    -- BodyAngularVelocity (быстрое вращение)
     local ba = Instance.new("BodyAngularVelocity")
-    ba.AngularVelocity = Vector3.new(2000, 2000, 2000)
+    ba.AngularVelocity = Vector3.new(3000, 3000, 3000)
     ba.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     ba.P = math.huge
     ba.Parent = flingPart
     
-    Debris:AddItem(flingPart, 15)
-    Debris:AddItem(bv, 15)
-    Debris:AddItem(ba, 15)
+    Debris:AddItem(flingPart, 20)
+    Debris:AddItem(bv, 20)
+    Debris:AddItem(ba, 20)
     
-    -- 🔥 Красный след за мардером
     task.spawn(function()
-        for i = 1, 60 do
+        for i = 1, 100 do
             task.wait(0.05)
             if not mh.Parent then break end
             local trail = Instance.new("Part")
-            trail.Size = Vector3.new(2, 2, 2)
+            trail.Size = Vector3.new(3, 3, 3)
             trail.Position = mh.Position
             trail.Anchored = true
             trail.CanCollide = false
             trail.Material = Enum.Material.Neon
             trail.Color = A.neo
-            trail.Transparency = 0.3
+            trail.Transparency = 0.2
             trail.Parent = workspace
-            Debris:AddItem(trail, 2)
+            Debris:AddItem(trail, 3)
         end
     end)
     
     notify("XDarkHUB", mp.Name .. " Flung", 3)
-    bagFull = false
-    collected = 0
+    initialCoins = getPlayerCoins(player)
     counterV.Text = "0"
 end
 
@@ -1323,7 +1304,8 @@ function flyTo(pos, spd)
 end
 
 function startFarming()
-    collected = 0
+    -- 🔥 СОХРАНЯЕМ НАЧАЛЬНОЕ КОЛИЧЕСТВО МОНЕТ
+    initialCoins = getPlayerCoins(player)
     startTime = tick()
     visitedPositions = {}
     bagFull = false
@@ -1335,12 +1317,14 @@ function startFarming()
     updateRoleUI()
     updateBagUI()
     notify("XDarkHUB", "Farm ON", 2)
+    notify("XDarkHUB", "Start: " .. initialCoins, 3)
     
     task.spawn(function()
         while isActive do
             local e = tick() - startTime
             timerV.Text = math.floor(e) .. "s"
-            rateV.Text = tostring(e > 0 and math.floor(collected / e * 3600) or 0)
+            local collectedCoins = getCollectedCoins()
+            rateV.Text = tostring(e > 0 and math.floor(collectedCoins / e * 3600) or 0)
             pCoinV.Text = tostring(getPlayerCoins(player))
             task.wait(0.1)
         end
@@ -1349,7 +1333,10 @@ function startFarming()
     task.spawn(function()
         while isActive do
             task.wait(0.5)
-            if collected >= MAX_BAG and not farmStopped then
+            local collectedCoins = getCollectedCoins()
+            counterV.Text = tostring(collectedCoins)
+            
+            if collectedCoins >= MAX_BAG and not farmStopped then
                 notify("XDarkHUB", "Full", 3)
                 bagFull = true
                 farmStopped = true
@@ -1413,14 +1400,9 @@ function startFarming()
                             end
                         end
                         if not ic and (cr.Position - rootPart.Position).Magnitude < 5 then
-                            collected = collected + 1
-                            counterV.Text = tostring(collected)
                             collectSound:Play()
                             updateBagUI()
                             visitedPositions[cr] = true
-                            if collected % 10 == 0 then
-                                notify("XDarkHUB", collected .. "/" .. MAX_BAG, 2)
-                            end
                         else
                             visitedPositions[cr] = true
                         end
@@ -1570,4 +1552,5 @@ updateRoleUI()
 updateBagUI()
 switchTab("Farm")
 
-notify("XDarkHUB", "v14 Loaded", 3)
+notify("XDarkHUB", "v15 Loaded", 3)
+notify("XDarkHUB", "Smart Coins System", 3)
