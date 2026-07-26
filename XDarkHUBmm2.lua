@@ -752,59 +752,70 @@ xpcall(function()
 
     function shootMurderer()
         if findSheriff() ~= localplayer then
-            notify("XDarkHUB", "You're not sheriff/hero.")
+            notify("XDarkHUB", "Ты не шериф/герой.")
             return
         end
 
         local murderer = findMurderer() or findSheriffThatsNotMe()
         if not murderer or not murderer.Character then
-            notify("XDarkHUB", "No murderer to shoot.")
+            notify("XDarkHUB", "Нет убийцы для выстрела.")
             return
         end
 
         if not localplayer.Character:FindFirstChild("Gun") then
             local hum = localplayer.Character:FindFirstChild("Humanoid")
-            if localplayer.Backpack:FindFirstChild("Gun") then
-                hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
-            else
-                notify("XDarkHUB", "You don't have the gun.")
-                return
+            local bpGun = localplayer.Backpack and localplayer.Backpack:FindFirstChild("Gun")
+            if hum and bpGun then
+                hum:EquipTool(bpGun)
+                xdWait(0.15)
             end
         end
 
-        local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-        if not murdererHRP then
-            notify("XDarkHUB", "Could not find murderer's HRP.")
+        local gun = localplayer.Character and localplayer.Character:FindFirstChild("Gun")
+        if not gun then
+            notify("XDarkHUB", "У тебя нет пистолета.")
             return
         end
 
-        local predictedPosition = getPredictedPosition(murderer)
-        local rightHand = localplayer.Character:FindFirstChild("RightHand")
-        local origin = rightHand and rightHand.Position or localplayer.Character:GetPivot().Position
-
-        local args
-        if instakillshoot then
-            args = {
-                CFrame.new(murdererHRP.Position + Vector3.new(0, 1, 0)),
-                CFrame.new(murdererHRP.Position)
-            }
-        else
-            args = {
-                CFrame.new(origin),
-                CFrame.new(predictedPosition)
-            }
+        local targetPart = murderer.Character:FindFirstChild("Head") or murderer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetPart then
+            notify("XDarkHUB", "Не найдена цель.")
+            return
         end
 
-        pcall(function()
-            localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
-        end)
+        xdSpawn(function()
+            for shot = 1, 3 do
+                local murdererHRP = murderer.Character and murderer.Character:FindFirstChild("HumanoidRootPart")
+                if not murdererHRP then break end
 
-        notify("XDarkHUB", "Shot fired!")
+                local predictedPosition = getPredictedPosition(murderer)
+                local aimPoint
+                if instakillshoot then
+                    aimPoint = murdererHRP.Position + Vector3.new(0, 1, 0)
+                else
+                    aimPoint = predictedPosition
+                end
+
+                local rightHand = localplayer.Character:FindFirstChild("RightHand")
+                local origin = rightHand and rightHand.Position or localplayer.Character:GetPivot().Position
+
+                pcall(function()
+                    gun:WaitForChild("Shoot"):FireServer(
+                        CFrame.new(origin),
+                        CFrame.new(aimPoint)
+                    )
+                end)
+
+                xdWait(0.12)
+            end
+
+            notify("XDarkHUB", "Очередь по убийце!")
+        end)
     end
 
     function knifeThrow()
         if findMurderer() ~= localplayer then
-            notify("XDarkHUB", "You're not murderer.")
+            notify("XDarkHUB", "Ты не убийца.")
             return
         end
 
@@ -813,14 +824,14 @@ xpcall(function()
             if localplayer.Backpack:FindFirstChild("Knife") then
                 hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
             else
-                notify("XDarkHUB", "You don't have the knife.")
+                notify("XDarkHUB", "У тебя нет ножа.")
                 return
             end
         end
 
         local NearestPlayer = findNearestPlayer()
         if not NearestPlayer or not NearestPlayer.Character then
-            notify("XDarkHUB", "Can't find a player.")
+            notify("XDarkHUB", "Не найден игрок.")
             return
         end
 
@@ -843,12 +854,12 @@ xpcall(function()
             localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
         end)
 
-        notify("XDarkHUB", "Knife thrown!")
+        notify("XDarkHUB", "Нож брошен!")
     end
 
     function killClosest()
         if findMurderer() ~= localplayer then
-            notify("XDarkHUB", "You're not murderer.")
+            notify("XDarkHUB", "Ты не убийца.")
             return
         end
 
@@ -857,14 +868,14 @@ xpcall(function()
             if localplayer.Backpack:FindFirstChild("Knife") then
                 hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
             else
-                notify("XDarkHUB", "You don't have the knife.")
+                notify("XDarkHUB", "У тебя нет ножа.")
                 return
             end
         end
 
         local NearestPlayer = findNearestPlayer()
         if not NearestPlayer or not NearestPlayer.Character then
-            notify("XDarkHUB", "Can't find a player.")
+            notify("XDarkHUB", "Не найден игрок.")
             return
         end
 
@@ -881,12 +892,12 @@ xpcall(function()
             localplayer.Character:WaitForChild("Knife"):WaitForChild("Stab"):FireServer("Slash")
         end)
 
-        notify("XDarkHUB", "Killed closest!")
+        notify("XDarkHUB", "Убил ближайшего!")
     end
 
     function killEveryone()
         if findMurderer() ~= localplayer then
-            notify("XDarkHUB", "You're not murderer.")
+            notify("XDarkHUB", "Ты не убийца.")
             return
         end
 
@@ -895,7 +906,7 @@ xpcall(function()
             if localplayer.Backpack:FindFirstChild("Knife") then
                 hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
             else
-                notify("XDarkHUB", "You don't have the knife.")
+                notify("XDarkHUB", "У тебя нет ножа.")
                 return
             end
         end
@@ -914,12 +925,12 @@ xpcall(function()
             localplayer.Character:WaitForChild("Knife"):WaitForChild("Stab"):FireServer("Slash")
         end)
 
-        notify("XDarkHUB", "Killed everyone!")
+        notify("XDarkHUB", "Убил всех!")
     end
 
     function holdHostage()
         if findMurderer() ~= localplayer then
-            notify("XDarkHUB", "You're not murderer.")
+            notify("XDarkHUB", "Ты не убийца.")
             return
         end
 
@@ -933,7 +944,7 @@ xpcall(function()
             end
         end
 
-        notify("XDarkHUB", "All players held hostage!")
+        notify("XDarkHUB", "Все взяты в заложники!")
     end
 
     function godMode()
@@ -942,7 +953,7 @@ xpcall(function()
         local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
 
         if not Human then
-            notify("XDarkHUB", "No humanoid.")
+            notify("XDarkHUB", "Нет гуманоида.")
             return
         end
 
@@ -971,13 +982,13 @@ xpcall(function()
         end
 
         nHuman.Health = nHuman.MaxHealth
-        notify("XDarkHUB", "God mode activated!")
+        notify("XDarkHUB", "God mode активирован!")
     end
 
     function teleportToGun()
         local map = getMap()
         if not map or not map:FindFirstChild("GunDrop") then
-            notify("XDarkHUB", "No dropped gun.")
+            notify("XDarkHUB", "Нет выпавшего пистолета.")
             return
         end
 
@@ -986,7 +997,7 @@ xpcall(function()
         localplayer.Backpack.ChildAdded:Wait()
         localplayer.Character:PivotTo(previousPosition)
 
-        notify("XDarkHUB", "Gun collected!")
+        notify("XDarkHUB", "Пистолет подобран!")
     end
 
     function teleportToLobby()
@@ -995,7 +1006,7 @@ xpcall(function()
             local spawn = lobby.Spawns:FindFirstChildWhichIsA("SpawnLocation")
             if spawn then
                 localplayer.Character:MoveTo(spawn.Position)
-                notify("XDarkHUB", "Teleported to lobby!")
+                notify("XDarkHUB", "Телепорт в лобби!")
             end
         end
     end
@@ -1003,7 +1014,7 @@ xpcall(function()
     function teleportToMap()
         local map = getMap()
         if not map then
-            notify("XDarkHUB", "No map to teleport to.")
+            notify("XDarkHUB", "Нет карты для телепорта.")
             return
         end
 
@@ -1013,7 +1024,7 @@ xpcall(function()
             if #spawns > 0 then
                 local randomSpawn = spawns[math.random(1, #spawns)]
                 localplayer.Character:MoveTo(randomSpawn.Position)
-                notify("XDarkHUB", "Teleported to map!")
+                notify("XDarkHUB", "Телепорт на карту!")
             end
         end
     end
@@ -1040,32 +1051,32 @@ xpcall(function()
             end
         end)
 
-        notify("XDarkHUB", "Names sent to chat!")
+        notify("XDarkHUB", "Имена отправлены в чат!")
     end
 
     function copyMurdererName()
         local murd = findMurderer()
         if not murd then
-            notify("XDarkHUB", "No murderer to copy.")
+            notify("XDarkHUB", "Нет убийцы для копирования.")
             return
         end
 
         if setclipboard then
             setclipboard(murd.Name)
-            notify("XDarkHUB", "Copied: " .. murd.Name)
+            notify("XDarkHUB", "Скопировано: " .. murd.Name)
         end
     end
 
     function copySheriffName()
         local sher = findSheriff()
         if not sher then
-            notify("XDarkHUB", "No sheriff to copy.")
+            notify("XDarkHUB", "Нет шерифа для копирования.")
             return
         end
 
         if setclipboard then
             setclipboard(sher.Name)
-            notify("XDarkHUB", "Copied: " .. sher.Name)
+            notify("XDarkHUB", "Скопировано: " .. sher.Name)
         end
     end
 
@@ -1156,12 +1167,12 @@ xpcall(function()
                 end
 
                 reloadTrapESP()
-                notify("XDarkHUB", "Murderer has placed a trap!")
+                notify("XDarkHUB", "Убийца поставил ловушку!")
             end
 
             if gunDropESP and ch.Name == "GunDrop" then
                 reloadGunESP()
-                notify("XDarkHUB", "Gun has been dropped!")
+                notify("XDarkHUB", "Пистолет выпал!")
 
                 if autoGetDroppedGun then
                     xdWait(1)
@@ -1373,6 +1384,7 @@ xpcall(function()
 
     local visualObjects = {}
     local wingFeathers = {}
+    local wingSpine = nil
     local circleOrbs = {}
     local eyeParts = {}
     local haloDisc = nil
@@ -1394,7 +1406,10 @@ xpcall(function()
             visualObjects[name] = nil
         end
 
-        if name == "wings" then wingFeathers = {} end
+        if name == "wings" then
+            wingFeathers = {}
+            wingSpine = nil
+        end
 
         if name == "circle" then
             circleOrbs = {}
@@ -1417,6 +1432,7 @@ xpcall(function()
         end
 
         wingFeathers = {}
+        wingSpine = nil
         circleOrbs = {}
         eyeParts = {}
         haloDisc = nil
@@ -1448,24 +1464,66 @@ xpcall(function()
         if not hrp then return end
 
         for side = -1, 1, 2 do
-            for i = 1, 6 do
+            for i = 1, 8 do
+                local t = i / 8
                 local feather = makeNeonPart({
-                    Name = "XDarkFeather",
-                    Size = Vector3.new(0.12, 3.4 - i * 0.38, 1.2 - i * 0.1),
-                    Color = Color3.fromRGB(255, math.max(10, 55 - i * 7), math.max(20, 70 - i * 8)),
-                    Transparency = 0.05 + i * 0.04,
+                    Name = "XDarkFeatherOuter",
+                    Size = Vector3.new(0.1, 3.8 - t * 1.8, 0.95 - t * 0.4),
+                    Color = Color3.fromRGB(255, math.floor(25 + t * 70), math.floor(45 + t * 35)),
+                    Transparency = 0.02 + t * 0.12,
                     Parent = char,
                 })
 
                 registerVisual("wings", feather)
-                table.insert(wingFeathers, {part = feather, side = side, i = i})
+                table.insert(wingFeathers, {part = feather, side = side, i = i, layer = "outer"})
+            end
+
+            for i = 1, 5 do
+                local t = i / 5
+                local feather = makeNeonPart({
+                    Name = "XDarkFeatherInner",
+                    Size = Vector3.new(0.1, 2.0 - t * 0.7, 0.7 - t * 0.22),
+                    Color = Color3.fromRGB(255, math.floor(95 + t * 70), math.floor(85 + t * 45)),
+                    Transparency = 0.05,
+                    Parent = char,
+                })
+
+                registerVisual("wings", feather)
+                table.insert(wingFeathers, {part = feather, side = side, i = i, layer = "inner"})
             end
         end
 
+        wingSpine = makeNeonPart({
+            Name = "XDarkWingSpine",
+            Size = Vector3.new(0.22, 1.7, 0.22),
+            Color = Color3.fromRGB(255, 40, 60),
+            Transparency = 0.08,
+            Parent = char,
+        })
+        registerVisual("wings", wingSpine)
+
+        local att = Instance.new("Attachment", hrp)
+        att.Position = Vector3.new(0, 1, 1)
+        registerVisual("wings", att)
+
+        local em = Instance.new("ParticleEmitter", att)
+        em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 60, 80), Color3.fromRGB(180, 10, 30))
+        em.Rate = 25
+        em.Lifetime = NumberRange.new(0.5, 1)
+        em.Speed = NumberRange.new(1, 2.5)
+        em.SpreadAngle = Vector2.new(180, 180)
+        em.LightEmission = 1
+        em.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.25),
+            NumberSequenceKeypoint.new(1, 0)
+        })
+        registerVisual("wings", em)
+
         local wingLight = Instance.new("PointLight")
         wingLight.Color = Color3.fromRGB(255, 30, 50)
-        wingLight.Brightness = 1.2
-        wingLight.Range = 12
+        wingLight.Brightness = 1.4
+        wingLight.Range = 14
         wingLight.Parent = hrp
         registerVisual("wings", wingLight)
     end
@@ -1733,18 +1791,34 @@ xpcall(function()
             local t = tick()
 
             if visualState.wings and hrp and #wingFeathers > 0 then
-                local flap = math.sin(t * 3.2) * 12
+                local flap = math.sin(t * 2.8) * 18
+                local bob = math.sin(t * 2.8 + 0.5) * 0.08
 
                 for _, f in ipairs(wingFeathers) do
                     if f.part.Parent then
                         local i, side = f.i, f.side
-                        local yaw = side * (15 + i * 10 + flap)
-                        local tilt = side * (5 + i * 4)
 
-                        f.part.CFrame = hrp.CFrame
-                            * CFrame.new(side * (0.5 + i * 0.22), 1.2 - i * 0.14, 0.9)
-                            * CFrame.Angles(0, math.rad(yaw), math.rad(tilt))
+                        if f.layer == "outer" then
+                            local spread = 12 + i * 8 + flap * (0.5 + i * 0.07)
+                            local tilt = -8 - i * 3 + math.sin(t * 2.8) * 6
+                            local yOff = 1.4 - i * 0.1 + bob
+
+                            f.part.CFrame = hrp.CFrame
+                                * CFrame.new(side * (0.35 + i * 0.17), yOff, 0.75 + i * 0.03)
+                                * CFrame.Angles(0, math.rad(side * spread), math.rad(side * tilt))
+                        else
+                            local spread = 8 + i * 11 + flap * 0.6
+                            local yOff = 0.95 - i * 0.12 + bob
+
+                            f.part.CFrame = hrp.CFrame
+                                * CFrame.new(side * (0.3 + i * 0.12), yOff, 0.6)
+                                * CFrame.Angles(0, math.rad(side * spread), math.rad(side * (-5)))
+                        end
                     end
+                end
+
+                if wingSpine and wingSpine.Parent then
+                    wingSpine.CFrame = hrp.CFrame * CFrame.new(0, 1.1 + bob, 0.85)
                 end
             end
 
@@ -1805,8 +1879,8 @@ xpcall(function()
         return math.min(max, math.max(min, n))
     end
 
-    local guiW = clamp(viewport.X * 0.92, 320, 780)
-    local guiH = clamp(viewport.Y * 0.82, 280, 540)
+    local guiW = clamp(viewport.X * 0.92, 340, 820)
+    local guiH = clamp(viewport.Y * 0.84, 300, 560)
 
     pcall(function()
         local pg = player:FindFirstChild("PlayerGui")
@@ -1849,22 +1923,72 @@ xpcall(function()
         end)
     end
 
+    local COL = {
+        bgDeep = Color3.fromRGB(12, 7, 10),
+        bg = Color3.fromRGB(17, 10, 14),
+        panel = Color3.fromRGB(22, 13, 18),
+        card = Color3.fromRGB(28, 17, 23),
+        cardHover = Color3.fromRGB(38, 22, 30),
+        accent = Color3.fromRGB(235, 30, 60),
+        accentHot = Color3.fromRGB(255, 70, 95),
+        accentDim = Color3.fromRGB(110, 16, 36),
+        ember = Color3.fromRGB(255, 120, 80),
+        text = Color3.fromRGB(248, 240, 244),
+        textDim = Color3.fromRGB(150, 128, 138),
+        border = Color3.fromRGB(58, 36, 46),
+    }
+
     local function corner(o, r)
+        local ok, c = pcall(function()
+            local cr = Instance.new("UICorner")
+            cr.CornerRadius = UDim.new(0, r or 8)
+            cr.Parent = o
+            return cr
+        end)
+        if ok then return c end
+        return nil
+    end
+
+    local function stroke(o, color, thickness, transparency)
+        local ok, s = pcall(function()
+            local st = Instance.new("UIStroke")
+            st.Color = color
+            st.Thickness = thickness or 1
+            st.Transparency = transparency or 0
+            st.Parent = o
+            return st
+        end)
+        if ok then return s end
+        return nil
+    end
+
+    local function gradient(o, keypoints, rotation)
+        local ok, g = pcall(function()
+            local gr = Instance.new("UIGradient")
+            gr.Color = ColorSequence.new(keypoints)
+            gr.Rotation = rotation or 0
+            gr.Parent = o
+            return gr
+        end)
+        if ok then return g end
+        return nil
+    end
+
+    local function tween(o, props, time, style, dir)
         pcall(function()
-            local c = Instance.new("UICorner", o)
-            c.CornerRadius = UDim.new(0, r or 8)
+            TweenService:Create(o, TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out), props):Play()
         end)
     end
 
     local function makeDraggable(handle, obj)
-        local dragging = false
+        local dragInput = nil
         local dragStart = nil
         local startPos = nil
         local moved = false
 
         handle.InputBegan:Connect(function(i)
             if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
+                dragInput = i
                 dragStart = i.Position
                 startPos = obj.Position
                 moved = false
@@ -1872,25 +1996,27 @@ xpcall(function()
         end)
 
         UserInputService.InputChanged:Connect(function(i)
-            if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            if dragInput and i == dragInput and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
                 local d = i.Position - dragStart
 
-                if math.abs(d.X) > 6 or math.abs(d.Y) > 6 then
+                if math.abs(d.X) > 10 or math.abs(d.Y) > 10 then
                     moved = true
                 end
 
-                obj.Position = UDim2.new(
-                    startPos.X.Scale,
-                    startPos.X.Offset + d.X,
-                    startPos.Y.Scale,
-                    startPos.Y.Offset + d.Y
-                )
+                if moved then
+                    obj.Position = UDim2.new(
+                        startPos.X.Scale,
+                        startPos.X.Offset + d.X,
+                        startPos.Y.Scale,
+                        startPos.Y.Offset + d.Y
+                    )
+                end
             end
         end)
 
         UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
+            if i == dragInput then
+                dragInput = nil
             end
         end)
 
@@ -1902,57 +2028,218 @@ xpcall(function()
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, guiW, 0, guiH)
     frame.Position = UDim2.new(0.5, -guiW / 2, 0.5, -guiH / 2)
-    frame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+    frame.BackgroundColor3 = COL.bg
     frame.BorderSizePixel = 0
     frame.Visible = true
     frame.Active = true
     frame.ClipsDescendants = true
     frame.Parent = guiUI
-    corner(frame, 10)
+    corner(frame, 16)
+    stroke(frame, COL.accent, 1.5, 0.35)
 
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 38)
-    title.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    title.BorderSizePixel = 0
-    title.Text = "XDarkHUB v36"
-    title.TextColor3 = Color3.fromRGB(255, 80, 100)
-    title.Font = Enum.Font.GothamBlack
-    title.TextScaled = true
-    title.Active = true
-    title.Parent = frame
-    corner(title, 10)
+    local frameGrad = gradient(frame, {
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 12, 18)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 9, 13)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(26, 10, 16)),
+    }, 90)
 
-    makeDraggable(title, frame)
+    if frameGrad then
+        xdSpawn(function()
+            local rot = 90
+            while frameGrad.Parent do
+                rot = rot + 0.04
+                frameGrad.Rotation = rot
+                xdWait(0.08)
+            end
+        end)
+    end
 
-    local left = Instance.new("Frame")
-    left.Size = UDim2.new(0, 150, 1, -42)
-    left.Position = UDim2.new(0, 0, 0, 42)
-    left.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
-    left.BorderSizePixel = 0
-    left.Parent = frame
+    local function spawnEmbers(container, count)
+        for i = 1, count do
+            local ember = Instance.new("Frame")
+            local sz = math.random(2, 6)
+            ember.Size = UDim2.new(0, sz, 0, sz)
+            ember.Position = UDim2.new(math.random(), 0, 1, 0)
+            ember.BackgroundColor3 = (math.random() > 0.5) and COL.accent or COL.ember
+            ember.BackgroundTransparency = math.random(40, 75) / 100
+            ember.BorderSizePixel = 0
+            ember.ZIndex = 0
+            ember.Parent = container
+            corner(ember, sz)
 
-    local leftLayout = Instance.new("UIListLayout", left)
-    leftLayout.Padding = UDim.new(0, 6)
-    leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            xdSpawn(function()
+                while ember.Parent do
+                    local dur = math.random(6, 14)
+                    tween(ember, {
+                        Position = UDim2.new(ember.Position.X.Scale + math.random(-20, 20) / 100, 0, -0.1, 0),
+                        BackgroundTransparency = 1
+                    }, dur, Enum.EasingStyle.Linear)
+                    xdWait(dur)
+                    ember.Position = UDim2.new(math.random(), 0, 1.05, 0)
+                    ember.BackgroundTransparency = math.random(40, 75) / 100
+                end
+            end)
+        end
+    end
 
-    local leftPad = Instance.new("UIPadding", left)
-    leftPad.PaddingTop = UDim.new(0, 8)
-    leftPad.PaddingLeft = UDim.new(0, 8)
-    leftPad.PaddingRight = UDim.new(0, 8)
+    spawnEmbers(frame, 22)
 
-    local right = Instance.new("Frame")
-    right.Size = UDim2.new(1, -156, 1, -48)
-    right.Position = UDim2.new(0, 154, 0, 44)
-    right.BackgroundTransparency = 1
-    right.Parent = frame
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0, 58)
+    topBar.BackgroundColor3 = COL.panel
+    topBar.BackgroundTransparency = 0.25
+    topBar.BorderSizePixel = 0
+    topBar.Active = true
+    topBar.ZIndex = 2
+    topBar.Parent = frame
+
+    local topGrad = gradient(topBar, {
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 15, 22)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 10, 15)),
+    }, 0)
+
+    local accentLine = Instance.new("Frame")
+    accentLine.Size = UDim2.new(1, 0, 0, 2)
+    accentLine.Position = UDim2.new(0, 0, 1, -2)
+    accentLine.BackgroundColor3 = COL.accent
+    accentLine.BorderSizePixel = 0
+    accentLine.ZIndex = 3
+    accentLine.Parent = topBar
+
+    local lineGrad = gradient(accentLine, {
+        ColorSequenceKeypoint.new(0, COL.accentDim),
+        ColorSequenceKeypoint.new(0.5, COL.accentHot),
+        ColorSequenceKeypoint.new(1, COL.accentDim),
+    }, 0)
+
+    if lineGrad then
+        xdSpawn(function()
+            while lineGrad.Parent do
+                tween(lineGrad, {Offset = Vector2.new(0.5, 0)}, 2.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+                xdWait(2.2)
+                lineGrad.Offset = Vector2.new(-0.5, 0)
+            end
+        end)
+    end
+
+    local logo = Instance.new("Frame")
+    logo.Size = UDim2.new(0, 38, 0, 38)
+    logo.Position = UDim2.new(0, 14, 0.5, -19)
+    logo.BackgroundColor3 = COL.accent
+    logo.BorderSizePixel = 0
+    logo.ZIndex = 4
+    logo.Parent = topBar
+    corner(logo, 11)
+    gradient(logo, {
+        ColorSequenceKeypoint.new(0, COL.accentHot),
+        ColorSequenceKeypoint.new(1, COL.accentDim),
+    }, 45)
+    stroke(logo, COL.accentHot, 1, 0.4)
+
+    local logoX = Instance.new("TextLabel")
+    logoX.Size = UDim2.new(1, 0, 1, 0)
+    logoX.BackgroundTransparency = 1
+    logoX.Text = "X"
+    logoX.Font = Enum.Font.GothamBlack
+    logoX.TextSize = 24
+    logoX.TextColor3 = Color3.fromRGB(255, 255, 255)
+    logoX.ZIndex = 5
+    logoX.Parent = logo
+
+    xdSpawn(function()
+        while logo.Parent do
+            tween(logo, {Size = UDim2.new(0, 41, 0, 41), Position = UDim2.new(0, 12, 0.5, -20)}, 1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            xdWait(1.1)
+            tween(logo, {Size = UDim2.new(0, 38, 0, 38), Position = UDim2.new(0, 14, 0.5, -19)}, 1.1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            xdWait(1.1)
+        end
+    end)
+
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(0, 190, 1, 0)
+    titleText.Position = UDim2.new(0, 62, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "XDARK HUB"
+    titleText.Font = Enum.Font.GothamBlack
+    titleText.TextSize = 21
+    titleText.TextColor3 = COL.text
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.ZIndex = 4
+    titleText.Parent = topBar
+
+    local verBadge = Instance.new("TextLabel")
+    verBadge.Size = UDim2.new(0, 42, 0, 18)
+    verBadge.Position = UDim2.new(0, 182, 0.5, -9)
+    verBadge.BackgroundColor3 = COL.accentDim
+    verBadge.BorderSizePixel = 0
+    verBadge.Text = "v37"
+    verBadge.Font = Enum.Font.GothamBold
+    verBadge.TextSize = 11
+    verBadge.TextColor3 = COL.accentHot
+    verBadge.ZIndex = 4
+    verBadge.Parent = topBar
+    corner(verBadge, 9)
+
+    makeDraggable(topBar, frame)
+
+    local sidebar = Instance.new("Frame")
+    sidebar.Size = UDim2.new(0, 165, 1, -58)
+    sidebar.Position = UDim2.new(0, 0, 0, 58)
+    sidebar.BackgroundColor3 = COL.panel
+    sidebar.BackgroundTransparency = 0.35
+    sidebar.BorderSizePixel = 0
+    sidebar.ZIndex = 2
+    sidebar.Parent = frame
+
+    local sideLine = Instance.new("Frame")
+    sideLine.Size = UDim2.new(0, 1, 1, 0)
+    sideLine.Position = UDim2.new(1, -1, 0, 0)
+    sideLine.BackgroundColor3 = COL.border
+    sideLine.BackgroundTransparency = 0.4
+    sideLine.BorderSizePixel = 0
+    sideLine.ZIndex = 3
+    sideLine.Parent = sidebar
+
+    local sideLayout = Instance.new("UIListLayout", sidebar)
+    sideLayout.Padding = UDim.new(0, 6)
+    sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local sidePad = Instance.new("UIPadding", sidebar)
+    sidePad.PaddingTop = UDim.new(0, 10)
+    sidePad.PaddingLeft = UDim.new(0, 9)
+    sidePad.PaddingRight = UDim.new(0, 9)
+
+    local roleStatus = Instance.new("TextLabel")
+    roleStatus.Size = UDim2.new(1, -18, 0, 30)
+    roleStatus.Position = UDim2.new(0, 9, 1, -40)
+    roleStatus.BackgroundColor3 = COL.card
+    roleStatus.BorderSizePixel = 0
+    roleStatus.Text = "Роль: —"
+    roleStatus.Font = Enum.Font.GothamBold
+    roleStatus.TextSize = 12
+    roleStatus.TextColor3 = COL.textDim
+    roleStatus.ZIndex = 4
+    roleStatus.Parent = sidebar
+    corner(roleStatus, 8)
+    stroke(roleStatus, COL.border, 1, 0.5)
+
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -165, 1, -58)
+    content.Position = UDim2.new(0, 165, 0, 58)
+    content.BackgroundTransparency = 1
+    content.ZIndex = 2
+    content.Parent = frame
 
     local tabs = {}
     local contents = {}
+    local currentTab = nil
 
     local function switchTab(name)
-        for n, b in pairs(tabs) do
-            b.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-            b.TextColor3 = Color3.fromRGB(210, 210, 220)
+        for n, data in pairs(tabs) do
+            tween(data.btn, {BackgroundTransparency = 1}, 0.15)
+            tween(data.icon, {TextColor3 = COL.textDim}, 0.15)
+            tween(data.label, {TextColor3 = COL.textDim}, 0.15)
+            tween(data.indicator, {BackgroundTransparency = 1}, 0.15)
         end
 
         for n, c in pairs(contents) do
@@ -1960,79 +2247,175 @@ xpcall(function()
         end
 
         if tabs[name] then
-            tabs[name].BackgroundColor3 = Color3.fromRGB(200, 35, 60)
-            tabs[name].TextColor3 = Color3.fromRGB(255, 255, 255)
+            local d = tabs[name]
+            tween(d.btn, {BackgroundTransparency = 0.4, BackgroundColor3 = COL.cardHover}, 0.2)
+            tween(d.icon, {TextColor3 = COL.accentHot}, 0.2)
+            tween(d.label, {TextColor3 = COL.text}, 0.2)
+            tween(d.indicator, {BackgroundTransparency = 0}, 0.2)
         end
 
         if contents[name] then
             contents[name].Visible = true
+            contents[name].Position = UDim2.new(0, 30, 0, 0)
+            tween(contents[name], {Position = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
         end
+
+        currentTab = name
     end
 
-    local function addTab(name, order)
+    local function addTab(name, icon, order)
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 38)
-        b.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        b.TextColor3 = Color3.fromRGB(210, 210, 220)
-        b.Text = name
-        b.Font = Enum.Font.GothamBold
-        b.TextScaled = true
+        b.Size = UDim2.new(1, 0, 0, 44)
+        b.BackgroundColor3 = COL.card
+        b.BackgroundTransparency = 1
+        b.Text = ""
         b.BorderSizePixel = 0
+        b.AutoButtonColor = false
         b.LayoutOrder = order
-        b.Parent = left
-        corner(b, 8)
+        b.ZIndex = 3
+        b.Parent = sidebar
+        corner(b, 10)
+
+        local indicator = Instance.new("Frame")
+        indicator.Size = UDim2.new(0, 3, 0, 24)
+        indicator.Position = UDim2.new(0, 0, 0.5, -12)
+        indicator.BackgroundColor3 = COL.accentHot
+        indicator.BackgroundTransparency = 1
+        indicator.BorderSizePixel = 0
+        indicator.ZIndex = 4
+        indicator.Parent = b
+        corner(indicator, 2)
+
+        local iconLbl = Instance.new("TextLabel")
+        iconLbl.Size = UDim2.new(0, 28, 1, 0)
+        iconLbl.Position = UDim2.new(0, 10, 0, 0)
+        iconLbl.BackgroundTransparency = 1
+        iconLbl.Text = icon
+        iconLbl.Font = Enum.Font.GothamBold
+        iconLbl.TextSize = 17
+        iconLbl.TextColor3 = COL.textDim
+        iconLbl.ZIndex = 4
+        iconLbl.Parent = b
+
+        local nameLbl = Instance.new("TextLabel")
+        nameLbl.Size = UDim2.new(1, -44, 1, 0)
+        nameLbl.Position = UDim2.new(0, 42, 0, 0)
+        nameLbl.BackgroundTransparency = 1
+        nameLbl.Text = name
+        nameLbl.Font = Enum.Font.GothamBold
+        nameLbl.TextSize = 13
+        nameLbl.TextColor3 = COL.textDim
+        nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+        nameLbl.ZIndex = 4
+        nameLbl.Parent = b
+
+        tabs[name] = {btn = b, icon = iconLbl, label = nameLbl, indicator = indicator}
+
+        b.MouseEnter:Connect(function()
+            if currentTab ~= name then
+                tween(b, {BackgroundTransparency = 0.6}, 0.15)
+                tween(iconLbl, {TextColor3 = COL.text}, 0.15)
+            end
+        end)
+
+        b.MouseLeave:Connect(function()
+            if currentTab ~= name then
+                tween(b, {BackgroundTransparency = 1}, 0.15)
+                tween(iconLbl, {TextColor3 = COL.textDim}, 0.15)
+            end
+        end)
+
+        b.MouseButton1Click:Connect(function()
+            playClick()
+            switchTab(name)
+        end)
 
         local c = Instance.new("ScrollingFrame")
         c.Size = UDim2.new(1, 0, 1, 0)
         c.BackgroundTransparency = 1
         c.BorderSizePixel = 0
         c.ScrollBarThickness = 4
+        c.ScrollBarImageColor3 = COL.accent
         c.CanvasSize = UDim2.new(0, 0, 0, 0)
         c.Visible = false
-        c.Parent = right
+        c.ZIndex = 3
+        c.Parent = content
 
         pcall(function()
             c.AutomaticCanvasSize = Enum.AutomaticSize.Y
         end)
 
         local l = Instance.new("UIListLayout", c)
-        l.Padding = UDim.new(0, 8)
+        l.Padding = UDim.new(0, 9)
         l.SortOrder = Enum.SortOrder.LayoutOrder
 
         local p = Instance.new("UIPadding", c)
-        p.PaddingTop = UDim.new(0, 4)
+        p.PaddingTop = UDim.new(0, 12)
         p.PaddingBottom = UDim.new(0, 24)
-        p.PaddingLeft = UDim.new(0, 4)
-        p.PaddingRight = UDim.new(0, 4)
+        p.PaddingLeft = UDim.new(0, 12)
+        p.PaddingRight = UDim.new(0, 12)
 
-        tabs[name] = b
         contents[name] = c
-
-        b.MouseButton1Click:Connect(function()
-            playClick()
-            switchTab(name)
-        end)
     end
 
-    addTab("Sheriff", 1)
-    addTab("Murderer", 2)
-    addTab("ESP", 3)
-    addTab("Player", 4)
-    addTab("Farm", 5)
-    addTab("Visuals", 6)
+    addTab("Шериф", "⭐", 1)
+    addTab("Убийца", "🔪", 2)
+    addTab("ESP", "👁", 3)
+    addTab("Игрок", "🎯", 4)
+    addTab("Фарм", "⚙", 5)
+    addTab("Визуал", "✨", 6)
+
+    local function makeSection(parent, order, text)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 0, 24)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "— " .. text
+        lbl.Font = Enum.Font.GothamBlack
+        lbl.TextSize = 12
+        lbl.TextColor3 = COL.accentHot
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.LayoutOrder = order
+        lbl.ZIndex = 3
+        lbl.Parent = parent
+    end
 
     local function makeButton(parent, order, text, color, callback)
+        local base = color or COL.accent
+
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 42)
-        b.BackgroundColor3 = color or Color3.fromRGB(200, 35, 60)
+        b.Size = UDim2.new(1, 0, 0, 46)
+        b.BackgroundColor3 = base
         b.Text = text
         b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.Font = Enum.Font.GothamBold
-        b.TextScaled = true
+        b.Font = Enum.Font.GothamBlack
+        b.TextSize = 14
         b.BorderSizePixel = 0
         b.LayoutOrder = order
+        b.AutoButtonColor = false
+        b.ZIndex = 3
         b.Parent = parent
-        corner(b, 8)
+        corner(b, 10)
+        gradient(b, {
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(math.min(255, base.R * 255 + 40), math.min(255, base.G * 255 + 25), math.min(255, base.B * 255 + 30))),
+            ColorSequenceKeypoint.new(1, base),
+        }, 90)
+        stroke(b, COL.accentHot, 1, 0.55)
+
+        b.MouseEnter:Connect(function()
+            tween(b, {BackgroundColor3 = COL.accentHot}, 0.15)
+        end)
+
+        b.MouseLeave:Connect(function()
+            tween(b, {BackgroundColor3 = base}, 0.15)
+        end)
+
+        b.MouseButton1Down:Connect(function()
+            tween(b, {Size = UDim2.new(1, -6, 0, 41)}, 0.08)
+        end)
+
+        b.MouseButton1Up:Connect(function()
+            tween(b, {Size = UDim2.new(1, 0, 0, 46)}, 0.08)
+        end)
 
         b.MouseButton1Click:Connect(function()
             playClick()
@@ -2043,31 +2426,76 @@ xpcall(function()
     end
 
     local function makeToggle(parent, order, text, callback)
-        local state = false
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, 0, 0, 48)
+        card.BackgroundColor3 = COL.card
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ZIndex = 3
+        card.Parent = parent
+        corner(card, 10)
 
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 42)
-        b.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-        b.Text = text .. ": OFF"
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.Font = Enum.Font.GothamBold
-        b.TextScaled = true
-        b.BorderSizePixel = 0
-        b.LayoutOrder = order
-        b.Parent = parent
-        corner(b, 8)
+        local cardStroke = stroke(card, COL.border, 1, 0.55)
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -92, 1, 0)
+        label.Position = UDim2.new(0, 14, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = text
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 13
+        label.TextColor3 = COL.text
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.ZIndex = 4
+        label.Parent = card
+
+        local switch = Instance.new("TextButton")
+        switch.Size = UDim2.new(0, 54, 0, 27)
+        switch.Position = UDim2.new(1, -68, 0.5, -13)
+        switch.BackgroundColor3 = COL.border
+        switch.BorderSizePixel = 0
+        switch.Text = ""
+        switch.AutoButtonColor = false
+        switch.ZIndex = 4
+        switch.Parent = card
+        corner(switch, 14)
+
+        local knob = Instance.new("Frame")
+        knob.Size = UDim2.new(0, 21, 0, 21)
+        knob.Position = UDim2.new(0, 3, 0.5, -10)
+        knob.BackgroundColor3 = COL.textDim
+        knob.BorderSizePixel = 0
+        knob.ZIndex = 5
+        knob.Parent = switch
+        corner(knob, 11)
+
+        local state = false
 
         local function update(v)
             state = v
-            b.Text = text .. (state and ": ON" or ": OFF")
-            b.BackgroundColor3 = state and Color3.fromRGB(140, 25, 45) or Color3.fromRGB(30, 30, 40)
+
+            if state then
+                tween(switch, {BackgroundColor3 = COL.accentDim}, 0.2)
+                tween(knob, {Position = UDim2.new(0, 30, 0.5, -10), BackgroundColor3 = COL.accentHot}, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                tween(card, {BackgroundColor3 = Color3.fromRGB(40, 20, 28)}, 0.2)
+                if cardStroke then
+                    tween(cardStroke, {Color = COL.accent}, 0.2)
+                end
+            else
+                tween(switch, {BackgroundColor3 = COL.border}, 0.2)
+                tween(knob, {Position = UDim2.new(0, 3, 0.5, -10), BackgroundColor3 = COL.textDim}, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+                tween(card, {BackgroundColor3 = COL.card}, 0.2)
+                if cardStroke then
+                    tween(cardStroke, {Color = COL.border}, 0.2)
+                end
+            end
 
             pcall(function()
                 callback(state)
             end)
         end
 
-        b.MouseButton1Click:Connect(function()
+        switch.MouseButton1Click:Connect(function()
             playClick()
             update(not state)
         end)
@@ -2082,36 +2510,41 @@ xpcall(function()
     end
 
     local function makeInput(parent, order, label, default, callback)
-        local f = Instance.new("Frame")
-        f.Size = UDim2.new(1, 0, 0, 42)
-        f.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-        f.BorderSizePixel = 0
-        f.LayoutOrder = order
-        f.Parent = parent
-        corner(f, 8)
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, 0, 0, 46)
+        card.BackgroundColor3 = COL.card
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ZIndex = 3
+        card.Parent = parent
+        corner(card, 10)
+        stroke(card, COL.border, 1, 0.55)
 
         local l = Instance.new("TextLabel")
         l.Size = UDim2.new(0.55, -8, 1, 0)
-        l.Position = UDim2.new(0, 8, 0, 0)
+        l.Position = UDim2.new(0, 14, 0, 0)
         l.BackgroundTransparency = 1
         l.Text = label
-        l.TextColor3 = Color3.fromRGB(230, 230, 240)
         l.Font = Enum.Font.GothamBold
-        l.TextScaled = true
+        l.TextSize = 13
+        l.TextColor3 = COL.text
         l.TextXAlignment = Enum.TextXAlignment.Left
-        l.Parent = f
+        l.ZIndex = 4
+        l.Parent = card
 
         local box = Instance.new("TextBox")
-        box.Size = UDim2.new(0.4, -8, 0.7, 0)
-        box.Position = UDim2.new(0.58, 0, 0.15, 0)
-        box.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        box.Size = UDim2.new(0.38, -8, 0, 30)
+        box.Position = UDim2.new(0.6, 0, 0.5, -15)
+        box.BackgroundColor3 = COL.bgDeep
         box.BorderSizePixel = 0
         box.Text = tostring(default)
-        box.TextColor3 = Color3.fromRGB(255, 255, 255)
+        box.TextColor3 = COL.accentHot
         box.Font = Enum.Font.GothamBold
-        box.TextScaled = true
-        box.Parent = f
-        corner(box, 6)
+        box.TextSize = 13
+        box.ZIndex = 4
+        box.Parent = card
+        corner(box, 8)
+        stroke(box, COL.border, 1, 0.5)
 
         box.FocusLost:Connect(function()
             local v = tonumber(box.Text)
@@ -2128,35 +2561,39 @@ xpcall(function()
     end
 
     local function makeStat(parent, order, label)
-        local f = Instance.new("Frame")
-        f.Size = UDim2.new(1, 0, 0, 36)
-        f.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-        f.BorderSizePixel = 0
-        f.LayoutOrder = order
-        f.Parent = parent
-        corner(f, 8)
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, 0, 0, 38)
+        card.BackgroundColor3 = COL.card
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ZIndex = 3
+        card.Parent = parent
+        corner(card, 10)
+        stroke(card, COL.border, 1, 0.6)
 
         local l = Instance.new("TextLabel")
         l.Size = UDim2.new(0.6, -8, 1, 0)
-        l.Position = UDim2.new(0, 8, 0, 0)
+        l.Position = UDim2.new(0, 14, 0, 0)
         l.BackgroundTransparency = 1
         l.Text = label
-        l.TextColor3 = Color3.fromRGB(190, 190, 200)
         l.Font = Enum.Font.GothamBold
-        l.TextScaled = true
+        l.TextSize = 12
+        l.TextColor3 = COL.textDim
         l.TextXAlignment = Enum.TextXAlignment.Left
-        l.Parent = f
+        l.ZIndex = 4
+        l.Parent = card
 
         local v = Instance.new("TextLabel")
-        v.Size = UDim2.new(0.4, -8, 1, 0)
+        v.Size = UDim2.new(0.4, -14, 1, 0)
         v.Position = UDim2.new(0.6, 0, 0, 0)
         v.BackgroundTransparency = 1
         v.Text = "0"
-        v.TextColor3 = Color3.fromRGB(255, 90, 115)
         v.Font = Enum.Font.GothamBlack
-        v.TextScaled = true
+        v.TextSize = 14
+        v.TextColor3 = COL.accentHot
         v.TextXAlignment = Enum.TextXAlignment.Right
-        v.Parent = f
+        v.ZIndex = 4
+        v.Parent = card
 
         return v
     end
@@ -2171,19 +2608,33 @@ xpcall(function()
 
         local b = Instance.new("TextButton")
         b.Name = name
-        b.Size = UDim2.new(0, 150, 0, 45)
+        b.Size = UDim2.new(0, 160, 0, 52)
         b.Position = position or UDim2.new(0, 120, 0, 80)
-        b.BackgroundColor3 = color or Color3.fromRGB(200, 35, 60)
+        b.BackgroundColor3 = color or COL.accent
         b.Text = text
         b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.Font = Enum.Font.GothamBold
-        b.TextScaled = true
+        b.Font = Enum.Font.GothamBlack
+        b.TextSize = 15
         b.BorderSizePixel = 0
+        b.AutoButtonColor = false
         b.ZIndex = 100
         b.Parent = guiUI
-        corner(b, 10)
+        corner(b, 12)
+        gradient(b, {
+            ColorSequenceKeypoint.new(0, COL.accentHot),
+            ColorSequenceKeypoint.new(1, color or COL.accent),
+        }, 90)
+        stroke(b, COL.accentHot, 1.5, 0.35)
 
         local wasMoved = makeDraggable(b, b)
+
+        b.MouseButton1Down:Connect(function()
+            tween(b, {Size = UDim2.new(0, 152, 0, 48)}, 0.08)
+        end)
+
+        b.MouseButton1Up:Connect(function()
+            tween(b, {Size = UDim2.new(0, 160, 0, 52)}, 0.08)
+        end)
 
         b.MouseButton1Click:Connect(function()
             if wasMoved() then return end
@@ -2192,62 +2643,64 @@ xpcall(function()
         end)
 
         floatingButtons[name] = b
-        notify("XDarkHUB", "Button created: " .. text)
+        notify("XDarkHUB", "Кнопка создана: " .. text)
     end
 
     local function removeFloatingButton(name)
         if floatingButtons[name] then
             floatingButtons[name]:Destroy()
             floatingButtons[name] = nil
-            notify("XDarkHUB", "Button removed: " .. name)
+            notify("XDarkHUB", "Кнопка убрана: " .. name)
         end
     end
 
-    local sheriffC = contents["Sheriff"]
+    local sheriffC = contents["Шериф"]
 
-    makeButton(sheriffC, 1, "Shoot Murderer", Color3.fromRGB(200, 35, 60), shootMurderer)
-    makeButton(sheriffC, 2, "TP To Dropped Gun", Color3.fromRGB(220, 170, 0), teleportToGun)
+    makeSection(sheriffC, 0, "ИНСТРУМЕНТЫ ШЕРИФА")
+    makeButton(sheriffC, 1, "🔫 Выстрел в убийцу (очередь)", COL.accent, shootMurderer)
+    makeButton(sheriffC, 2, "💰 Телепорт к пистолету", Color3.fromRGB(200, 150, 0), teleportToGun)
 
-    makeButton(sheriffC, 3, "Floating: TP Gun", Color3.fromRGB(120, 100, 0), function()
+    makeButton(sheriffC, 3, "📌 Плавающая: Телепорт к пушке", Color3.fromRGB(120, 90, 0), function()
         if floatingButtons["TP_GUN"] then
             removeFloatingButton("TP_GUN")
         else
-            createFloatingButton("TP_GUN", "TP Gun", Color3.fromRGB(220, 170, 0), teleportToGun, UDim2.new(0, 120, 0, 80))
+            createFloatingButton("TP_GUN", "🔫 К ПУШКЕ", Color3.fromRGB(200, 150, 0), teleportToGun, UDim2.new(0, 120, 0, 80))
         end
     end)
 
-    makeButton(sheriffC, 4, "Floating: Shoot", Color3.fromRGB(120, 20, 35), function()
+    makeButton(sheriffC, 4, "📌 Плавающая: Выстрел", Color3.fromRGB(140, 20, 40), function()
         if floatingButtons["SHOOT"] then
             removeFloatingButton("SHOOT")
         else
-            createFloatingButton("SHOOT", "Shoot", Color3.fromRGB(200, 35, 60), shootMurderer, UDim2.new(0, 120, 0, 135))
+            createFloatingButton("SHOOT", "🔫 ВЫСТРЕЛ", COL.accent, shootMurderer, UDim2.new(0, 120, 0, 145))
         end
     end)
 
-    makeToggle(sheriffC, 5, "Auto Shoot", function(s)
+    makeToggle(sheriffC, 5, "Авто-стрельба по убийце", function(s)
         autoShooting = s
     end)
 
-    makeToggle(sheriffC, 6, "Auto Get Gun On Drop", function(s)
+    makeToggle(sheriffC, 6, "Авто-подбор пистолета", function(s)
         autoGetDroppedGun = s
     end)
 
-    makeToggle(sheriffC, 7, "Instakill Shoot", function(s)
+    makeToggle(sheriffC, 7, "Мгновенное убийство", function(s)
         instakillshoot = s
     end)
 
-    makeButton(sheriffC, 8, "Send Names To Chat", Color3.fromRGB(50, 100, 200), sendNamesToChat)
-    makeButton(sheriffC, 9, "Copy Sheriff Name", Color3.fromRGB(70, 70, 80), copySheriffName)
-    makeButton(sheriffC, 10, "Copy Murderer Name", Color3.fromRGB(70, 70, 80), copyMurdererName)
+    makeButton(sheriffC, 8, "💬 Имена в чат", Color3.fromRGB(50, 100, 200), sendNamesToChat)
+    makeButton(sheriffC, 9, "📋 Имя шерифа", Color3.fromRGB(70, 70, 80), copySheriffName)
+    makeButton(sheriffC, 10, "📋 Имя убийцы", Color3.fromRGB(70, 70, 80), copyMurdererName)
 
-    local murdererC = contents["Murderer"]
+    local murdererC = contents["Убийца"]
 
-    makeButton(murdererC, 1, "Knife Throw Closest", Color3.fromRGB(200, 35, 60), knifeThrow)
-    makeButton(murdererC, 2, "Kill Closest", Color3.fromRGB(170, 0, 0), killClosest)
-    makeButton(murdererC, 3, "Kill Everyone", Color3.fromRGB(130, 0, 0), killEveryone)
-    makeButton(murdererC, 4, "Hold Hostage", Color3.fromRGB(100, 0, 50), holdHostage)
+    makeSection(murdererC, 0, "ИНСТРУМЕНТЫ УБИЙЦЫ")
+    makeButton(murdererC, 1, "🔪 Бросок ножа в ближайшего", COL.accent, knifeThrow)
+    makeButton(murdererC, 2, "💀 Убить ближайшего", Color3.fromRGB(170, 0, 0), killClosest)
+    makeButton(murdererC, 3, "☠ Убить всех", Color3.fromRGB(130, 0, 0), killEveryone)
+    makeButton(murdererC, 4, "🔒 Взять в заложники", Color3.fromRGB(100, 0, 50), holdHostage)
 
-    makeToggle(murdererC, 5, "Auto Knife Throw", function(s)
+    makeToggle(murdererC, 5, "Авто-бросок ножа", function(s)
         loopThrow = s
     end)
 
@@ -2255,67 +2708,78 @@ xpcall(function()
         toggleKillAura(s)
     end)
 
-    makeToggle(murdererC, 7, "Spawn Knife Near Player", function(s)
+    makeToggle(murdererC, 7, "Спавн ножа у игрока", function(s)
         spawnAtPlayer = s
     end)
 
-    makeToggle(murdererC, 8, "Ignore Knife Throws", function(s)
+    makeToggle(murdererC, 8, "Игнорировать ножи", function(s)
         ignoreknifethrow = s
     end)
 
-    makeButton(murdererC, 9, "God Mode (Unstable)", Color3.fromRGB(150, 0, 150), godMode)
+    makeButton(murdererC, 9, "⚡ God Mode (нестабильно)", Color3.fromRGB(150, 0, 150), godMode)
 
     local espC = contents["ESP"]
 
-    makeToggle(espC, 1, "Players ESP", function(s)
+    makeSection(espC, 0, "ПОДСВЕТКА")
+
+    makeToggle(espC, 1, "ESP игроков (роли)", function(s)
         playerESP = s
 
         if s then
             ensureEspWatcher()
-            notify("XDarkHUB", "ESP ON")
+            notify("XDarkHUB", "ESP включён")
         end
 
         refreshESP()
     end)
 
-    makeToggle(espC, 2, "Dropped Gun ESP", function(s)
+    makeToggle(espC, 2, "ESP выпавшей пушки", function(s)
         gunDropESP = s
         reloadGunESP()
     end)
 
-    makeToggle(espC, 3, "Traps ESP", function(s)
+    makeToggle(espC, 3, "ESP ловушек", function(s)
         trapDetection = s
         reloadTrapESP()
     end)
 
-    makeToggle(espC, 4, "Hide My ESP", function(s)
+    makeToggle(espC, 4, "Скрыть свой ESP", function(s)
         hideMeEsp = s
         refreshESP()
     end)
 
-    local playerC = contents["Player"]
+    local playerC = contents["Игрок"]
 
-    makeButton(playerC, 1, "Teleport To Lobby", Color3.fromRGB(50, 100, 200), teleportToLobby)
-    makeButton(playerC, 2, "Teleport To Map", Color3.fromRGB(50, 150, 50), teleportToMap)
+    makeSection(playerC, 0, "ТЕЛЕПОРТЫ")
+    makeButton(playerC, 1, "🏠 В лобби", Color3.fromRGB(50, 100, 200), teleportToLobby)
+    makeButton(playerC, 2, "🗺 На карту", Color3.fromRGB(50, 150, 50), teleportToMap)
 
-    makeInput(playerC, 3, "Shoot Offset", shootOffset, function(v)
+    makeSection(playerC, 3, "НАСТРОЙКИ")
+
+    makeInput(playerC, 4, "Shoot Offset", shootOffset, function(v)
         shootOffset = v
-        notify("XDarkHUB", "Offset set to " .. v)
+        notify("XDarkHUB", "Offset: " .. v)
     end)
 
-    makeInput(playerC, 4, "Ping Multiplier", offsetToPingMult, function(v)
+    makeInput(playerC, 5, "Ping Multiplier", offsetToPingMult, function(v)
         offsetToPingMult = v
-        notify("XDarkHUB", "Ping mult set to " .. v)
+        notify("XDarkHUB", "Ping mult: " .. v)
     end)
 
-    local farmC = contents["Farm"]
+    local farmC = contents["Фарм"]
 
-    local counterV = makeStat(farmC, 1, "Coins")
-    local timerV = makeStat(farmC, 2, "Time")
-    local rateV = makeStat(farmC, 3, "Rate")
-    local pCoinV = makeStat(farmC, 4, "Total")
-    local roleV = makeStat(farmC, 5, "Role")
-    local bagVal = makeStat(farmC, 6, "Bag")
+    makeSection(farmC, 0, "СТАТИСТИКА")
+
+    local counterV = makeStat(farmC, 1, "Монеты")
+    local timerV = makeStat(farmC, 2, "Время")
+    local rateV = makeStat(farmC, 3, "Скорость")
+    local pCoinV = makeStat(farmC, 4, "Всего")
+
+    makeSection(farmC, 5, "РОЛЬ")
+    local roleV = makeStat(farmC, 6, "Статус")
+
+    makeSection(farmC, 7, "СУМКА")
+    local bagVal = makeStat(farmC, 8, "Состояние")
 
     local function checkRole()
         local r = getPlayerRole(player)
@@ -2353,30 +2817,38 @@ xpcall(function()
     function updateRoleUI()
         checkRole()
 
+        local roleName, roleColor
+
         if isMurderer then
-            roleV.Text = "Murderer"
-            roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
+            roleName = "Убийца"
+            roleColor = Color3.fromRGB(255, 50, 50)
         elseif isSheriff then
-            roleV.Text = "Sheriff"
-            roleV.TextColor3 = Color3.fromRGB(50, 150, 255)
+            roleName = "Шериф"
+            roleColor = Color3.fromRGB(50, 150, 255)
         else
-            roleV.Text = "Innocent"
-            roleV.TextColor3 = Color3.fromRGB(50, 255, 50)
+            roleName = "Мирный"
+            roleColor = Color3.fromRGB(50, 255, 50)
         end
+
+        roleV.Text = roleName
+        roleV.TextColor3 = roleColor
+
+        roleStatus.Text = "Роль: " .. roleName
+        roleStatus.TextColor3 = roleColor
     end
 
     function updateBagUI()
         local cc = getCollectedCoins()
 
         if farmStopped then
-            bagVal.Text = "Stopped"
+            bagVal.Text = "Стоп"
             bagVal.TextColor3 = Color3.fromRGB(255, 80, 80)
         elseif cc >= MAX_BAG then
-            bagVal.Text = "Full"
+            bagVal.Text = "Полная"
             bagVal.TextColor3 = Color3.fromRGB(255, 200, 0)
         else
             bagVal.Text = cc .. "/" .. MAX_BAG
-            bagVal.TextColor3 = Color3.fromRGB(255, 90, 115)
+            bagVal.TextColor3 = COL.accentHot
         end
     end
 
@@ -2384,7 +2856,7 @@ xpcall(function()
         farmStopped = true
         isActive = false
         updateBagUI()
-        notify("XDarkHUB", "Stopped")
+        notify("XDarkHUB", "Остановлено")
     end
 
     function flyTo(pos, spd)
@@ -2428,7 +2900,7 @@ xpcall(function()
 
         updateRoleUI()
         updateBagUI()
-        notify("XDarkHUB", "Farm ON")
+        notify("XDarkHUB", "Фарм включён")
 
         xdSpawn(function()
             while isActive do
@@ -2539,27 +3011,27 @@ xpcall(function()
         end)
     end
 
-    makeButton(farmC, 7, "Fling Murderer", Color3.fromRGB(200, 35, 60), function()
+    makeButton(farmC, 9, "🔪 Флинг убийцы", COL.accent, function()
         local murderer = findMurderer()
         if not murderer then
-            notify("XDarkHUB", "No murderer to fling.")
+            notify("XDarkHUB", "Нет убийцы для флинга.")
             return
         end
 
         miniFling(murderer)
     end)
 
-    makeButton(farmC, 8, "Fling Sheriff", Color3.fromRGB(50, 150, 255), function()
+    makeButton(farmC, 10, "⭐ Флинг шерифа", Color3.fromRGB(50, 150, 255), function()
         local sheriff = findSheriff()
         if not sheriff then
-            notify("XDarkHUB", "No sheriff to fling.")
+            notify("XDarkHUB", "Нет шерифа для флинга.")
             return
         end
 
         miniFling(sheriff)
     end)
 
-    makeToggle(farmC, 9, "Auto Farm", function(s)
+    makeToggle(farmC, 11, "Авто-фарм монет", function(s)
         isActive = s
 
         if s then
@@ -2569,89 +3041,116 @@ xpcall(function()
         end
     end)
 
-    makeToggle(farmC, 10, "Anti-AFK", function(s)
+    makeToggle(farmC, 12, "Анти-АФК", function(s)
         antiAFK = s
     end)
 
-    local visC = contents["Visuals"]
+    local visC = contents["Визуал"]
     local visualToggles = {}
 
-    visualToggles.wings = makeToggle(visC, 1, "Crimson Wings", function(s)
+    makeSection(visC, 0, "ВИЗУАЛЬНЫЕ ЭФФЕКТЫ")
+
+    visualToggles.wings = makeToggle(visC, 1, "🪽 Красные крылья", function(s)
         visualState.wings = s
         if s then applyVisualSafe("wings") else clearVisual("wings") end
     end)
 
-    visualToggles.circle = makeToggle(visC, 2, "Magic Circle", function(s)
+    visualToggles.circle = makeToggle(visC, 2, "⭕ Магический круг", function(s)
         visualState.circle = s
         if s then applyVisualSafe("circle") else clearVisual("circle") end
     end)
 
-    visualToggles.halo = makeToggle(visC, 3, "Halo", function(s)
+    visualToggles.halo = makeToggle(visC, 3, "😇 Нимб", function(s)
         visualState.halo = s
         if s then applyVisualSafe("halo") else clearVisual("halo") end
     end)
 
-    visualToggles.aura = makeToggle(visC, 4, "Red Aura", function(s)
+    visualToggles.aura = makeToggle(visC, 4, "✨ Красная аура", function(s)
         visualState.aura = s
         if s then applyVisualSafe("aura") else clearVisual("aura") end
     end)
 
-    visualToggles.fire = makeToggle(visC, 5, "Fire Aura", function(s)
+    visualToggles.fire = makeToggle(visC, 5, "🔥 Огненная аура", function(s)
         visualState.fire = s
         if s then applyVisualSafe("fire") else clearVisual("fire") end
     end)
 
-    visualToggles.smoke = makeToggle(visC, 6, "Dark Smoke", function(s)
+    visualToggles.smoke = makeToggle(visC, 6, "🌫 Тёмный дым", function(s)
         visualState.smoke = s
         if s then applyVisualSafe("smoke") else clearVisual("smoke") end
     end)
 
-    visualToggles.trails = makeToggle(visC, 7, "Neon Trails", function(s)
+    visualToggles.trails = makeToggle(visC, 7, "〰 Неоновые трейлы", function(s)
         visualState.trails = s
         if s then applyVisualSafe("trails") else clearVisual("trails") end
     end)
 
-    visualToggles.eyes = makeToggle(visC, 8, "Glowing Eyes", function(s)
+    visualToggles.eyes = makeToggle(visC, 8, "👀 Светящиеся глаза", function(s)
         visualState.eyes = s
         if s then applyVisualSafe("eyes") else clearVisual("eyes") end
     end)
 
-    visualToggles.light = makeToggle(visC, 9, "Red Light", function(s)
+    visualToggles.light = makeToggle(visC, 9, "💡 Красная подсветка", function(s)
         visualState.light = s
         if s then applyVisualSafe("light") else clearVisual("light") end
     end)
 
-    makeButton(visC, 10, "FULL SET - ALL EFFECTS", Color3.fromRGB(200, 35, 60), function()
+    makeButton(visC, 10, "🔥 ВКЛЮЧИТЬ ВСЁ", COL.accent, function()
         for _, t in pairs(visualToggles) do
             t:Set(true)
         end
-        notify("XDarkHUB", "Full visual set ON!")
+        notify("XDarkHUB", "Все эффекты включены!")
     end)
 
-    makeButton(visC, 11, "CLEAR ALL EFFECTS", Color3.fromRGB(70, 70, 80), function()
+    makeButton(visC, 11, "🧹 ВЫКЛЮЧИТЬ ВСЁ", Color3.fromRGB(70, 70, 80), function()
         for _, t in pairs(visualToggles) do
             t:Set(false)
         end
-        notify("XDarkHUB", "All visuals cleared!")
+        notify("XDarkHUB", "Все эффекты выключены!")
     end)
 
     local mBtn = Instance.new("TextButton")
-    mBtn.Size = UDim2.new(0, 60, 0, 60)
-    mBtn.Position = UDim2.new(0, 16, 1, -76)
-    mBtn.BackgroundColor3 = Color3.fromRGB(200, 35, 60)
+    mBtn.Size = UDim2.new(0, 62, 0, 62)
+    mBtn.Position = UDim2.new(0, 16, 1, -78)
+    mBtn.BackgroundColor3 = COL.accent
     mBtn.Text = "X"
     mBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     mBtn.Font = Enum.Font.GothamBlack
-    mBtn.TextScaled = true
+    mBtn.TextSize = 26
     mBtn.BorderSizePixel = 0
+    mBtn.AutoButtonColor = false
     mBtn.ZIndex = 50
     mBtn.Parent = guiUI
-    corner(mBtn, 30)
+    corner(mBtn, 31)
+    gradient(mBtn, {
+        ColorSequenceKeypoint.new(0, COL.accentHot),
+        ColorSequenceKeypoint.new(1, COL.accentDim),
+    }, 45)
+    stroke(mBtn, COL.accentHot, 1.5, 0.35)
+
+    xdSpawn(function()
+        while mBtn.Parent do
+            tween(mBtn, {Size = UDim2.new(0, 67, 0, 67)}, 1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            xdWait(1.3)
+            tween(mBtn, {Size = UDim2.new(0, 62, 0, 62)}, 1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+            xdWait(1.3)
+        end
+    end)
 
     mBtn.MouseButton1Click:Connect(function()
         playClick()
         frame.Visible = not frame.Visible
     end)
+
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.BackgroundTransparency = 1
+
+    tween(frame, {
+        Size = UDim2.new(0, guiW, 0, guiH),
+        Position = UDim2.new(0.5, -guiW / 2, 0.5, -guiH / 2),
+        BackgroundTransparency = 0
+    }, 0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
     player.CharacterAdded:Connect(function(ch)
         character = ch
@@ -2698,12 +3197,12 @@ xpcall(function()
         updateBagUI()
     end)
 
-    switchTab("Sheriff")
+    switchTab("Шериф")
 
-    notify("XDarkHUB", "v36 Loaded!")
-    notify("XDarkHUB", "Если меню нет, смотри красную надпись сверху.")
+    notify("XDarkHUB", "v37 загружен!")
+    notify("XDarkHUB", "Новый дизайн + улучшенные крылья!")
 
-    xdStatus("XDarkHUB v36: меню готово", Color3.fromRGB(80, 255, 120))
+    xdStatus("XDarkHUB v37: меню готово", Color3.fromRGB(80, 255, 120))
 
     xdDelay(4, function()
         pcall(function()
