@@ -1,24 +1,23 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║              XDarkHUB v41 · MM2 FULL MODULE · BASED ON YARHM                ║
--- ║              ВСЕ ФУНКЦИИ ИЗ YARHM + НАШ UI + АВТОФАРМ + КРЫЛЬЯ              ║
+-- ║              XDarkHUB v42 · MM2 FULL MODULE · BASED ON YARHM                ║
+-- ║              ВСЕ ФУНКЦИИ ИЗ YARHM + НАШ UI + КРЫЛЬЯ + ФАРМ                  ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  СЕРВИСЫ
--- ═══════════════════════════════════════════════════════════════════════════════
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local StarterGui = game:GetService("StarterGui")
+local TextChatService = game:GetService("TextChatService")
 local Debris = game:GetService("Debris")
+local PathfindingService = game:GetService("PathfindingService")
 
 local localplayer = Players.LocalPlayer
 local character = localplayer.Character or localplayer.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
+--  ПЕРЕМЕННЫЕ СОСТОЯНИЯ MM2 (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local playerESP = false
 local sheriffAimbot = false
@@ -26,6 +25,9 @@ local coinAutoCollect = false
 local autoShooting = false
 local shootOffset = 2.8
 local offsetToPingMult = 1
+local predictionAIEngine = false
+local predictionOngoing = false
+local predictionCooldown = false
 local gunDropESP = false
 local trapDetection = false
 local autoGetDroppedGun = false
@@ -33,6 +35,11 @@ local simulateKnifeThrow = false
 local playerData = {}
 local claimedCoins = {}
 local hideMeEsp = false
+local instakillshoot = false
+local spawnAtPlayer = false
+local loopThrow = false
+local ignoreknifethrow = false
+local killAuraCon = nil
 
 -- Автофарм
 local coinFarming = false
@@ -46,6 +53,9 @@ local FARM_SPEED = 30
 -- Крылья
 local wingsEnabled = false
 local wingsParts = {}
+
+-- Плавающие кнопки
+local floatingButtons = {}
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  УВЕДОМЛЕНИЯ
@@ -61,280 +71,9 @@ local function notify(title, text, duration)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ESP INDICATOR (ИЗ YARHM)
--- ═══════════════════════════════════════════════════════════════════════════════
-local espModule = {}
-espModule.__index = espModule
-
-local httpService = game:GetService("HttpService")
-
-espModule.Groups = {}
-espModule.TargetIndex = {}
-espModule.Defaults = {
-    AccentColor = Color3.new(1, 1, 0),
-    HighlightFillTransparency = 0.7,
-    HighlightOutlineTransparency = 0,
-    HighlightDepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
-    ArrowShow = false,
-    ArrowEdgePadding = 50,
-    ArrowMinDistance = 0,
-    ArrowSize = UDim2.new(0, 30, 0, 30),
-    ArrowImage = "rbxassetid://97136202386756",
-    ArrowShowDistanceText = true,
-    ArrowDistanceFont = Enum.Font.Montserrat,
-    ArrowDistanceTextSize = 18,
-    ShowLabel = false,
-    LabelText = "Target",
-    LabelMaxDistance = 99999,
-    LabelOffset = Vector3.new(0, 2, 0),
-    Parent = game:GetService("CoreGui")
-}
-
-function espModule.new(settings)
-    local self = setmetatable({}, espModule)
-    self.Settings = {}
-    for key, default in pairs(espModule.Defaults) do
-        self.Settings[key] = (settings and settings[key] ~= nil) and settings[key] or default
-    end
-    local parent = self.Settings.Parent or localplayer:WaitForChild("PlayerGui")
-    self.ScreenGui = Instance.new("ScreenGui")
-    self.ScreenGui.Name = "ESPIndicators"
-    self.ScreenGui.IgnoreGuiInset = true
-    self.ScreenGui.ResetOnSpawn = false
-    self.ScreenGui.Parent = parent
-    self.ArrowTemplate = Instance.new("ImageLabel")
-    self.ArrowTemplate.Name = "ArrowTemplate"
-    self.ArrowTemplate.Size = self.Settings.ArrowSize
-    self.ArrowTemplate.AnchorPoint = Vector2.new(0.5, 0.5)
-    self.ArrowTemplate.BackgroundTransparency = 1
-    self.ArrowTemplate.Image = self.Settings.ArrowImage
-    self.ArrowTemplate.ImageColor3 = self.Settings.AccentColor
-    self.ArrowTemplate.Visible = false
-    self.ArrowTemplate.Parent = self.ScreenGui
-    self.Scaler = Instance.new("UIScale")
-    self.Scaler.Name = "Scaler"
-    self.Scaler.Scale = 0
-    self.Scaler.Parent = self.ArrowTemplate
-    self.Indicators = {}
-    self._updateConn = RunService.RenderStepped:Connect(function() self:_update() end)
-    return self
-end
-
-function espModule:AddGroup(groupName)
-    local group = espModule.Groups[groupName]
-    if not group then
-        group = {enabled = true, properties = {}, targets = {}}
-        espModule.Groups[groupName] = group
-    end
-    return group
-end
-
-function espModule:Add(target, options)
-    assert(target, "ESPIndicator:Add requires a non-nil target")
-    options = options or {}
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "Highlight_" .. httpService:GenerateGUID(false)
-    highlight.Adornee = target
-    highlight.FillTransparency = options.HighlightFillTransparency or self.Settings.HighlightFillTransparency
-    highlight.FillColor = options.AccentColor or self.Settings.AccentColor
-    highlight.OutlineColor = options.AccentColor or self.Settings.AccentColor
-    highlight.OutlineTransparency = options.HighlightOutlineTransparency or self.Settings.HighlightOutlineTransparency
-    highlight.DepthMode = options.HighlightDepthMode or self.Settings.HighlightDepthMode
-    highlight.Parent = self.ScreenGui
-    
-    local arrow, scaler, distanceLabel
-    if (options.ArrowShow or self.Settings.ArrowShow) then
-        arrow = self.ArrowTemplate:Clone()
-        arrow.Name = "Arrow_" .. httpService:GenerateGUID(false)
-        arrow.ImageColor3 = options.AccentColor or self.Settings.AccentColor
-        arrow.Visible = true
-        arrow.Parent = self.ScreenGui
-        scaler = arrow:FindFirstChild("Scaler")
-        if (options.ArrowShowDistanceText or self.Settings.ArrowShowDistanceText) then
-            distanceLabel = Instance.new("TextLabel")
-            distanceLabel.Name = "DistanceLabel"
-            distanceLabel.AnchorPoint = Vector2.new(0.5, 0)
-            distanceLabel.BackgroundTransparency = 1
-            distanceLabel.Font = options.ArrowDistanceFont or self.Settings.ArrowDistanceFont
-            distanceLabel.TextSize = options.ArrowDistanceTextSize or self.Settings.ArrowDistanceTextSize
-            distanceLabel.TextColor3 = options.AccentColor or self.Settings.AccentColor
-            distanceLabel.Parent = arrow
-        end
-    end
-    
-    local label
-    if (options.ShowLabel or self.Settings.ShowLabel) then
-        label = Instance.new("BillboardGui")
-        label.Name = "Label_" .. httpService:GenerateGUID(false)
-        label.AlwaysOnTop = true
-        label.MaxDistance = self.Settings.LabelMaxDistance
-        label.Size = UDim2.new(0, 70, 0, 70)
-        label.StudsOffset = self.Settings.LabelOffset
-        label.Adornee = target
-        label.Parent = self.ScreenGui
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Name = "TextLabel"
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-        textLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
-        textLabel.BackgroundTransparency = 1
-        textLabel.Font = Enum.Font.SourceSansBold
-        textLabel.TextScaled = true
-        textLabel.TextWrapped = true
-        textLabel.TextSize = 14
-        textLabel.TextColor3 = options.AccentColor or self.Settings.AccentColor
-        textLabel.Text = options.LabelText or self.Settings.LabelText
-        textLabel.Parent = label
-        Instance.new("UIStroke", textLabel)
-    end
-    
-    self.Indicators[target] = {
-        Highlight = highlight,
-        Arrow = arrow,
-        Scaler = scaler,
-        DistanceLabel = distanceLabel,
-        Label = label,
-        Options = options
-    }
-    
-    local groupName = options.GroupName or self.Settings.GroupName
-    if groupName then
-        self:AddToGroup(target, groupName)
-    end
-end
-
-function espModule:Remove(target)
-    local indicator = self.Indicators[target]
-    if not indicator then return end
-    if indicator.Highlight then
-        indicator.Highlight.Adornee = nil
-        indicator.Highlight:Destroy()
-    end
-    if indicator.Arrow then indicator.Arrow:Destroy() end
-    if indicator.Label then indicator.Label:Destroy() end
-    self.Indicators[target] = nil
-end
-
-function espModule:RemoveGroup(groupName)
-    local group = espModule.Groups[groupName]
-    if not group then return false end
-    for _, target in ipairs(group.targets) do
-        self:Remove(target)
-    end
-    espModule.Groups[groupName] = nil
-    return true
-end
-
-function espModule:ClearAllGroups()
-    for name, _ in pairs(espModule.Groups) do
-        self:RemoveGroup(name)
-    end
-end
-
-function espModule:AddToGroup(target, groupName)
-    local group = self:AddGroup(groupName)
-    if not table.find(group.targets, target) then
-        table.insert(group.targets, target)
-    end
-    return true
-end
-
-function espModule:_update()
-    local camera = workspace.CurrentCamera
-    local viewportSize = camera.ViewportSize
-    local width, height = viewportSize.X, viewportSize.Y
-    
-    for _, indicator in pairs(self.Indicators) do
-        local options = indicator.Options
-        local arrow = indicator.Arrow
-        local scaler = indicator.Scaler
-        
-        if not arrow then continue end
-        
-        local targetPosition
-        if indicator.Highlight and indicator.Highlight.Adornee then
-            local adornee = indicator.Highlight.Adornee
-            if adornee:IsA("Model") then
-                targetPosition = (adornee.PrimaryPart and adornee.PrimaryPart.Position) or adornee:GetPivot().Position
-            elseif adornee:IsA("BasePart") then
-                targetPosition = adornee.Position
-            else
-                continue
-            end
-        else
-            continue
-        end
-        
-        local screenPosition, onScreen = camera:WorldToViewportPoint(targetPosition)
-        local distance = (camera.CFrame.Position - targetPosition).Magnitude
-        local minDistance = options.ArrowMinDistance or self.Settings.ArrowMinDistance
-        local edgePadding = options.ArrowEdgePadding or self.Settings.ArrowEdgePadding
-        
-        if onScreen and distance > minDistance then
-            TweenService:Create(scaler, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0}):Play()
-        else
-            TweenService:Create(scaler, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 1}):Play()
-            
-            local safeWidth, safeHeight = width - edgePadding * 2, height - edgePadding * 2
-            local cameraCFrame = camera.CFrame
-            local diagonal = math.sqrt((safeWidth / 2) ^ 2 + (safeHeight / 2) ^ 2)
-            local relativePos = targetPosition - cameraCFrame.Position
-            local objectSpacePos = cameraCFrame:VectorToObjectSpace(relativePos)
-            local direction = Vector2.new(objectSpacePos.X, objectSpacePos.Y).Unit
-            
-            local clampedX = math.clamp(screenPosition.X, edgePadding, width - edgePadding)
-            local clampedY = math.clamp(screenPosition.Y, edgePadding, height - edgePadding)
-            
-            if clampedX == screenPosition.X and clampedY == screenPosition.Y and onScreen then
-                TweenService:Create(scaler, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Scale = 0}):Play()
-            else
-                local offset = direction * diagonal
-                local finalOffset
-                if math.abs(offset.Y) > safeHeight / 2 then
-                    finalOffset = offset * math.abs((safeHeight / 2) / offset.Y)
-                else
-                    finalOffset = offset * math.abs((safeWidth / 2) / offset.X)
-                end
-                local arrowX = width / 2 + finalOffset.X
-                local arrowY = height / 2 - finalOffset.Y
-                local rotation = math.atan2(direction.X, direction.Y)
-                TweenService:Create(arrow, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Position = UDim2.fromOffset(arrowX, arrowY),
-                    Rotation = math.deg(rotation)
-                }):Play()
-            end
-            
-            if indicator.DistanceLabel then
-                indicator.DistanceLabel.Text = string.format("%dm", math.round(distance))
-                local labelOffset = (options.ArrowSize and options.ArrowSize.Y.Offset or self.Settings.ArrowSize.Y.Offset) + 16
-                indicator.DistanceLabel.Position = UDim2.new(0.5, 0, 0, labelOffset)
-            end
-        end
-    end
-end
-
-function espModule:Destroy()
-    if self._updateConn then self._updateConn:Disconnect() end
-    self:ClearAllGroups()
-    for _, indicator in pairs(self.Indicators) do
-        if indicator.Highlight then indicator.Highlight:Destroy() end
-        if indicator.Arrow then indicator.Arrow:Destroy() end
-        if indicator.Label then indicator.Label:Destroy() end
-    end
-    self.ScreenGui:Destroy()
-    self.Indicators = {}
-    espModule.Groups = {}
-end
-
--- Создаём ESP контейнер
-local espcontainer = espModule.new({ArrowEdgePadding = 50, ArrowShowDistanceText = false})
-
--- ═══════════════════════════════════════════════════════════════════════════════
 --  MM2 ФУНКЦИИ (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
-
-function findMurderer()
+local function findMurderer()
     for _, i in ipairs(Players:GetPlayers()) do
         if i.Backpack:FindFirstChild("Knife") then return i end
     end
@@ -352,7 +91,7 @@ function findMurderer()
     return nil
 end
 
-function findSheriff()
+local function findSheriff()
     for _, i in ipairs(Players:GetPlayers()) do
         if i.Backpack:FindFirstChild("Gun") then return i end
     end
@@ -370,7 +109,7 @@ function findSheriff()
     return nil
 end
 
-function findSheriffThatsNotMe()
+local function findSheriffThatsNotMe()
     for _, i in ipairs(Players:GetPlayers()) do
         if i == localplayer then continue end
         if i.Backpack:FindFirstChild("Gun") then return i end
@@ -380,19 +119,20 @@ function findSheriffThatsNotMe()
         if not i.Character then continue end
         if i.Character:FindFirstChild("Gun") then return i end
     end
-    return nil
-end
-
-function getMap()
-    for _, o in ipairs(workspace:GetChildren()) do
-        if o:FindFirstChild("CoinContainer") and o:FindFirstChild("Spawns") then
-            return o
+    if playerData then
+        for player, data in pairs(playerData) do
+            if data.Role == "Sheriff" then
+                if Players:FindFirstChild(player) then
+                    if Players:FindFirstChild(player) == localplayer then continue end
+                    return Players:FindFirstChild(player)
+                end
+            end
         end
     end
     return nil
 end
 
-function findNearestPlayer()
+local function findNearestPlayer()
     local nearestPlayer = nil
     local shortestDistance = math.huge
     for _, player in ipairs(Players:GetPlayers()) do
@@ -411,52 +151,157 @@ function findNearestPlayer()
     return nearestPlayer
 end
 
-function reloadESP()
+local function getMap()
+    for _, o in ipairs(workspace:GetChildren()) do
+        if o:FindFirstChild("CoinContainer") and o:FindFirstChild("Spawns") then
+            return o
+        end
+    end
+    return nil
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  ESP СИСТЕМА (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local espHighlights = {}
+
+local function reloadESP()
     if not playerESP then return end
-    espcontainer:RemoveGroup("players")
+    for _, h in pairs(espHighlights) do
+        if h then h:Destroy() end
+    end
+    espHighlights = {}
+    
     local listplayers = Players:GetChildren()
     for _, player in ipairs(listplayers) do
         if player == localplayer and hideMeEsp then continue end
         if player.Character ~= nil then
             local character = player.Character
             task.spawn(function()
+                local color
                 if player == findMurderer() then
-                    espcontainer:Add(character, {
-                        AccentColor = Color3.new(1, 0, 0.0156863),
-                        ArrowShow = true,
-                        ArrowMinDistance = 999999,
-                        ArrowSize = UDim2.new(0, 40, 0, 40),
-                        LabelText = "Murderer",
-                        ShowLabel = true,
-                        GroupName = "players"
-                    })
+                    color = Color3.fromRGB(255, 0, 4)
                 elseif player == findSheriff() then
-                    espcontainer:Add(character, {
-                        AccentColor = Color3.new(0, 0.6, 1),
-                        ArrowShow = false,
-                        ShowLabel = false,
-                        GroupName = "players"
-                    })
+                    color = Color3.fromRGB(0, 153, 255)
                 else
-                    espcontainer:Add(character, {
-                        AccentColor = Color3.new(0, 1, 0.0313725),
-                        ArrowShow = false,
-                        ShowLabel = false,
-                        GroupName = "players"
-                    })
+                    color = Color3.fromRGB(0, 255, 8)
                 end
+                
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "ESP_" .. player.Name
+                highlight.FillColor = color
+                highlight.OutlineColor = color
+                highlight.FillTransparency = 0.5
+                highlight.OutlineTransparency = 0
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                highlight.Adornee = character
+                highlight.Parent = localplayer:WaitForChild("PlayerGui")
+                espHighlights[player] = highlight
             end)
         end
     end
 end
 
--- MINI FLING (ИЗ YARHM)
+-- Player ESP Listeners
+workspace.ChildAdded:Connect(function(ch)
+    if ch == getMap() and playerESP then
+        notify("XDarkHUB", "Map has loaded, waiting for roles...")
+        repeat task.wait(1) until findMurderer() or findSheriff()
+        notify("XDarkHUB", "Player ESP reloaded.")
+        reloadESP()
+    end
+end)
+
+workspace.ChildRemoved:Connect(function(ch)
+    if ch == getMap() and playerESP then
+        notify("XDarkHUB", "Game ended, removing Player ESPs.")
+        playerData = {}
+        for _, h in pairs(espHighlights) do
+            if h then h:Destroy() end
+        end
+        espHighlights = {}
+    end
+end)
+
+-- Dropped Gun ESP
+workspace.DescendantAdded:Connect(function(ch)
+    if trapDetection and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
+        ch.Transparency = 0
+        local h = Instance.new("Highlight")
+        h.Name = "TrapESP_" .. tostring(ch)
+        h.FillColor = Color3.fromRGB(255, 0, 0)
+        h.OutlineColor = Color3.fromRGB(255, 0, 0)
+        h.FillTransparency = 0.5
+        h.OutlineTransparency = 0
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        h.Adornee = ch
+        h.Parent = localplayer:WaitForChild("PlayerGui")
+        notify("XDarkHUB", "Murderer has placed a trap!")
+    end
+    
+    if gunDropESP and ch.Name == "GunDrop" then
+        local h = Instance.new("Highlight")
+        h.Name = "GunESP_" .. tostring(ch)
+        h.FillColor = Color3.fromRGB(255, 255, 0)
+        h.OutlineColor = Color3.fromRGB(255, 255, 0)
+        h.FillTransparency = 0.5
+        h.OutlineTransparency = 0
+        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        h.Adornee = ch
+        h.Parent = localplayer:WaitForChild("PlayerGui")
+        notify("XDarkHUB", "Gun has been dropped! Find a yellow highlight.")
+        
+        if autoGetDroppedGun then
+            task.wait(1)
+            if not getMap() or not getMap():FindFirstChild("GunDrop") then return end
+            local previousPosition = localplayer.Character:GetPivot()
+            localplayer.Character:MoveTo(getMap():FindFirstChild("GunDrop").Position)
+            localplayer.Backpack.ChildAdded:Wait()
+            localplayer.Character:PivotTo(previousPosition)
+        end
+    end
+end)
+
+workspace.DescendantRemoving:Connect(function(ch)
+    if gunDropESP and ch.Name == "GunDrop" then
+        notify("XDarkHUB", "Someone has took the dropped gun.")
+        task.wait(1)
+        if findSheriff() then
+            notify("XDarkHUB", "The hero is " .. findSheriff().DisplayName .. ".")
+        end
+        reloadESP()
+    end
+end)
+
+-- Player Data Listener
+pcall(function()
+    if game.ReplicatedStorage:FindFirstChild("Remotes") then
+        local remotes = game.ReplicatedStorage:WaitForChild("Remotes")
+        if remotes:FindFirstChild("Gameplay") then
+            local pdEvent = remotes.Gameplay:FindFirstChild("PlayerDataChanged")
+            if pdEvent then
+                pdEvent.OnClientEvent:Connect(function(data)
+                    playerData = data
+                    if playerESP then reloadESP() end
+                end)
+            end
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  MINI FLING (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = localplayer.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
     local RootPart = Humanoid and Humanoid.RootPart
     local TCharacter = playerToFling.Character
-    local THumanoid, TRootPart, THead, Accessory, Handle
+    local THumanoid
+    local TRootPart
+    local THead
+    local Accessory
+    local Handle
     
     if TCharacter:FindFirstChildOfClass("Humanoid") then
         THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
@@ -584,13 +429,16 @@ function miniFling(playerToFling)
             task.wait()
         until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
         
-        workspace.FallenPartsDestroyHeight = getgenv().FPDH
+        workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
     else
         notify("XDarkHUB", "No valid character of said target player. May have died.")
     end
 end
 
-function getPredictedPosition(player, shootOffset)
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  PREDICTION (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function getPredictedPosition(player, shootOffset)
     local ogplayer = player
     pcall(function()
         player = player.Character
@@ -608,6 +456,9 @@ function getPredictedPosition(player, shootOffset)
     return predictedPosition
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  SHOOT MURDERER (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function shootMurderer()
     if findSheriff() ~= localplayer then
         notify("XDarkHUB", "You're not sheriff/hero.")
@@ -615,7 +466,7 @@ function shootMurderer()
     end
     local murderer = findMurderer() or findSheriffThatsNotMe()
     if not murderer then
-        notify("XDarkHUB", "No murderer to shoot.")
+        notify("XDarkHUB", "No murderer (or sheriff) to shoot.")
         return
     end
     if not localplayer.Character:FindFirstChild("Gun") then
@@ -623,23 +474,38 @@ function shootMurderer()
         if localplayer.Backpack:FindFirstChild("Gun") then
             hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
         else
-            notify("XDarkHUB", "You don't have the gun.")
+            notify("XDarkHUB", "You don't have the gun..?")
             return
         end
     end
     local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-    if not murdererHRP then return end
+    if not murdererHRP then
+        notify("XDarkHUB", "Could not find the murderer's HumanoidRootPart.")
+        return
+    end
     local predictedPosition = getPredictedPosition(murderer, shootOffset)
-    local args = {
-        CFrame.new(localplayer.Character.RightHand.Position),
-        CFrame.new(predictedPosition)
-    }
+    local args
+    if instakillshoot then
+        args = {
+            CFrame.new(murdererHRP.Position + Vector3.new(0, 1, 0)),
+            CFrame.new(murdererHRP.Position)
+        }
+    else
+        args = {
+            CFrame.new(localplayer.Character.RightHand.Position),
+            CFrame.new(predictedPosition)
+        }
+    end
     localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
     notify("XDarkHUB", "Shot fired!")
 end
 
-function knifeThrow()
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  KNIFE THROW (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function knifeThrow(silent)
     if findMurderer() ~= localplayer then
+        if silent then return end
         notify("XDarkHUB", "You're not murderer.")
         return
     end
@@ -648,20 +514,26 @@ function knifeThrow()
         if localplayer.Backpack:FindFirstChild("Knife") then
             hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
         else
-            notify("XDarkHUB", "You don't have the knife.")
+            if silent then return end
+            notify("XDarkHUB", "You don't have the knife..?")
             return
         end
     end
     local NearestPlayer = findNearestPlayer()
     if not NearestPlayer or not NearestPlayer.Character then
-        notify("XDarkHUB", "Can't find a player.")
+        if silent then return end
+        notify("XDarkHUB", "Can't find a player!?")
         return
     end
     local nearestHRP = NearestPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not nearestHRP then return end
+    if not nearestHRP then
+        if silent then return end
+        notify("XDarkHUB", "Can't find the player's pivot.")
+        return
+    end
     local argsThrowRemote = {
         CFrame.new(localplayer.Character.RightHand.Position),
-        CFrame.new(getPredictedPosition(NearestPlayer, shootOffset + 1))
+        CFrame.new(getPredictedPosition(NearestPlayer, shootOffset + 1)),
     }
     if spawnAtPlayer then
         argsThrowRemote[1] = CFrame.new(nearestHRP.Position + (nearestHRP.CFrame.LookVector * 5))
@@ -669,6 +541,60 @@ function knifeThrow()
     localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
 end
 
+task.spawn(function()
+    while task.wait(1.5) do
+        if loopThrow then
+            knifeThrow(true)
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  AUTO SHOOT (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+task.spawn(function()
+    while task.wait(1) do
+        if findSheriff() == localplayer and autoShooting then
+            notify("XDarkHUB", "Auto-shooting started.")
+            repeat
+                task.wait(0.1)
+                local murderer = findMurderer()
+                if not murderer then continue end
+                local murdererPosition = murderer.Character.HumanoidRootPart.Position
+                local characterRootPart = localplayer.Character.HumanoidRootPart
+                local rayDirection = murdererPosition - characterRootPart.Position
+                local raycastParams = RaycastParams.new()
+                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                raycastParams.FilterDescendantsInstances = {localplayer.Character}
+                local hit = workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
+                if not hit or hit.Instance.Parent == murderer.Character then
+                    if not localplayer.Character:FindFirstChild("Gun") then
+                        local hum = localplayer.Character:FindFirstChild("Humanoid")
+                        if localplayer.Backpack:FindFirstChild("Gun") then
+                            hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
+                        else
+                            return
+                        end
+                    end
+                    local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+                    if not murdererHRP then return end
+                    local predictedPosition = getPredictedPosition(murderer, shootOffset)
+                    local args = {
+                        CFrame.new(localplayer.Character.RightHand.Position),
+                        CFrame.new(predictedPosition)
+                    }
+                    pcall(function()
+                        localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
+                    end)
+                end
+            until findSheriff() ~= localplayer or not autoShooting
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  KILL CLOSEST (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function killClosest()
     if findMurderer() ~= localplayer then
         notify("XDarkHUB", "You're not murderer.")
@@ -679,13 +605,13 @@ function killClosest()
         if localplayer.Backpack:FindFirstChild("Knife") then
             localplayer.Character:FindFirstChild("Humanoid"):EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
         else
-            notify("XDarkHUB", "You don't have the knife.")
+            notify("XDarkHUB", "You don't have the knife..?")
             return
         end
     end
     local NearestPlayer = findNearestPlayer()
     if not NearestPlayer or not NearestPlayer.Character then
-        notify("XDarkHUB", "Can't find a player.")
+        notify("XDarkHUB", "Can't find a player!?")
         return
     end
     local nearestHRP = NearestPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -698,6 +624,9 @@ function killClosest()
     notify("XDarkHUB", "Killed closest!")
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  KILL EVERYONE (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function killEveryone()
     if findMurderer() ~= localplayer then
         notify("XDarkHUB", "You're not murderer.")
@@ -708,7 +637,7 @@ function killEveryone()
         if localplayer.Backpack:FindFirstChild("Knife") then
             localplayer.Character:FindFirstChild("Humanoid"):EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
         else
-            notify("XDarkHUB", "You don't have the knife.")
+            notify("XDarkHUB", "You don't have the knife..?")
             return
         end
     end
@@ -723,6 +652,9 @@ function killEveryone()
     notify("XDarkHUB", "Killed everyone!")
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  HOLD HOSTAGE (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function holdHostage()
     if findMurderer() ~= localplayer then
         notify("XDarkHUB", "You're not murderer.")
@@ -734,21 +666,36 @@ function holdHostage()
             player.Character:FindFirstChild("HumanoidRootPart").CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 5
         end
     end
-    notify("XDarkHUB", "All players held hostage!")
+    notify("XDarkHUB", "Placed every single player in a single point.")
 end
 
-function teleportToGun()
-    if not getMap() or not getMap():FindFirstChild("GunDrop") then
-        notify("XDarkHUB", "No dropped gun.")
-        return
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  KILL AURA (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+function toggleKillAura(state)
+    if killAuraCon then killAuraCon:Disconnect() end
+    if state then
+        killAuraCon = RunService.Heartbeat:Connect(function()
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player ~= localplayer then
+                    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+                    if (hrp.Position - localplayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude < 7 then
+                        hrp.Anchored = true
+                        hrp.CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 2
+                        task.wait(0.1)
+                        local args = {[1] = "Slash"}
+                        pcall(function() localplayer.Character.Knife.Stab:FireServer(unpack(args)) end)
+                        return
+                    end
+                end
+            end
+        end)
     end
-    local previousPosition = localplayer.Character:GetPivot()
-    localplayer.Character:PivotTo(getMap():FindFirstChild("GunDrop"):GetPivot())
-    localplayer.Backpack.ChildAdded:Wait()
-    localplayer.Character:PivotTo(previousPosition)
-    notify("XDarkHUB", "Gun collected!")
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TELEPORTS (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
 function teleportToLobby()
     local lobby = workspace:FindFirstChild("Lobby")
     if lobby then
@@ -772,184 +719,47 @@ function teleportToMap()
     end
 end
 
-function sendNamesToChat()
-    local textchannels = game:GetService("TextChatService"):WaitForChild("TextChannels"):GetChildren()
-    for _, textchannel in ipairs(textchannels) do
-        if textchannel.Name == "RBXSystem" then continue end
-        local murd = findMurderer()
-        local sher = findSheriff()
-        local murdName = murd and murd.Name or "-"
-        local sherName = sher and sher.Name or "-"
-        local message = string.format("Murderer: %s | Sheriff: %s | <<XDarkHUB>>", murdName, sherName)
-        pcall(function() textchannel:SendAsync(message) end)
+function teleportToGun()
+    if not getMap() or not getMap():FindFirstChild("GunDrop") then
+        notify("XDarkHUB", "No dropped gun to be teleported to.")
+        return
     end
-    notify("XDarkHUB", "Names sent to chat!")
+    local previousPosition = localplayer.Character:GetPivot()
+    localplayer.Character:PivotTo(getMap():FindFirstChild("GunDrop"):GetPivot())
+    localplayer.Backpack.ChildAdded:Wait()
+    localplayer.Character:PivotTo(previousPosition)
+    notify("XDarkHUB", "Gun collected!")
 end
 
-local killAuraCon = nil
-function toggleKillAura(state)
-    if killAuraCon then killAuraCon:Disconnect() end
-    if state then
-        killAuraCon = RunService.Heartbeat:Connect(function()
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player ~= localplayer then
-                    local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                    if (hrp.Position - localplayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude < 7 then
-                        hrp.Anchored = true
-                        hrp.CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 2
-                        task.wait(0.1)
-                        local args = {[1] = "Slash"}
-                        pcall(function() localplayer.Character.Knife.Stab:FireServer(unpack(args)) end)
-                        return
-                    end
-                end
-            end
-        end)
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  COIN AUTOCOLLECT (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function getClosestModelToPlayer(player, models)
+    local closestModel = nil
+    local closestDistance = math.huge
+    local playerPosition = player.Character.HumanoidRootPart.Position
+    for _, model in ipairs(models) do
+        local modelPosition = model:GetPivot().Position
+        local distance = (modelPosition - playerPosition).Magnitude
+        if distance < closestDistance then
+            closestDistance = distance
+            closestModel = model
+        end
     end
+    return closestModel
 end
 
--- ESP Listeners
-workspace.ChildAdded:Connect(function(ch)
-    if ch == getMap() and playerESP then
-        notify("XDarkHUB", "Map loaded, waiting for roles...")
-        repeat task.wait(1) until findMurderer() or findSheriff()
-        notify("XDarkHUB", "Player ESP reloaded.")
-        reloadESP()
-    end
-end)
-
-workspace.ChildRemoved:Connect(function(ch)
-    if ch == getMap() and playerESP then
-        notify("XDarkHUB", "Game ended, removing ESPs.")
-        playerData = {}
-        espcontainer:ClearAllGroups()
-    end
-end)
-
-workspace.DescendantAdded:Connect(function(ch)
-    if trapDetection and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
-        ch.Transparency = 0
-        espcontainer:Add(ch, {
-            AccentColor = Color3.new(1, 0, 0.0156863),
-            ArrowShow = false,
-            ShowLabel = true,
-            LabelText = "Trap",
-            GroupName = "trap"
-        })
-        notify("XDarkHUB", "Murderer has placed a trap!")
-    end
-    if gunDropESP and ch.Name == "GunDrop" then
-        espcontainer:Add(ch, {
-            AccentColor = Color3.new(0.952941, 1, 0.0745098),
-            ArrowShow = true,
-            ArrowMinDistance = 999999,
-            ArrowSize = UDim2.new(0, 40, 0, 40),
-            LabelText = "Dropped gun!",
-            ShowLabel = true,
-            GroupName = "gun"
-        })
-        notify("XDarkHUB", "Gun dropped!")
-        if autoGetDroppedGun then
-            task.wait(1)
-            if not getMap() or not getMap():FindFirstChild("GunDrop") then return end
-            local previousPosition = localplayer.Character:GetPivot()
-            localplayer.Character:MoveTo(getMap():FindFirstChild("GunDrop").Position)
-            localplayer.Backpack.ChildAdded:Wait()
-            localplayer.Character:PivotTo(previousPosition)
-        end
-    end
-end)
-
-workspace.DescendantRemoving:Connect(function(ch)
-    if gunDropESP and ch.Name == "GunDrop" then
-        espcontainer:RemoveGroup("gun")
-        notify("XDarkHUB", "Someone took the gun.")
-        if findSheriff() then
-            notify("XDarkHUB", "Hero is " .. findSheriff().DisplayName .. ".")
-        end
-        reloadESP()
-    end
-end)
-
--- Player Data Listener
-pcall(function()
-    if game.ReplicatedStorage:FindFirstChild("Remotes") then
-        local remotes = game.ReplicatedStorage:WaitForChild("Remotes")
-        if remotes:FindFirstChild("Gameplay") then
-            local pdEvent = remotes.Gameplay:FindFirstChild("PlayerDataChanged")
-            if pdEvent then
-                pdEvent.OnClientEvent:Connect(function(data)
-                    playerData = data
-                    if playerESP then reloadESP() end
-                end)
-            end
-        end
-    end
-end)
-
--- Auto Shoot Loop
-task.spawn(function()
-    while task.wait(1) do
-        if findSheriff() == localplayer and autoShooting then
-            notify("XDarkHUB", "Auto-shooting started.")
-            repeat
-                task.wait(0.1)
-                local murderer = findMurderer()
-                if not murderer then continue end
-                if not localplayer.Character:FindFirstChild("Gun") then
-                    local hum = localplayer.Character:FindFirstChild("Humanoid")
-                    if localplayer.Backpack:FindFirstChild("Gun") then
-                        hum:EquipTool(localplayer.Backpack:FindFirstChild("Gun"))
-                    else
-                        return
-                    end
-                end
-                local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-                if not murdererHRP then return end
-                local predictedPosition = getPredictedPosition(murderer, shootOffset)
-                local args = {
-                    CFrame.new(localplayer.Character.RightHand.Position),
-                    CFrame.new(predictedPosition)
-                }
-                pcall(function()
-                    localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
-                end)
-            until findSheriff() ~= localplayer or not autoShooting
-        end
-    end
-end)
-
--- Auto Knife Throw Loop
-local loopThrow = false
-task.spawn(function()
-    while task.wait(1.5) do
-        if loopThrow then
-            pcall(function() knifeThrow() end)
-        end
-    end
-end)
-
--- Coin Auto Collect
 task.spawn(function()
     while task.wait(0.1) do
         if not coinAutoCollect then continue end
         if getMap() then
             if getMap():FindFirstChild("CoinContainer") and #getMap():FindFirstChild("CoinContainer"):GetChildren() > 1 then
-                local closestCoin = nil
-                local minDist = math.huge
-                for _, coin in ipairs(getMap():FindFirstChild("CoinContainer"):GetChildren()) do
-                    if coin:IsA("BasePart") and not claimedCoins[coin] then
-                        local dist = (localplayer.Character:FindFirstChild("HumanoidRootPart").Position - coin.Position).Magnitude
-                        if dist < minDist then
-                            minDist = dist
-                            closestCoin = coin
-                        end
-                    end
-                end
+                local closestCoin = getClosestModelToPlayer(localplayer, getMap():FindFirstChild("CoinContainer"):GetChildren())
                 if closestCoin then
-                    local distance = (localplayer.Character:FindFirstChild("HumanoidRootPart").Position - closestCoin.Position).Magnitude
+                    if not localplayer.Character:FindFirstChild("HumanoidRootPart") then continue end
+                    local distance = (localplayer.Character:FindFirstChild("HumanoidRootPart").Position - closestCoin:GetPivot().Position).Magnitude
                     local toclosestcoin = TweenService:Create(localplayer.Character:FindFirstChild("HumanoidRootPart"), TweenInfo.new(distance * 0.05, Enum.EasingStyle.Linear), {
-                        CFrame = closestCoin.CFrame
+                        CFrame = closestCoin:GetPivot()
                     })
                     toclosestcoin:Play()
                     toclosestcoin.Completed:Wait()
@@ -962,7 +772,9 @@ task.spawn(function()
     end
 end)
 
--- Coin Farming
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  COIN FARMING (КАСТОМНАЯ ФУНКЦИЯ)
+-- ═══════════════════════════════════════════════════════════════════════════════
 local function isPlayerInLobby()
     local coinFolder = workspace:FindFirstChild("CoinContainer", true) or workspace:FindFirstChild("CoinVisuals", true) or workspace:FindFirstChild("Coins", true)
     if not coinFolder then return true end
@@ -997,7 +809,7 @@ local function startCoinFarm()
     if coinFarming then notify("XDarkHUB", "Already coin farming.") return end
     coinFarming = true
     coinFarmConnection = RunService.Heartbeat:Connect(function()
-        local char = Players.LocalPlayer.Character
+        local char = localplayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChild("Humanoid")
         if not hrp or not hum or hum.Health <= 0 then return end
@@ -1063,13 +875,11 @@ local function stopCoinFarm()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  3D КРЫЛЬЯ
+--  3D КРЫЛЬЯ (КАСТОМНАЯ ФУНКЦИЯ)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function removeWings()
     for _, part in ipairs(wingsParts) do
-        if part and part.Parent then
-            part:Destroy()
-        end
+        if part and part.Parent then part:Destroy() end
     end
     wingsParts = {}
     wingsEnabled = false
@@ -1077,13 +887,10 @@ end
 
 local function createWings()
     if wingsEnabled then removeWings() end
-    
     character = localplayer.Character
     if not character then return end
-    
     local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
     if not torso then return end
-    
     wingsEnabled = true
     
     -- Левое крыло
@@ -1095,10 +902,7 @@ local function createWings()
     leftWing.Transparency = 0.3
     leftWing.Anchored = false
     leftWing.CanCollide = false
-    leftWing.TopSurface = Enum.SurfaceType.Smooth
-    leftWing.BottomSurface = Enum.SurfaceType.Smooth
     leftWing.Parent = character
-    
     local leftWeld = Instance.new("WeldConstraint")
     leftWeld.Part0 = torso
     leftWeld.Part1 = leftWing
@@ -1114,10 +918,7 @@ local function createWings()
     rightWing.Transparency = 0.3
     rightWing.Anchored = false
     rightWing.CanCollide = false
-    rightWing.TopSurface = Enum.SurfaceType.Smooth
-    rightWing.BottomSurface = Enum.SurfaceType.Smooth
     rightWing.Parent = character
-    
     local rightWeld = Instance.new("WeldConstraint")
     rightWeld.Part0 = torso
     rightWeld.Part1 = rightWing
@@ -1134,7 +935,6 @@ local function createWings()
     leftWingSmall.Anchored = false
     leftWingSmall.CanCollide = false
     leftWingSmall.Parent = character
-    
     local leftSmallWeld = Instance.new("WeldConstraint")
     leftSmallWeld.Part0 = torso
     leftSmallWeld.Part1 = leftWingSmall
@@ -1150,7 +950,6 @@ local function createWings()
     rightWingSmall.Anchored = false
     rightWingSmall.CanCollide = false
     rightWingSmall.Parent = character
-    
     local rightSmallWeld = Instance.new("WeldConstraint")
     rightSmallWeld.Part0 = torso
     rightSmallWeld.Part1 = rightWingSmall
@@ -1193,12 +992,10 @@ local function createWings()
             angle = angle + 0.1
             local flapAngle = math.sin(angle) * 0.3
             local flapAngleSmall = math.sin(angle * 1.5) * 0.4
-            
             leftWing.CFrame = torso.CFrame * CFrame.new(-2.5, 0.5, 1) * CFrame.Angles(flapAngle, math.rad(20), math.rad(-15))
             rightWing.CFrame = torso.CFrame * CFrame.new(2.5, 0.5, 1) * CFrame.Angles(flapAngle, math.rad(-20), math.rad(15))
             leftWingSmall.CFrame = torso.CFrame * CFrame.new(-1.8, 1.5, 1.5) * CFrame.Angles(flapAngleSmall, math.rad(30), math.rad(-25))
             rightWingSmall.CFrame = torso.CFrame * CFrame.new(1.8, 1.5, 1.5) * CFrame.Angles(flapAngleSmall, math.rad(-30), math.rad(25))
-            
             task.wait(0.02)
         end
     end)
@@ -1207,7 +1004,125 @@ local function createWings()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  НАШ КРАСИВЫЙ UI
+--  GOD MODE (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+function godMode()
+    local Cam = workspace.CurrentCamera
+    local Pos, Char = Cam.CFrame, localplayer.Character
+    local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
+    if not Human then return end
+    local nHuman = Human:Clone()
+    nHuman.Parent = Char
+    localplayer.Character = nil
+    nHuman:SetStateEnabled(15, false)
+    nHuman:SetStateEnabled(1, false)
+    nHuman:SetStateEnabled(0, false)
+    nHuman.BreakJointsOnDeath = true
+    Human:Destroy()
+    localplayer.Character = Char
+    Cam.CameraSubject = nHuman
+    Cam.CFrame = Pos
+    nHuman.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    local Script = Char:FindFirstChild("Animate")
+    if Script then
+        Script.Disabled = true
+        task.wait()
+        Script.Disabled = false
+    end
+    nHuman.Health = nHuman.MaxHealth
+    notify("XDarkHUB", "God mode activated!")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  SEND NAMES TO CHAT (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+function sendNamesToChat()
+    local textchannels = TextChatService:WaitForChild("TextChannels"):GetChildren()
+    for _, textchannel in ipairs(textchannels) do
+        if textchannel.Name == "RBXSystem" then continue end
+        local murd = findMurderer()
+        local sher = findSheriff()
+        local murdName = murd and murd.Name or "-"
+        local sherName = sher and sher.Name or "-"
+        local message = string.format("Murderer: %s | Sheriff: %s | <<XDarkHUB>>", murdName, sherName)
+        pcall(function() textchannel:SendAsync(message) end)
+    end
+    notify("XDarkHUB", "Names sent to chat!")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  COPY USERNAMES (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+function copyMurdererName()
+    if not findMurderer() then
+        notify("XDarkHUB", "No murderer to copy.")
+        return
+    end
+    if setclipboard then setclipboard(findMurderer().Name) end
+    notify("XDarkHUB", "Copied to clipboard.")
+end
+
+function copySheriffName()
+    if not findSheriff() then
+        notify("XDarkHUB", "No sheriff/hero to copy.")
+        return
+    end
+    if setclipboard then setclipboard(findSheriff().Name) end
+    notify("XDarkHUB", "Copied to clipboard.")
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  IGNORE KNIFE THROWS (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+game.Workspace.ChildAdded:Connect(function(chi)
+    if chi.Name == "ThrowingKnife" and ignoreknifethrow then
+        chi:Destroy()
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  ROUND TIMER (ИЗ YARHM)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local function secondsToMinutes(seconds)
+    if seconds == -1 then return "" end
+    local minutes = math.floor(seconds / 60)
+    local remainingSeconds = seconds % 60
+    return string.format("%dm %ds", minutes, remainingSeconds)
+end
+
+local timertask = nil
+local timertext = nil
+
+local function toggleRoundTimer(state)
+    if state then
+        timertext = Instance.new("TextLabel")
+        timertext.Parent = localplayer:WaitForChild("PlayerGui")
+        timertext.BackgroundTransparency = 1
+        timertext.TextColor3 = Color3.fromRGB(255, 255, 255)
+        timertext.TextScaled = true
+        timertext.AnchorPoint = Vector2.new(0.5, 0.5)
+        timertext.Position = UDim2.fromScale(0.5, 0.15)
+        timertext.Size = UDim2.fromOffset(200, 35)
+        timertext.Font = Enum.Font.GothamBold
+        timertask = task.spawn(function()
+            while task.wait(0.5) do
+                local timerPart = workspace:FindFirstChild("RoundTimerPart")
+                if timerPart then
+                    local timeLeft = timerPart:GetAttribute("Time")
+                    if timeLeft then
+                        timertext.Text = secondsToMinutes(timeLeft)
+                    end
+                end
+            end
+        end)
+    else
+        if timertext then timertext:Destroy() end
+        if timertask then task.cancel(timertask) end
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  НАШ КРАСИВЫЙ UI (ЧЕРНО-КРАСНЫЙ GLASSMORPHISM)
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Цвета UI
@@ -1232,7 +1147,8 @@ local ACCENT = {
 
 -- UI Helpers
 local function crn(o, r)
-    Instance.new("UICorner", o).CornerRadius = UDim.new(0, r or 8)
+    local c = Instance.new("UICorner", o)
+    c.CornerRadius = UDim.new(0, r or 8)
 end
 
 local function stk(o, c, t, tr)
@@ -1240,16 +1156,6 @@ local function stk(o, c, t, tr)
     s.Color = c
     s.Thickness = t or 1
     s.Transparency = tr or 0
-end
-
-local function grd(o, cs, rot)
-    local g = Instance.new("UIGradient", o)
-    g.Color = ColorSequence.new(cs)
-    g.Rotation = rot or 0
-end
-
-local function ani(o, p, t, s)
-    TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
 end
 
 -- Очистка старого GUI
@@ -1266,24 +1172,27 @@ gui.Parent = localplayer:WaitForChild("PlayerGui")
 
 -- Главный фрейм
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 600, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -300, 0.5, -250)
+mainFrame.Size = UDim2.new(0, 650, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -325, 0.5, -275)
 mainFrame.BackgroundColor3 = COL.bg
+mainFrame.BackgroundTransparency = 0.03
 mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.ZIndex = 1
 mainFrame.Parent = gui
-crn(mainFrame, 10)
-local mainStroke = Instance.new("UIStroke", mainFrame)
-mainStroke.Color = ACCENT.base
-mainStroke.Thickness = 2
+crn(mainFrame, 12)
+stk(mainFrame, ACCENT.base, 2, 0.3)
 
 -- Title Bar
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 45)
+titleBar.Size = UDim2.new(1, 0, 0, 50)
 titleBar.BackgroundColor3 = COL.panel
+titleBar.BackgroundTransparency = 0.04
 titleBar.BorderSizePixel = 0
 titleBar.Active = true
+titleBar.ZIndex = 2
 titleBar.Parent = mainFrame
-crn(titleBar, 10)
+crn(titleBar, 12)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -60, 1, 0)
@@ -1292,25 +1201,28 @@ title.BackgroundTransparency = 1
 title.Text = "XDarkHUB · MM2"
 title.TextColor3 = ACCENT.lit
 title.Font = Enum.Font.GothamBlack
-title.TextSize = 18
+title.TextSize = 20
 title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 3
 title.Parent = titleBar
 
 local logo = Instance.new("Frame")
-logo.Size = UDim2.new(0, 32, 0, 32)
-logo.Position = UDim2.new(0, 12, 0.5, -16)
+logo.Size = UDim2.new(0, 34, 0, 34)
+logo.Position = UDim2.new(0, 12, 0.5, -17)
 logo.BackgroundColor3 = ACCENT.base
 logo.BorderSizePixel = 0
+logo.ZIndex = 3
 logo.Parent = titleBar
-crn(logo, 8)
+crn(logo, 10)
 
 local logoX = Instance.new("TextLabel")
 logoX.Size = UDim2.new(1, 0, 1, 0)
 logoX.BackgroundTransparency = 1
 logoX.Text = "X"
 logoX.Font = Enum.Font.GothamBlack
-logoX.TextSize = 20
+logoX.TextSize = 22
 logoX.TextColor3 = COL.wht
+logoX.ZIndex = 4
 logoX.Parent = logo
 
 -- Dragging
@@ -1342,15 +1254,16 @@ end
 -- Tabs Container
 local tabsContainer = Instance.new("Frame")
 tabsContainer.Size = UDim2.new(1, 0, 0, 40)
-tabsContainer.Position = UDim2.new(0, 0, 0, 45)
+tabsContainer.Position = UDim2.new(0, 0, 0, 50)
 tabsContainer.BackgroundColor3 = COL.panel
+tabsContainer.BackgroundTransparency = 0.04
 tabsContainer.BorderSizePixel = 0
 tabsContainer.Parent = mainFrame
 
 -- Content Area
 local contentArea = Instance.new("Frame")
-contentArea.Size = UDim2.new(1, 0, 1, -85)
-contentArea.Position = UDim2.new(0, 0, 0, 85)
+contentArea.Size = UDim2.new(1, 0, 1, -90)
+contentArea.Position = UDim2.new(0, 0, 0, 90)
 contentArea.BackgroundTransparency = 1
 contentArea.Parent = mainFrame
 
@@ -1360,16 +1273,18 @@ local currentTab = nil
 
 local function createTab(tabName, label)
     local tabBtn = Instance.new("TextButton")
-    tabBtn.Size = UDim2.new(0, 120, 1, 0)
-    tabBtn.Position = UDim2.new(0, (#tabsContainer:GetChildren() - 1) * 120, 0, 0)
+    tabBtn.Size = UDim2.new(0, 130, 1, 0)
+    tabBtn.Position = UDim2.new(0, (#tabsContainer:GetChildren() - 1) * 130, 0, 0)
     tabBtn.BackgroundColor3 = COL.card
     tabBtn.Text = label
     tabBtn.TextColor3 = COL.txt
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.TextSize = 13
     tabBtn.BorderSizePixel = 0
+    tabBtn.AutoButtonColor = false
+    tabBtn.ZIndex = 3
     tabBtn.Parent = tabsContainer
-    crn(tabBtn, 6)
+    crn(tabBtn, 8)
     
     local tabContent = Instance.new("ScrollingFrame")
     tabContent.Size = UDim2.new(1, 0, 1, 0)
@@ -1380,14 +1295,15 @@ local function createTab(tabName, label)
     tabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
     tabContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
     tabContent.Visible = false
+    tabContent.ZIndex = 2
     tabContent.Parent = contentArea
     
     local list = Instance.new("UIListLayout", tabContent)
-    list.Padding = UDim.new(0, 8)
+    list.Padding = UDim.new(0, 10)
     local pad = Instance.new("UIPadding", tabContent)
-    pad.PaddingLeft = UDim.new(0, 12)
-    pad.PaddingRight = UDim.new(0, 12)
-    pad.PaddingTop = UDim.new(0, 12)
+    pad.PaddingLeft = UDim.new(0, 15)
+    pad.PaddingRight = UDim.new(0, 15)
+    pad.PaddingTop = UDim.new(0, 15)
     
     tabFrames[tabName] = {button = tabBtn, frame = tabContent}
     
@@ -1407,57 +1323,141 @@ end
 -- UI Components
 local function addLabel(parent, text)
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 22)
+    label.Size = UDim2.new(1, 0, 0, 24)
     label.BackgroundTransparency = 1
     label.Text = text
     label.TextColor3 = ACCENT.lit
     label.Font = Enum.Font.GothamBold
     label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 2
     label.Parent = parent
     return label
 end
 
 local function addButton(parent, text, callback)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 36)
+    button.Size = UDim2.new(1, 0, 0, 38)
     button.BackgroundColor3 = COL.card
     button.Text = text
     button.TextColor3 = COL.wht
     button.Font = Enum.Font.GothamBold
     button.TextSize = 13
     button.BorderSizePixel = 0
+    button.AutoButtonColor = false
+    button.ZIndex = 2
     button.Parent = parent
-    crn(button, 6)
-    local btnStroke = Instance.new("UIStroke", button)
-    btnStroke.Color = ACCENT.base
-    btnStroke.Thickness = 1
-    button.MouseButton1Click:Connect(callback)
+    crn(button, 8)
+    stk(button, ACCENT.base, 1)
+    button.MouseButton1Click:Connect(function()
+        callback()
+    end)
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = COL.cardHov
+    end)
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = COL.card
+    end)
     return button
 end
 
 local function addToggle(parent, text, callback)
     local state = false
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(1, 0, 0, 36)
+    button.Size = UDim2.new(1, 0, 0, 38)
     button.BackgroundColor3 = COL.card
     button.Text = text .. " [OFF]"
     button.TextColor3 = COL.wht
     button.Font = Enum.Font.GothamBold
     button.TextSize = 13
     button.BorderSizePixel = 0
+    button.AutoButtonColor = false
+    button.ZIndex = 2
     button.Parent = parent
-    crn(button, 6)
-    local btnStroke = Instance.new("UIStroke", button)
-    btnStroke.Color = ACCENT.base
-    btnStroke.Thickness = 1
+    crn(button, 8)
+    stk(button, ACCENT.base, 1)
     button.MouseButton1Click:Connect(function()
         state = not state
         button.Text = text .. (state and " [ON]" or " [OFF]")
         button.BackgroundColor3 = state and ACCENT.base or COL.card
         callback(state)
     end)
+    button.MouseEnter:Connect(function()
+        if not state then button.BackgroundColor3 = COL.cardHov end
+    end)
+    button.MouseLeave:Connect(function()
+        if not state then button.BackgroundColor3 = COL.card end
+    end)
     return button
+end
+
+local function addSlider(parent, text, min, max, default, callback)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 55)
+    container.BackgroundTransparency = 1
+    container.ZIndex = 2
+    container.Parent = parent
+    
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 20)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text .. ": " .. default
+    lbl.TextColor3 = COL.txt
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.ZIndex = 2
+    lbl.Parent = container
+    
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(1, -20, 0, 8)
+    track.Position = UDim2.new(0, 10, 0, 25)
+    track.BackgroundColor3 = COL.card
+    track.BorderSizePixel = 0
+    track.ZIndex = 2
+    track.Parent = container
+    crn(track, 4)
+    stk(track, ACCENT.base, 1)
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = ACCENT.base
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 2
+    fill.Parent = track
+    crn(fill, 4)
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8)
+    knob.BackgroundColor3 = ACCENT.neon
+    knob.BorderSizePixel = 0
+    knob.ZIndex = 3
+    knob.Parent = track
+    crn(knob, 8)
+    stk(knob, COL.wht, 1)
+    
+    local dragging = false
+    track.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local rel = math.clamp((i.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+            local val = math.floor(min + rel * (max - min))
+            fill.Size = UDim2.new(rel, 0, 1, 0)
+            knob.Position = UDim2.new(rel, -8, 0.5, -8)
+            lbl.Text = text .. ": " .. val
+            callback(val)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -1465,16 +1465,16 @@ end
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 createTab("ESP", "👁️ ESP")
-createTab("Sheriff", "⭐ Sheriff")
-createTab("Murderer", "🔪 Murderer")
+createTab("Tools", "🔧 Tools")
+createTab("Combat", "⚔️ Combat")
 createTab("Teleports", "🗺️ TP")
+createTab("Farm", "🪙 Farm")
 createTab("Visuals", "🦋 Visuals")
 createTab("Misc", "⚙️ Misc")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ESP TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
-
 local espTab = tabFrames["ESP"].frame
 addLabel(espTab, "ESPs")
 addToggle(espTab, "Players ESP", function(state)
@@ -1486,26 +1486,33 @@ addToggle(espTab, "Players ESP", function(state)
         end
         reloadESP()
     else
-        espcontainer:RemoveGroup("players")
+        for _, h in pairs(espHighlights) do
+            if h then h:Destroy() end
+        end
+        espHighlights = {}
     end
 end)
 addToggle(espTab, "Dropped Gun ESP", function(state)
     gunDropESP = state
     if state then
         if getMap() and getMap():FindFirstChild("GunDrop") then
-            espcontainer:Add(getMap():FindFirstChild("GunDrop"), {
-                AccentColor = Color3.new(0.952941, 1, 0.0745098),
-                ArrowShow = true,
-                ArrowMinDistance = 999999,
-                ArrowSize = UDim2.new(0, 40, 0, 40),
-                LabelText = "Dropped gun!",
-                ShowLabel = true,
-                GroupName = "gun"
-            })
-            notify("XDarkHUB", "Gun ESP enabled!")
+            local h = Instance.new("Highlight")
+            h.Name = "GunESP_" .. tostring(getMap():FindFirstChild("GunDrop"))
+            h.FillColor = Color3.fromRGB(255, 255, 0)
+            h.OutlineColor = Color3.fromRGB(255, 255, 0)
+            h.FillTransparency = 0.5
+            h.OutlineTransparency = 0
+            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            h.Adornee = getMap():FindFirstChild("GunDrop")
+            h.Parent = localplayer:WaitForChild("PlayerGui")
+            notify("XDarkHUB", "Gun has been dropped! Find a yellow highlight.")
         end
     else
-        espcontainer:RemoveGroup("gun")
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("Highlight") and obj.Name:find("GunESP") then
+                obj:Destroy()
+            end
+        end
     end
 end)
 addToggle(espTab, "Traps ESP", function(state)
@@ -1514,17 +1521,23 @@ addToggle(espTab, "Traps ESP", function(state)
         for _, v in ipairs(workspace:GetDescendants()) do
             if v.Name == "Trap" and (v.Parent:IsA("Folder") or v.Parent:IsA("Model")) then
                 v.Transparency = 0
-                espcontainer:Add(v, {
-                    AccentColor = Color3.new(1, 0, 0),
-                    ArrowShow = false,
-                    ShowLabel = true,
-                    LabelText = "Trap",
-                    GroupName = "trap"
-                })
+                local h = Instance.new("Highlight")
+                h.Name = "TrapESP_" .. tostring(v)
+                h.FillColor = Color3.fromRGB(255, 0, 0)
+                h.OutlineColor = Color3.fromRGB(255, 0, 0)
+                h.FillTransparency = 0.5
+                h.OutlineTransparency = 0
+                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                h.Adornee = v
+                h.Parent = localplayer:WaitForChild("PlayerGui")
             end
         end
     else
-        espcontainer:RemoveGroup("trap")
+        for _, obj in ipairs(gui:GetDescendants()) do
+            if obj:IsA("Highlight") and obj.Name:find("TrapESP") then
+                obj:Destroy()
+            end
+        end
     end
 end)
 addToggle(espTab, "Hide my own ESP", function(state)
@@ -1537,67 +1550,51 @@ addButton(espTab, "Reload ESP", function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  SHERIFF TAB
+--  TOOLS TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
-
-local sheriffTab = tabFrames["Sheriff"].frame
-addLabel(sheriffTab, "Tools")
-addButton(sheriffTab, "Shoot murderer", shootMurderer)
-addToggle(sheriffTab, "Auto shoot murderer", function(state)
+local toolsTab = tabFrames["Tools"].frame
+addLabel(toolsTab, "Sheriff Tools")
+addButton(toolsTab, "Shoot murderer", shootMurderer)
+addToggle(toolsTab, "Auto shoot murderer", function(state)
     autoShooting = state
 end)
-addToggle(sheriffTab, "Instakill murderer as sheriff", function(state)
+addToggle(toolsTab, "Instakill murderer as sheriff", function(state)
     instakillshoot = state
 end)
-addToggle(sheriffTab, "Automatically get gun on drop", function(state)
+addToggle(toolsTab, "Automatically get gun on drop", function(state)
     autoGetDroppedGun = state
 end)
-addButton(sheriffTab, "Teleport to dropped gun", teleportToGun)
-addButton(sheriffTab, "Fling Sheriff", function()
+addButton(toolsTab, "Teleport to dropped gun", teleportToGun)
+addButton(toolsTab, "Fling Sheriff", function()
     if not findSheriff() then
         notify("XDarkHUB", "No sheriff/hero to fling.")
         return
     end
     miniFling(findSheriff())
 end)
-addButton(sheriffTab, "Send Sheriff and Murderer names into chat", sendNamesToChat)
-addButton(sheriffTab, "Copy murderer username", function()
-    if not findMurderer() then
-        notify("XDarkHUB", "No murderer to copy.")
-        return
-    end
-    if setclipboard then setclipboard(findMurderer().Name) end
-    notify("XDarkHUB", "Copied to clipboard.")
-end)
-addButton(sheriffTab, "Copy sheriff username", function()
-    if not findSheriff() then
-        notify("XDarkHUB", "No sheriff/hero to copy.")
-        return
-    end
-    if setclipboard then setclipboard(findSheriff().Name) end
-    notify("XDarkHUB", "Copied to clipboard.")
-end)
+addButton(toolsTab, "Send Sheriff and Murderer names into chat", sendNamesToChat)
+addButton(toolsTab, "Copy murderer username", copyMurdererName)
+addButton(toolsTab, "Copy sheriff username", copySheriffName)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MURDERER TAB
+--  COMBAT TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
-
-local murdererTab = tabFrames["Murderer"].frame
-addLabel(murdererTab, "Tools")
-addButton(murdererTab, "Knife throw to closest", knifeThrow)
-addToggle(murdererTab, "Auto knife throw", function(state)
+local combatTab = tabFrames["Combat"].frame
+addLabel(combatTab, "Murderer Tools")
+addButton(combatTab, "Knife throw to closest", knifeThrow)
+addToggle(combatTab, "Auto knife throw", function(state)
     loopThrow = state
 end)
-addToggle(murdererTab, "Spawn knife throw near player", function(state)
+addToggle(combatTab, "Spawn knife throw near player", function(state)
     spawnAtPlayer = state
 end)
-addButton(murdererTab, "Kill closest player as murderer", killClosest)
-addButton(murdererTab, "Kill EVERYONE as murderer", killEveryone)
-addButton(murdererTab, "Hold everyone hostage", holdHostage)
-addToggle(murdererTab, "Murderer kill aura", function(state)
+addButton(combatTab, "Kill closest player as murderer", killClosest)
+addButton(combatTab, "Kill EVERYONE as murderer", killEveryone)
+addButton(combatTab, "Hold everyone hostage", holdHostage)
+addToggle(combatTab, "Murderer kill aura", function(state)
     toggleKillAura(state)
 end)
-addButton(murdererTab, "Fling Murderer", function()
+addButton(combatTab, "Fling Murderer", function()
     if not findMurderer() then
         notify("XDarkHUB", "No murderer to fling.")
         return
@@ -1608,17 +1605,30 @@ end)
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  TELEPORTS TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
-
-local teleportsTab = tabFrames["Teleports"].frame
-addLabel(teleportsTab, "Teleports")
-addButton(teleportsTab, "Teleport to lobby", teleportToLobby)
-addButton(teleportsTab, "Teleport to map", teleportToMap)
-addButton(teleportsTab, "Teleport to dropped gun", teleportToGun)
+local tpTab = tabFrames["Teleports"].frame
+addLabel(tpTab, "Teleports")
+addButton(tpTab, "Teleport to lobby", teleportToLobby)
+addButton(tpTab, "Teleport to map", teleportToMap)
+addButton(tpTab, "Teleport to dropped gun", teleportToGun)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  VISUALS TAB (3D WINGS + COIN FARMING)
+--  FARM TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
+local farmTab = tabFrames["Farm"].frame
+addLabel(farmTab, "Coin Farming")
+addButton(farmTab, "Start coin farming", startCoinFarm)
+addButton(farmTab, "Stop coin farming", stopCoinFarm)
+addSlider(farmTab, "Farm speed", 10, 100, FARM_SPEED, function(val)
+    FARM_SPEED = val
+end)
+addLabel(farmTab, "Coin Settings")
+addToggle(farmTab, "Coins autocollect", function(state)
+    coinAutoCollect = state
+end)
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  VISUALS TAB
+-- ═══════════════════════════════════════════════════════════════════════════════
 local visualsTab = tabFrames["Visuals"].frame
 addLabel(visualsTab, "3D Visuals")
 addButton(visualsTab, "🦋 Toggle 3D Wings", function()
@@ -1629,42 +1639,26 @@ addButton(visualsTab, "🦋 Toggle 3D Wings", function()
         createWings()
     end
 end)
-
-addLabel(visualsTab, "Coin Farming")
-addButton(visualsTab, "Start coin farming", startCoinFarm)
-addButton(visualsTab, "Stop coin farming", stopCoinFarm)
+addLabel(visualsTab, "Round Timer")
+addToggle(visualsTab, "Show round timer", function(state)
+    toggleRoundTimer(state)
+end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  MISC TAB
 -- ═══════════════════════════════════════════════════════════════════════════════
-
 local miscTab = tabFrames["Misc"].frame
+addLabel(miscTab, "Settings")
+addSlider(miscTab, "Shoot offset", 0, 5, shootOffset, function(val)
+    shootOffset = val
+end)
+addSlider(miscTab, "Offset-to-ping multiplier", 0, 5, offsetToPingMult, function(val)
+    offsetToPingMult = val
+end)
 addLabel(miscTab, "Miscellaneous")
-addButton(miscTab, "God mode (Very, VERY UNSTABLE)", function()
-    local Cam = workspace.CurrentCamera
-    local Pos, Char = Cam.CFrame, localplayer.Character
-    local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
-    if not Human then return end
-    local nHuman = Human:Clone()
-    nHuman.Parent = Char
-    localplayer.Character = nil
-    nHuman:SetStateEnabled(15, false)
-    nHuman:SetStateEnabled(1, false)
-    nHuman:SetStateEnabled(0, false)
-    nHuman.BreakJointsOnDeath = true
-    Human:Destroy()
-    localplayer.Character = Char
-    Cam.CameraSubject = nHuman
-    Cam.CFrame = Pos
-    nHuman.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-    local Script = Char:FindFirstChild("Animate")
-    if Script then
-        Script.Disabled = true
-        task.wait()
-        Script.Disabled = false
-    end
-    nHuman.Health = nHuman.MaxHealth
-    notify("XDarkHUB", "God mode activated!")
+addButton(miscTab, "God mode (Very, VERY UNSTABLE)", godMode)
+addToggle(miscTab, "Ignore knife throws", function(state)
+    ignoreknifethrow = state
 end)
 addButton(miscTab, "Anti AFK detection", function()
     local pl = Players.LocalPlayer
@@ -1684,9 +1678,6 @@ addButton(miscTab, "Anti AFK detection", function()
     end
     notify("XDarkHUB", "Anti-AFK activated!")
 end)
-addToggle(miscTab, "Ignore knife throws", function(state)
-    ignoreknifethrow = state
-end)
 
 -- Show first tab
 tabFrames["ESP"].button.BackgroundColor3 = ACCENT.base
@@ -1694,16 +1685,16 @@ tabFrames["ESP"].button.TextColor3 = COL.wht
 tabFrames["ESP"].frame.Visible = true
 currentTab = "ESP"
 
-notify("XDarkHUB", "v41 Loaded!", 3)
-notify("XDarkHUB", "All YARHM functions included!", 3)
-notify("XDarkHUB", "3D Wings + Coin Farming added!", 3)
-
 -- Character Added Listener
-localplayer.CharacterAdded:Connect(function(char)
-    character = char
-    rootPart = char:WaitForChild("HumanoidRootPart")
+localplayer.CharacterAdded:Connect(function(ch)
+    character = ch
+    rootPart = ch:WaitForChild("HumanoidRootPart")
     if wingsEnabled then
         task.wait(2)
         createWings()
     end
 end)
+
+notify("XDarkHUB", "v42 Loaded!", 3)
+notify("XDarkHUB", "All YARHM functions included!", 3)
+notify("XDarkHUB", "3D Wings + Coin Farming added!", 3)
