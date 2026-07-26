@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
 -- ║                         XDarkHUB v34 · FULL MM2 MODULE                       ║
--- ║   ВСЕ ФУНКЦИИ ИЗ YARHM + ПЛАВАЮЩИЕ КНОПКИ + НАШ UI + ВИЗУАЛЬНЫЕ ЭФФЕКТЫ     ║
+-- ║   ИСПРАВЛЕНО: ESP ПО РОЛЯМ + ПЛАВАЮЩИЕ КНОПКИ + СТАТУС РОЛИ                 ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -11,178 +11,12 @@ local VirtualUser = game:GetService("VirtualUser")
 local Debris = game:GetService("Debris")
 local StarterGui = game:GetService("StarterGui")
 local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local localplayer = player
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  GUI INIT (СОЗДАЁТСЯ ПЕРВЫМ!)
--- ═══════════════════════════════════════════════════════════════════════════════
-do local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui") if old then old:Destroy() end end
-local guiUI = Instance.new("ScreenGui")
-guiUI.Name = "AutoFarmGui"
-guiUI.ResetOnSpawn = false
-guiUI.IgnoreGuiInset = true
-guiUI.Parent = player:WaitForChild("PlayerGui")
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  ВИЗУАЛЬНЫЕ ЭФФЕКТЫ (КРЫЛЬЯ, КРУГ, СВЕЧЕНИЕ)
--- ═══════════════════════════════════════════════════════════════════════════════
-local visualEffectsEnabled = false
-local effectAttachments = {}
-
-local function applyVisualEffects()
-    if visualEffectsEnabled then return end
-    visualEffectsEnabled = true
-    
-    pcall(function()
-        for _, att in pairs(effectAttachments) do pcall(function() att:Destroy() end) end
-        effectAttachments = {}
-        
-        local char = localplayer.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        -- ═══ КРЫЛЬЯ СНИЗУ ═══
-        local wingAttach = Instance.new("Attachment")
-        wingAttach.Name = "XDarkHUB_Wings"
-        wingAttach.Position = Vector3.new(0, 0, -1)
-        wingAttach.Parent = hrp
-        
-        local wings = Instance.new("ParticleEmitter")
-        wings.Name = "XDarkHUB_WingParticles"
-        wings.Texture = "rbxassetid://241876428"
-        wings.Rate = 50
-        wings.Lifetime = NumberRange.new(0.5, 1)
-        wings.Speed = NumberRange.new(2, 4)
-        wings.SpreadAngle = Vector2.new(45, 10)
-        wings.Rotation = NumberRange.new(0, 360)
-        wings.RotSpeed = NumberRange.new(-180, 180)
-        wings.Size = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 1.5),
-            NumberSequenceKeypoint.new(1, 0)
-        })
-        wings.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 1)
-        })
-        wings.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 80)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 30, 100)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 150, 255))
-        })
-        wings.LightEmission = 1
-        wings.LightInfluence = 0
-        wings.Parent = wingAttach
-        table.insert(effectAttachments, wingAttach)
-        
-        -- ═══ КРУГ ПОД НОГАМИ ═══
-        local circleBGUI = Instance.new("BillboardGui")
-        circleBGUI.Name = "XDarkHUB_Circle"
-        circleBGUI.Size = UDim2.new(4, 0, 4, 0)
-        circleBGUI.StudsOffset = Vector3.new(0, -3, 0)
-        circleBGUI.AlwaysOnTop = false
-        circleBGUI.Adornee = hrp
-        circleBGUI.Parent = guiUI
-        
-        local circleFrame = Instance.new("Frame")
-        circleFrame.Size = UDim2.new(1, 0, 1, 0)
-        circleFrame.BackgroundTransparency = 1
-        circleFrame.Parent = circleBGUI
-        
-        local circleCorner = Instance.new("UICorner")
-        circleCorner.CornerRadius = UDim.new(1, 0)
-        circleCorner.Parent = circleFrame
-        
-        local circleStroke = Instance.new("UIStroke")
-        circleStroke.Color = Color3.fromRGB(255, 50, 80)
-        circleStroke.Thickness = 3
-        circleStroke.Parent = circleFrame
-        
-        local circleGrad = Instance.new("UIGradient")
-        circleGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 80)),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 30, 100)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 150, 255))
-        })
-        circleGrad.Rotation = 0
-        circleGrad.Parent = circleFrame
-        
-        task.spawn(function()
-            while circleFrame.Parent do
-                for i = 0, 360, 2 do
-                    if not circleFrame.Parent then break end
-                    circleGrad.Rotation = i
-                    task.wait(0.02)
-                end
-            end
-        end)
-        
-        -- ═══ СВЕЧЕНИЕ СВЕРХУ ═══
-        local glowAttach = Instance.new("Attachment")
-        glowAttach.Name = "XDarkHUB_Glow"
-        glowAttach.Position = Vector3.new(0, 3, 0)
-        glowAttach.Parent = hrp
-        
-        local glow = Instance.new("PointLight")
-        glow.Name = "XDarkHUB_PointLight"
-        glow.Color = Color3.fromRGB(255, 50, 80)
-        glow.Brightness = 2
-        glow.Range = 15
-        glow.Parent = glowAttach
-        
-        local glowPart = Instance.new("Part")
-        glowPart.Name = "XDarkHUB_GlowPart"
-        glowPart.Size = Vector3.new(0.5, 0.5, 0.5)
-        glowPart.Shape = Enum.PartType.Ball
-        glowPart.Material = Enum.Material.Neon
-        glowPart.Color = Color3.fromRGB(255, 50, 80)
-        glowPart.Anchored = true
-        glowPart.CanCollide = false
-        glowPart.CastShadow = false
-        glowPart.Parent = workspace
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = glowPart
-        weld.Part1 = hrp
-        weld.Parent = glowPart
-        
-        glowPart.CFrame = hrp.CFrame * CFrame.new(0, 3, 0)
-        table.insert(effectAttachments, glowAttach)
-        
-        task.spawn(function()
-            local up = true
-            while glowPart.Parent do
-                if up then
-                    TweenService:Create(glow, TweenInfo.new(1), {Brightness = 4}):Play()
-                    TweenService:Create(glowPart, TweenInfo.new(1), {Size = Vector3.new(0.8, 0.8, 0.8)}):Play()
-                else
-                    TweenService:Create(glow, TweenInfo.new(1), {Brightness = 2}):Play()
-                    TweenService:Create(glowPart, TweenInfo.new(1), {Size = Vector3.new(0.5, 0.5, 0.5)}):Play()
-                end
-                up = not up
-                task.wait(1)
-            end
-        end)
-    end)
-end
-
-local function removeVisualEffects()
-    pcall(function()
-        for _, att in pairs(effectAttachments) do pcall(function() att:Destroy() end) end
-        effectAttachments = {}
-        for _, v in ipairs(workspace:GetChildren()) do
-            if v.Name == "XDarkHUB_GlowPart" then v:Destroy() end
-        end
-        for _, v in ipairs(guiUI:GetChildren()) do
-            if v.Name == "XDarkHUB_Circle" then v:Destroy() end
-        end
-        visualEffectsEnabled = false
-    end)
-end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
@@ -198,13 +32,14 @@ local isMurderer = false
 local isSheriff = false
 local bagFull = false
 local farmStopped = false
+local farmRunning = false
 local espEnabled = false
 local trapESPEnabled = false
 local gunESPEnabled = false
 local MAX_BAG = 40
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ПЕРЕМЕННЫЕ (ИЗ YARHM)
+--  MM2 ПЕРЕМЕННЫЕ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local playerESP = false
 local sheriffAimbot = false
@@ -234,19 +69,18 @@ local killAuraCon = nil
 local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
-collectSound.Parent = guiUI
+
 local killSound = Instance.new("Sound")
 killSound.SoundId = "rbxassetid://9120392731"
 killSound.Volume = 0.8
-killSound.Parent = guiUI
+
 local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
-deathSound.Parent = guiUI
+
 local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
-clickSnd.Parent = guiUI
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  УВЕДОМЛЕНИЯ
@@ -254,59 +88,153 @@ clickSnd.Parent = guiUI
 local function notify(title, text, duration)
     pcall(function()
         StarterGui:SetCore("SendNotification", {
-            Title = title, Text = text, Duration = duration or 3
+            Title = title,
+            Text = text,
+            Duration = duration or 3
         })
     end)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ФУНКЦИИ (ИЗ YARHM)
+--  GUI / ROLE HELPERS
+-- ═══════════════════════════════════════════════════════════════════════════════
+local gui = nil
+local refreshESP
+local onRolesChanged
+
+local function normalizeRoleName(value)
+    if type(value) == "number" then
+        if value == 1 then return "Sheriff" end
+        if value == 2 then return "Murderer" end
+        if value == 0 then return "Innocent" end
+        return nil
+    end
+
+    if type(value) ~= "string" then return nil end
+
+    local v = value:lower()
+    if v:find("murder") or v:find("killer") then return "Murderer" end
+    if v:find("sheriff") or v:find("hero") or v:find("cop") then return "Sheriff" end
+    if v:find("innocent") or v:find("civilian") or v:find("none") then return "Innocent" end
+
+    return nil
+end
+
+local function readRoleFromTable(tbl)
+    if type(tbl) ~= "table" then return nil end
+
+    return normalizeRoleName(
+        tbl.Role or tbl.role or
+        tbl.RoleName or tbl.rolename or
+        tbl.Status or tbl.status or
+        tbl.Team or tbl.team or
+        tbl.PlayerRole or tbl.playerRole
+    )
+end
+
+local function getPlayerRole(pl)
+    if not pl then return "Innocent" end
+
+    local directKeys = {pl, pl.Name, pl.UserId, pl.DisplayName}
+    for _, key in ipairs(directKeys) do
+        local data = playerData[key]
+        if data ~= nil then
+            if type(data) == "string" or type(data) == "number" then
+                local role = normalizeRoleName(data)
+                if role then return role end
+            elseif type(data) == "table" then
+                local role = readRoleFromTable(data)
+                if role then return role end
+            end
+        end
+    end
+
+    for key, data in pairs(playerData) do
+        local target = nil
+
+        if typeof(key) == "Instance" and key:IsA("Player") then
+            target = key
+        elseif type(key) == "string" then
+            target = Players:FindFirstChild(key)
+            if not target and tostring(pl.UserId) == key then
+                target = pl
+            end
+        end
+
+        if type(data) == "table" then
+            local p = data.Player or data.player or data.PlayerName or data.playerName or data.Name or data.name
+            if typeof(p) == "Instance" and p:IsA("Player") then
+                target = p
+            elseif type(p) == "string" then
+                target = Players:FindFirstChild(p)
+            end
+        end
+
+        if target == pl then
+            if type(data) == "string" or type(data) == "number" then
+                local role = normalizeRoleName(data)
+                if role then return role end
+            elseif type(data) == "table" then
+                local role = readRoleFromTable(data)
+                if role then return role end
+            end
+        end
+    end
+
+    local function hasTool(name)
+        if pl.Backpack and pl.Backpack:FindFirstChild(name) then return true end
+        if pl.Character and pl.Character:FindFirstChild(name) then return true end
+        return false
+    end
+
+    if hasTool("Knife") then return "Murderer" end
+    if hasTool("Gun") or hasTool("Revolver") or hasTool("Pistol") then return "Sheriff" end
+
+    local roleValue = pl:FindFirstChild("Role") or pl:FindFirstChild("PlayerRole") or pl:FindFirstChild("Team")
+    if roleValue and roleValue:IsA("ValueBase") then
+        local role = normalizeRoleName(roleValue.Value)
+        if role then return role end
+    end
+
+    local ls = pl:FindFirstChild("leaderstats")
+    if ls then
+        for _, v in ipairs(ls:GetChildren()) do
+            if v:IsA("ValueBase") and (v.Name:lower():find("role") or v.Name:lower():find("team")) then
+                local role = normalizeRoleName(v.Value)
+                if role then return role end
+            end
+        end
+    end
+
+    return "Innocent"
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  MM2 ФУНКЦИИ
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function findMurderer()
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i.Backpack:FindFirstChild("Knife") then return i end
-    end
-    for _, i in ipairs(Players:GetPlayers()) do
-        if not i.Character then continue end
-        if i.Character:FindFirstChild("Knife") then return i end
-    end
-    if playerData then
-        for pl, data in pairs(playerData) do
-            if data.Role == "Murderer" then
-                if Players:FindFirstChild(pl) then return Players:FindFirstChild(pl) end
-            end
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if getPlayerRole(pl) == "Murderer" then
+            return pl
         end
     end
     return nil
 end
 
 local function findSheriff()
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i.Backpack:FindFirstChild("Gun") then return i end
-    end
-    for _, i in ipairs(Players:GetPlayers()) do
-        if not i.Character then continue end
-        if i.Character:FindFirstChild("Gun") then return i end
-    end
-    if playerData then
-        for pl, data in pairs(playerData) do
-            if data.Role == "Sheriff" then
-                if Players:FindFirstChild(pl) then return Players:FindFirstChild(pl) end
-            end
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if getPlayerRole(pl) == "Sheriff" then
+            return pl
         end
     end
     return nil
 end
 
 local function findSheriffThatsNotMe()
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i == localplayer then continue end
-        if i.Backpack:FindFirstChild("Gun") then return i end
-    end
-    for _, i in ipairs(Players:GetPlayers()) do
-        if i == localplayer then continue end
-        if not i.Character then continue end
-        if i.Character:FindFirstChild("Gun") then return i end
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= localplayer and getPlayerRole(pl) == "Sheriff" then
+            return pl
+        end
     end
     return nil
 end
@@ -323,10 +251,12 @@ end
 local function findNearestPlayer()
     local nearestPlayer = nil
     local shortestDistance = math.huge
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= localplayer and p.Character then
-            local localRootPart = localplayer.Character:FindFirstChild("HumanoidRootPart")
+            local localRootPart = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
             local otherRootPart = p.Character:FindFirstChild("HumanoidRootPart")
+
             if localRootPart and otherRootPart then
                 local distance = (localRootPart.Position - otherRootPart.Position).Magnitude
                 if distance < shortestDistance then
@@ -336,26 +266,36 @@ local function findNearestPlayer()
             end
         end
     end
+
     return nearestPlayer
 end
 
 local function getPredictedPosition(targetPlayer)
-    local p = targetPlayer
-    pcall(function() p = targetPlayer.Character end)
-    local playerHRP = p:FindFirstChild("UpperTorso") or p:FindFirstChild("HumanoidRootPart")
-    local playerHum = p:FindFirstChild("Humanoid")
-    if not playerHRP or not playerHum then return Vector3.new(0,0,0) end
+    local char = targetPlayer and targetPlayer.Character
+    if not char then return Vector3.new(0, 0, 0) end
+
+    local playerHRP = char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
+    local playerHum = char:FindFirstChild("Humanoid")
+    if not playerHRP or not playerHum then return Vector3.new(0, 0, 0) end
+
     local velocity = playerHRP.AssemblyLinearVelocity
     local playerMoveDirection = playerHum.MoveDirection
+
     local predictedPosition = playerHRP.Position + ((velocity * Vector3.new(0.75, 0.5, 0.75))) * (shootOffset / 15) + playerMoveDirection * shootOffset
     predictedPosition = predictedPosition * (((localplayer:GetNetworkPing() * 1000) * ((offsetToPingMult - 1) * 0.01)) + 1)
+
     return predictedPosition
 end
 
 local function getClosestModelToPlayer(pl, models)
+    if not pl or not pl.Character or not pl.Character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+
     local closestModel = nil
     local closestDistance = math.huge
     local playerPosition = pl.Character.HumanoidRootPart.Position
+
     for _, model in ipairs(models) do
         local modelPosition = model:GetPivot().Position
         local distance = (modelPosition - playerPosition).Magnitude
@@ -364,40 +304,46 @@ local function getClosestModelToPlayer(pl, models)
             closestModel = model
         end
     end
+
     return closestModel
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MINI FLING (ИЗ YARHM)
+--  MINI FLING
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
     local Character = player.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
     local RootPart = Humanoid and Humanoid.RootPart
+
     local TCharacter = playerToFling.Character
     local THumanoid, TRootPart, THead, Accessory, Handle
-    
+
     if TCharacter:FindFirstChildOfClass("Humanoid") then
         THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
     end
+
     if THumanoid and THumanoid.RootPart then
         TRootPart = THumanoid.RootPart
     end
+
     if TCharacter:FindFirstChild("Head") then
         THead = TCharacter.Head
     end
+
     if TCharacter:FindFirstChildOfClass("Accessory") then
         Accessory = TCharacter:FindFirstChildOfClass("Accessory")
     end
+
     if Accessory and Accessory:FindFirstChild("Handle") then
         Handle = Accessory.Handle
     end
-    
+
     if Character and Humanoid and RootPart then
         if RootPart.Velocity.Magnitude < 50 then
             getgenv().OldPos = RootPart.CFrame
         end
-        
+
         if THead then
             workspace.CurrentCamera.CameraSubject = THead
         elseif not THead and Handle then
@@ -405,71 +351,91 @@ function miniFling(playerToFling)
         elseif THumanoid and TRootPart then
             workspace.CurrentCamera.CameraSubject = THumanoid
         end
-        
+
         if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
-        
+
         local FPos = function(BasePart, Pos, Ang)
             RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
             Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
             RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
             RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
         end
-        
+
         local SFBasePart = function(BasePart)
             local TimeToWait = 2
             local Time = tick()
             local Angle = 0
+
             repeat
                 if RootPart and THumanoid then
                     if BasePart.Velocity.Magnitude < 50 then
                         Angle = Angle + 100
+
                         FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
                         task.wait()
                     else
                         FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
                         task.wait()
+
                         FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
                         task.wait()
                     end
-                else break end
+                else
+                    break
+                end
             until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= playerToFling.Character or playerToFling.Parent ~= Players or playerToFling.Character ~= TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
         end
-        
-        workspace.FallenPartsDestroyHeight = 0/0
-        
+
+        local oldFallenPartsDestroyHeight = workspace.FallenPartsDestroyHeight
+        workspace.FallenPartsDestroyHeight = -1e6
+
         local BV = Instance.new("BodyVelocity")
         BV.Name = "EpixVel"
         BV.Parent = RootPart
         BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
-        BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+        BV.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-        
+
         if TRootPart and THead then
             if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
                 SFBasePart(THead)
@@ -485,134 +451,224 @@ function miniFling(playerToFling)
         else
             notify("XDarkHUB", "Can't find a proper part to fling.")
         end
-        
+
         BV:Destroy()
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         workspace.CurrentCamera.CameraSubject = Humanoid
-        
+
         repeat
-            RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
-            Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
-            Humanoid:ChangeState("GettingUp")
-            table.foreach(Character:GetChildren(), function(_, x)
+            RootPart.CFrame = getgenv().OldPos * CFrame.new(0, 0.5, 0)
+            Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, 0.5, 0))
+            Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+
+            for _, x in ipairs(Character:GetChildren()) do
                 if x:IsA("BasePart") then
-                    x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                    x.Velocity = Vector3.new()
+                    x.RotVelocity = Vector3.new()
                 end
-            end)
+            end
+
             task.wait()
         until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
-        
-        workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
+
+        workspace.FallenPartsDestroyHeight = oldFallenPartsDestroyHeight
     else
         notify("XDarkHUB", "No valid character.")
     end
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  ESP ФУНКЦИИ (ИСПРАВЛЕНО: gui -> guiUI)
+--  ESP ФУНКЦИИ
 -- ═══════════════════════════════════════════════════════════════════════════════
-local espHighlights = {}
+local espObjects = {}
+local trapHighlights = {}
+local gunHighlight = nil
+local espWatcherRunning = false
+local highlightParent = player:FindFirstChild("PlayerGui")
 
-local function reloadESP()
-    if not playerESP then return end
-    for key, h in pairs(espHighlights) do 
-        if h and h:IsA("Highlight") then 
-            h:Destroy() 
-        end 
+local function clearPlayerHighlight(pl)
+    if espObjects[pl] then
+        pcall(function()
+            espObjects[pl]:Destroy()
+        end)
+        espObjects[pl] = nil
     end
-    espHighlights = {}
-    
-    local listplayers = Players:GetChildren()
-    for _, pl in ipairs(listplayers) do
-        if pl == localplayer and hideMeEsp then continue end
-        if pl.Character ~= nil then
-            local ch = pl.Character
-            task.spawn(function()
+end
+
+refreshESP = function()
+    if not highlightParent then
+        highlightParent = player:FindFirstChild("PlayerGui")
+    end
+
+    if not playerESP then
+        for _, h in pairs(espObjects) do
+            pcall(function()
+                h:Destroy()
+            end)
+        end
+        espObjects = {}
+        return
+    end
+
+    if not highlightParent then return end
+
+    local alive = {}
+
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= localplayer or not hideMeEsp then
+            local char = pl.Character
+
+            if char and char.Parent then
+                alive[pl] = true
+
+                local h = espObjects[pl]
+                if not h or not h.Parent then
+                    h = Instance.new("Highlight")
+                    h.FillTransparency = 0.5
+                    h.OutlineTransparency = 0
+                    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    h.Parent = highlightParent
+                    espObjects[pl] = h
+                end
+
+                h.Adornee = char
+
+                local role = getPlayerRole(pl)
                 local color
-                if pl == findMurderer() then
+
+                if role == "Murderer" then
                     color = Color3.fromRGB(255, 0, 4)
-                elseif pl == findSheriff() then
+                elseif role == "Sheriff" then
                     color = Color3.fromRGB(0, 153, 255)
                 else
                     color = Color3.fromRGB(0, 255, 8)
                 end
-                
-                local h = Instance.new("Highlight")
+
                 h.FillColor = color
                 h.OutlineColor = color
-                h.FillTransparency = 0.5
-                h.OutlineTransparency = 0
-                h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                h.Adornee = ch
-                h.Parent = guiUI
-                espHighlights[ch] = h
-            end)
+            else
+                clearPlayerHighlight(pl)
+            end
+        else
+            clearPlayerHighlight(pl)
+        end
+    end
+
+    for pl in pairs(espObjects) do
+        if not alive[pl] then
+            clearPlayerHighlight(pl)
         end
     end
 end
 
-local function reloadTrapESP()
-    for key, obj in pairs(espHighlights) do
-        if obj and obj.Name and obj.Name:find("Trap") then
-            obj:Destroy()
-            espHighlights[key] = nil
+local function reloadESP()
+    refreshESP()
+end
+
+local function ensureEspWatcher()
+    if espWatcherRunning then return end
+
+    espWatcherRunning = true
+
+    task.spawn(function()
+        while playerESP do
+            pcall(refreshESP)
+            task.wait(0.8)
         end
+
+        espWatcherRunning = false
+    end)
+end
+
+onRolesChanged = function()
+    task.spawn(function()
+        if playerESP then
+            pcall(refreshESP)
+        end
+
+        if updateRoleUI then
+            pcall(updateRoleUI)
+        end
+    end)
+end
+
+local function reloadTrapESP()
+    for _, h in pairs(trapHighlights) do
+        pcall(function()
+            h:Destroy()
+        end)
     end
-    if not trapDetection then return end
+    trapHighlights = {}
+
+    if not highlightParent then
+        highlightParent = player:FindFirstChild("PlayerGui")
+    end
+
+    if not trapDetection or not highlightParent then return end
+
     for _, v in ipairs(workspace:GetDescendants()) do
-        if v.Name == "Trap" and (v.Parent:IsA("Folder") or v.Parent:IsA("Model")) then
-            v.Transparency = 0
+        if v.Name == "Trap" and v.Parent and (v.Parent:IsA("Folder") or v.Parent:IsA("Model")) then
             local h = Instance.new("Highlight")
-            h.Name = "TrapESP_" .. tostring(v)
             h.FillColor = Color3.fromRGB(255, 0, 0)
             h.OutlineColor = Color3.fromRGB(255, 0, 0)
             h.FillTransparency = 0.5
             h.OutlineTransparency = 0
             h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             h.Adornee = v
-            h.Parent = guiUI
-            espHighlights[v] = h
+            h.Parent = highlightParent
+            trapHighlights[v] = h
+
+            if v:IsA("BasePart") then
+                v.Transparency = 0
+            end
         end
     end
 end
 
 local function reloadGunESP()
-    for key, obj in pairs(espHighlights) do
-        if obj and obj.Name and obj.Name:find("Gun") then
-            obj:Destroy()
-            espHighlights[key] = nil
-        end
+    if gunHighlight then
+        pcall(function()
+            gunHighlight:Destroy()
+        end)
+        gunHighlight = nil
     end
-    if not gunDropESP then return end
+
+    if not highlightParent then
+        highlightParent = player:FindFirstChild("PlayerGui")
+    end
+
+    if not gunDropESP or not highlightParent then return end
+
     local map = getMap()
     if map and map:FindFirstChild("GunDrop") then
         local gun = map:FindFirstChild("GunDrop")
-        local h = Instance.new("Highlight")
-        h.Name = "GunESP_" .. tostring(gun)
-        h.FillColor = Color3.fromRGB(255, 255, 0)
-        h.OutlineColor = Color3.fromRGB(255, 255, 0)
-        h.FillTransparency = 0.5
-        h.OutlineTransparency = 0
-        h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        h.Adornee = gun
-        h.Parent = guiUI
-        espHighlights[gun] = h
+
+        gunHighlight = Instance.new("Highlight")
+        gunHighlight.FillColor = Color3.fromRGB(255, 255, 0)
+        gunHighlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+        gunHighlight.FillTransparency = 0.5
+        gunHighlight.OutlineTransparency = 0
+        gunHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        gunHighlight.Adornee = gun
+        gunHighlight.Parent = highlightParent
     end
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  MM2 ДЕЙСТВИЯ (ИЗ YARHM)
+--  MM2 ДЕЙСТВИЯ
 -- ═══════════════════════════════════════════════════════════════════════════════
 function shootMurderer()
     if findSheriff() ~= localplayer then
         notify("XDarkHUB", "You're not sheriff/hero.")
         return
     end
+
     local murderer = findMurderer() or findSheriffThatsNotMe()
-    if not murderer then
+    if not murderer or not murderer.Character then
         notify("XDarkHUB", "No murderer to shoot.")
         return
     end
+
     if not localplayer.Character:FindFirstChild("Gun") then
         local hum = localplayer.Character:FindFirstChild("Humanoid")
         if localplayer.Backpack:FindFirstChild("Gun") then
@@ -622,25 +678,34 @@ function shootMurderer()
             return
         end
     end
+
     local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
     if not murdererHRP then
         notify("XDarkHUB", "Could not find murderer's HRP.")
         return
     end
+
     local predictedPosition = getPredictedPosition(murderer)
+    local rightHand = localplayer.Character:FindFirstChild("RightHand")
+    local origin = rightHand and rightHand.Position or localplayer.Character:GetPivot().Position
+
     local args
     if instakillshoot then
         args = {
-            CFrame.new(murdererHRP.Position + Vector3.new(0,1,0)),
+            CFrame.new(murdererHRP.Position + Vector3.new(0, 1, 0)),
             CFrame.new(murdererHRP.Position)
         }
     else
         args = {
-            CFrame.new(localplayer.Character.RightHand.Position),
+            CFrame.new(origin),
             CFrame.new(predictedPosition)
         }
     end
-    localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
+
+    pcall(function()
+        localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
+    end)
+
     notify("XDarkHUB", "Shot fired!")
 end
 
@@ -649,6 +714,7 @@ function knifeThrow()
         notify("XDarkHUB", "You're not murderer.")
         return
     end
+
     if not localplayer.Character:FindFirstChild("Knife") then
         local hum = localplayer.Character:FindFirstChild("Humanoid")
         if localplayer.Backpack:FindFirstChild("Knife") then
@@ -658,21 +724,32 @@ function knifeThrow()
             return
         end
     end
+
     local NearestPlayer = findNearestPlayer()
     if not NearestPlayer or not NearestPlayer.Character then
         notify("XDarkHUB", "Can't find a player.")
         return
     end
+
     local nearestHRP = NearestPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not nearestHRP then return end
+
+    local rightHand = localplayer.Character:FindFirstChild("RightHand")
+    local origin = rightHand and rightHand.Position or localplayer.Character:GetPivot().Position
+
     local argsThrowRemote = {
-        CFrame.new(localplayer.Character.RightHand.Position),
-        CFrame.new(getPredictedPosition(NearestPlayer, shootOffset + 1))
+        CFrame.new(origin),
+        CFrame.new(getPredictedPosition(NearestPlayer))
     }
+
     if spawnAtPlayer then
         argsThrowRemote[1] = CFrame.new(nearestHRP.Position + (nearestHRP.CFrame.LookVector * 5))
     end
-    localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
+
+    pcall(function()
+        localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
+    end)
+
     notify("XDarkHUB", "Knife thrown!")
 end
 
@@ -681,27 +758,36 @@ function killClosest()
         notify("XDarkHUB", "You're not murderer.")
         return
     end
+
     if not localplayer.Character:FindFirstChild("Knife") then
         local hum = localplayer.Character:FindFirstChild("Humanoid")
         if localplayer.Backpack:FindFirstChild("Knife") then
-            localplayer.Character:FindFirstChild("Humanoid"):EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
+            hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
         else
             notify("XDarkHUB", "You don't have the knife.")
             return
         end
     end
+
     local NearestPlayer = findNearestPlayer()
     if not NearestPlayer or not NearestPlayer.Character then
         notify("XDarkHUB", "Can't find a player.")
         return
     end
+
     local nearestHRP = NearestPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not nearestHRP then return end
+    local myHRP = localplayer.Character:FindFirstChild("HumanoidRootPart")
+    if not nearestHRP or not myHRP then return end
+
     nearestHRP.Anchored = true
-    nearestHRP.CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 2
+    nearestHRP.CFrame = myHRP.CFrame + myHRP.CFrame.LookVector * 2
+
     task.wait(0.1)
-    local args = {[1] = "Slash"}
-    localplayer.Character.Knife.Stab:FireServer(unpack(args))
+
+    pcall(function()
+        localplayer.Character:WaitForChild("Knife"):WaitForChild("Stab"):FireServer("Slash")
+    end)
+
     notify("XDarkHUB", "Killed closest!")
 end
 
@@ -710,23 +796,31 @@ function killEveryone()
         notify("XDarkHUB", "You're not murderer.")
         return
     end
+
     if not localplayer.Character:FindFirstChild("Knife") then
         local hum = localplayer.Character:FindFirstChild("Humanoid")
         if localplayer.Backpack:FindFirstChild("Knife") then
-            localplayer.Character:FindFirstChild("Humanoid"):EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
+            hum:EquipTool(localplayer.Backpack:FindFirstChild("Knife"))
         else
             notify("XDarkHUB", "You don't have the knife.")
             return
         end
     end
+
+    local myHRP = localplayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+
     for _, p in ipairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p ~= localplayer then
-            p.Character:FindFirstChild("HumanoidRootPart").Anchored = true
-            p.Character:FindFirstChild("HumanoidRootPart").CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 1
+        if p ~= localplayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character.HumanoidRootPart.Anchored = true
+            p.Character.HumanoidRootPart.CFrame = myHRP.CFrame + myHRP.CFrame.LookVector * 1
         end
     end
-    local args = {[1] = "Slash"}
-    localplayer.Character.Knife.Stab:FireServer(unpack(args))
+
+    pcall(function()
+        localplayer.Character:WaitForChild("Knife"):WaitForChild("Stab"):FireServer("Slash")
+    end)
+
     notify("XDarkHUB", "Killed everyone!")
 end
 
@@ -735,12 +829,17 @@ function holdHostage()
         notify("XDarkHUB", "You're not murderer.")
         return
     end
+
+    local myHRP = localplayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+
     for _, p in ipairs(Players:GetPlayers()) do
-        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p ~= localplayer then
-            p.Character:FindFirstChild("HumanoidRootPart").Anchored = true
-            p.Character:FindFirstChild("HumanoidRootPart").CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 5
+        if p ~= localplayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character.HumanoidRootPart.Anchored = true
+            p.Character.HumanoidRootPart.CFrame = myHRP.CFrame + myHRP.CFrame.LookVector * 5
         end
     end
+
     notify("XDarkHUB", "All players held hostage!")
 end
 
@@ -748,24 +847,36 @@ function godMode()
     local Cam = workspace.CurrentCamera
     local Pos, Char = Cam.CFrame, localplayer.Character
     local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
+
+    if not Human then
+        notify("XDarkHUB", "No humanoid.")
+        return
+    end
+
     local nHuman = Human:Clone()
     nHuman.Parent = Char
+
     localplayer.Character = nil
     nHuman:SetStateEnabled(15, false)
     nHuman:SetStateEnabled(1, false)
     nHuman:SetStateEnabled(0, false)
     nHuman.BreakJointsOnDeath = true
+
     Human:Destroy()
+
     localplayer.Character = Char
     Cam.CameraSubject = nHuman
     Cam.CFrame = Pos
+
     nHuman.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+
     local Script = Char:FindFirstChild("Animate")
     if Script then
         Script.Disabled = true
         task.wait()
         Script.Disabled = false
     end
+
     nHuman.Health = nHuman.MaxHealth
     notify("XDarkHUB", "God mode activated!")
 end
@@ -776,16 +887,18 @@ function teleportToGun()
         notify("XDarkHUB", "No dropped gun.")
         return
     end
+
     local previousPosition = localplayer.Character:GetPivot()
     localplayer.Character:PivotTo(map:FindFirstChild("GunDrop"):GetPivot())
     localplayer.Backpack.ChildAdded:Wait()
     localplayer.Character:PivotTo(previousPosition)
+
     notify("XDarkHUB", "Gun collected!")
 end
 
 function teleportToLobby()
     local lobby = workspace:FindFirstChild("Lobby")
-    if lobby then
+    if lobby and lobby:FindFirstChild("Spawns") then
         local spawn = lobby.Spawns:FindFirstChildWhichIsA("SpawnLocation")
         if spawn then
             localplayer.Character:MoveTo(spawn.Position)
@@ -800,26 +913,38 @@ function teleportToMap()
         notify("XDarkHUB", "No map to teleport to.")
         return
     end
+
     local spawnsFolder = map:FindFirstChild("Spawns")
     if spawnsFolder then
         local spawns = spawnsFolder:GetChildren()
-        local randomSpawn = spawns[math.random(1, #spawns)]
-        localplayer.Character:MoveTo(randomSpawn.Position)
-        notify("XDarkHUB", "Teleported to map!")
+        if #spawns > 0 then
+            local randomSpawn = spawns[math.random(1, #spawns)]
+            localplayer.Character:MoveTo(randomSpawn.Position)
+            notify("XDarkHUB", "Teleported to map!")
+        end
     end
 end
 
 function sendNamesToChat()
     local murd = findMurderer()
     local sher = findSheriff()
+
     local murdName = murd and murd.Name or "-"
     local sherName = sher and sher.Name or "-"
+
     local message = string.format("Murderer: %s | Sheriff: %s | <<XDarkHUB>>", murdName, sherName)
-    local textchannels = TextChatService:WaitForChild("TextChannels"):GetChildren()
-    for _, textchannel in ipairs(textchannels) do
-        if textchannel.Name == "RBXSystem" then continue end
-        pcall(function() textchannel:SendAsync(message) end)
-    end
+
+    pcall(function()
+        local textchannels = TextChatService:WaitForChild("TextChannels"):GetChildren()
+        for _, textchannel in ipairs(textchannels) do
+            if textchannel.Name ~= "RBXSystem" then
+                pcall(function()
+                    textchannel:SendAsync(message)
+                end)
+            end
+        end
+    end)
+
     notify("XDarkHUB", "Names sent to chat!")
 end
 
@@ -829,6 +954,7 @@ function copyMurdererName()
         notify("XDarkHUB", "No murderer to copy.")
         return
     end
+
     if setclipboard then
         setclipboard(murd.Name)
         notify("XDarkHUB", "Copied: " .. murd.Name)
@@ -841,6 +967,7 @@ function copySheriffName()
         notify("XDarkHUB", "No sheriff to copy.")
         return
     end
+
     if setclipboard then
         setclipboard(sher.Name)
         notify("XDarkHUB", "Copied: " .. sher.Name)
@@ -848,21 +975,28 @@ function copySheriffName()
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  AUTO SHOOT LOOP (ИЗ YARHM)
+--  AUTO SHOOT LOOP
 -- ═══════════════════════════════════════════════════════════════════════════════
 task.spawn(function()
     while task.wait(1) do
         if findSheriff() == localplayer and autoShooting then
             repeat
                 task.wait(0.1)
+
                 local murderer = findMurderer()
-                if not murderer then continue end
-                local murdererPosition = murderer.Character.HumanoidRootPart.Position
-                local characterRootPart = localplayer.Character.HumanoidRootPart
+                if not murderer or not murderer.Character then continue end
+
+                local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
+                local characterRootPart = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
+                if not murdererHRP or not characterRootPart then continue end
+
+                local murdererPosition = murdererHRP.Position
                 local rayDirection = murdererPosition - characterRootPart.Position
+
                 local raycastParams = RaycastParams.new()
                 raycastParams.FilterType = Enum.RaycastFilterType.Exclude
                 raycastParams.FilterDescendantsInstances = {localplayer.Character}
+
                 local hit = workspace:Raycast(characterRootPart.Position, rayDirection, raycastParams)
                 if not hit or hit.Instance.Parent == murderer.Character then
                     if not localplayer.Character:FindFirstChild("Gun") then
@@ -873,13 +1007,16 @@ task.spawn(function()
                             continue
                         end
                     end
-                    local murdererHRP = murderer.Character:FindFirstChild("HumanoidRootPart")
-                    if not murdererHRP then continue end
+
                     local predictedPosition = getPredictedPosition(murderer)
+                    local rightHand = localplayer.Character:FindFirstChild("RightHand")
+                    local origin = rightHand and rightHand.Position or localplayer.Character:GetPivot().Position
+
                     local args = {
-                        CFrame.new(localplayer.Character.RightHand.Position),
+                        CFrame.new(origin),
                         CFrame.new(predictedPosition)
                     }
+
                     pcall(function()
                         localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
                     end)
@@ -895,7 +1032,9 @@ end)
 task.spawn(function()
     while task.wait(1.5) do
         if loopThrow then
-            pcall(function() knifeThrow() end)
+            pcall(function()
+                knifeThrow()
+            end)
         end
     end
 end)
@@ -906,17 +1045,26 @@ end)
 function toggleKillAura(state)
     if state then
         if killAuraCon then killAuraCon:Disconnect() end
+
         killAuraCon = RunService.Heartbeat:Connect(function()
             if findMurderer() ~= localplayer then return end
+
+            local myHRP = localplayer.Character and localplayer.Character:FindFirstChild("HumanoidRootPart")
+            if not myHRP then return end
+
             for _, p in ipairs(Players:GetPlayers()) do
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p ~= localplayer then
-                    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    if (hrp.Position - localplayer.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude < 7 then
+                if p ~= localplayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = p.Character.HumanoidRootPart
+                    if (hrp.Position - myHRP.Position).Magnitude < 7 then
                         hrp.Anchored = true
-                        hrp.CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 2
+                        hrp.CFrame = myHRP.CFrame + myHRP.CFrame.LookVector * 2
+
                         task.wait(0.1)
-                        local args = {[1] = "Slash"}
-                        pcall(function() localplayer.Character.Knife.Stab:FireServer(unpack(args)) end)
+
+                        pcall(function()
+                            localplayer.Character:WaitForChild("Knife"):WaitForChild("Stab"):FireServer("Slash")
+                        end)
+
                         return
                     end
                 end
@@ -929,21 +1077,28 @@ function toggleKillAura(state)
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  AUTO GET GUN ON DROP (ИЗ YARHM)
+--  AUTO GET GUN ON DROP / TRAP WATCHER
 -- ═══════════════════════════════════════════════════════════════════════════════
 workspace.DescendantAdded:Connect(function(ch)
-    if trapDetection and ch.Name == "Trap" and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
-        ch.Transparency = 0
+    if trapDetection and ch.Name == "Trap" and ch.Parent and (ch.Parent:IsA("Folder") or ch.Parent:IsA("Model")) then
+        if ch:IsA("BasePart") then
+            ch.Transparency = 0
+        end
+
         reloadTrapESP()
         notify("XDarkHUB", "Murderer has placed a trap!")
     end
+
     if gunDropESP and ch.Name == "GunDrop" then
         reloadGunESP()
         notify("XDarkHUB", "Gun has been dropped!")
+
         if autoGetDroppedGun then
             task.wait(1)
+
             local map = getMap()
             if not map or not map:FindFirstChild("GunDrop") then return end
+
             local previousPosition = localplayer.Character:GetPivot()
             localplayer.Character:MoveTo(map:FindFirstChild("GunDrop").Position)
             localplayer.Backpack.ChildAdded:Wait()
@@ -955,6 +1110,10 @@ end)
 workspace.DescendantRemoving:Connect(function(ch)
     if gunDropESP and ch.Name == "GunDrop" then
         reloadGunESP()
+    end
+
+    if trapDetection and ch.Name == "Trap" then
+        reloadTrapESP()
     end
 end)
 
@@ -968,96 +1127,265 @@ workspace.ChildAdded:Connect(function(chi)
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  PLAYER DATA LISTENER (ИЗ YARHM)
+--  ROLE DATA LISTENER / REMOTE HOOKS
 -- ═══════════════════════════════════════════════════════════════════════════════
+local function applyRolePayload(payload, sourceName)
+    local changed = false
+
+    local function setRole(pl, raw)
+        local role = normalizeRoleName(raw)
+        if pl and role then
+            playerData[pl] = role
+            playerData[pl.Name] = role
+            playerData[pl.UserId] = role
+            changed = true
+        end
+    end
+
+    if type(payload) == "table" then
+        local explicit = readRoleFromTable(payload)
+        if explicit then
+            setRole(localplayer, explicit)
+        end
+
+        for k, v in pairs(payload) do
+            local target = nil
+
+            if typeof(k) == "Instance" and k:IsA("Player") then
+                target = k
+            elseif type(k) == "string" then
+                target = Players:FindFirstChild(k)
+            end
+
+            if target then
+                if type(v) == "table" then
+                    setRole(target, readRoleFromTable(v))
+                else
+                    setRole(target, v)
+                end
+            elseif type(v) == "table" then
+                local p = v.Player or v.player or v.PlayerName or v.playerName or v.Name or v.name
+
+                if typeof(p) == "Instance" and p:IsA("Player") then
+                    target = p
+                elseif type(p) == "string" then
+                    target = Players:FindFirstChild(p)
+                end
+
+                if target then
+                    setRole(target, readRoleFromTable(v))
+                end
+            end
+        end
+    elseif type(payload) == "string" or type(payload) == "number" then
+        local rn = tostring(sourceName or ""):lower()
+        if rn:find("role") or rn:find("playerdata") or rn:find("gamedata") or rn:find("game") then
+            setRole(localplayer, payload)
+        end
+    end
+
+    if changed and onRolesChanged then
+        onRolesChanged()
+    end
+end
+
 pcall(function()
-    if game.ReplicatedStorage:FindFirstChild("Remotes") then
-        local remotes = game.ReplicatedStorage:WaitForChild("Remotes")
-        if remotes:FindFirstChild("Gameplay") then
-            local pdEvent = remotes.Gameplay:FindFirstChild("PlayerDataChanged")
-            if pdEvent then
-                pdEvent.OnClientEvent:Connect(function(data)
-                    playerData = data
-                    if playerESP then reloadESP() end
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if remotes then
+        local gameplay = remotes:FindFirstChild("Gameplay")
+        if gameplay then
+            local pd = gameplay:FindFirstChild("PlayerDataChanged")
+            if pd and pd:IsA("RemoteEvent") then
+                pd.OnClientEvent:Connect(function(...)
+                    for _, arg in ipairs({...}) do
+                        applyRolePayload(arg, "PlayerDataChanged")
+                    end
                 end)
             end
         end
     end
 end)
 
+pcall(function()
+    local connected = {}
+
+    local function hookRemote(inst)
+        if connected[inst] then return end
+
+        if inst:IsA("RemoteEvent") then
+            connected[inst] = true
+
+            pcall(function()
+                inst.OnClientEvent:Connect(function(...)
+                    for _, arg in ipairs({...}) do
+                        applyRolePayload(arg, inst.Name)
+                    end
+                end)
+            end)
+        end
+    end
+
+    for _, inst in ipairs(ReplicatedStorage:GetDescendants()) do
+        hookRemote(inst)
+    end
+
+    ReplicatedStorage.DescendantAdded:Connect(hookRemote)
+end)
+
+local hookedPlayers = {}
+
+local function hookPlayerRoleEvents(pl)
+    if hookedPlayers[pl] then return end
+    hookedPlayers[pl] = true
+
+    pcall(function()
+        pl.CharacterAdded:Connect(function(char)
+            task.wait(0.1)
+
+            if onRolesChanged then
+                onRolesChanged()
+            end
+
+            pcall(function()
+                char.ChildAdded:Connect(function()
+                    task.wait(0.05)
+                    if onRolesChanged then onRolesChanged() end
+                end)
+
+                char.ChildRemoved:Connect(function()
+                    task.wait(0.05)
+                    if onRolesChanged then onRolesChanged() end
+                end)
+            end)
+        end)
+    end)
+
+    pcall(function()
+        if pl.Backpack then
+            pl.Backpack.ChildAdded:Connect(function()
+                if onRolesChanged then onRolesChanged() end
+            end)
+
+            pl.Backpack.ChildRemoved:Connect(function()
+                if onRolesChanged then onRolesChanged() end
+            end)
+        end
+    end)
+
+    if pl.Character and onRolesChanged then
+        task.spawn(function()
+            onRolesChanged()
+        end)
+    end
+end
+
+for _, pl in ipairs(Players:GetPlayers()) do
+    hookPlayerRoleEvents(pl)
+end
+
+Players.PlayerAdded:Connect(hookPlayerRoleEvents)
+
+Players.PlayerRemoving:Connect(function(pl)
+    hookedPlayers[pl] = nil
+    playerData[pl] = nil
+    playerData[pl.Name] = nil
+    playerData[pl.UserId] = nil
+
+    if clearPlayerHighlight then
+        clearPlayerHighlight(pl)
+    end
+end)
+
+player.CharacterAdded:Connect(function()
+    playerData = {}
+    task.wait(0.25)
+
+    if onRolesChanged then
+        onRolesChanged()
+    end
+end)
+
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLOATING BUTTONS SYSTEM (КРАСИВЫЕ ПОЛУПРОЗРАЧНЫЕ С ЭФФЕКТОМ)
+--  FLOATING BUTTONS SYSTEM
 -- ═══════════════════════════════════════════════════════════════════════════════
 local floatingButtons = {}
 
 local function createFloatingButton(name, text, color, callback, position)
+    if not gui then
+        notify("XDarkHUB", "GUI ещё не готов")
+        return
+    end
+
     if floatingButtons[name] then
         floatingButtons[name]:Destroy()
         floatingButtons[name] = nil
     end
-    
+
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 160, 0, 55)
+    button.Size = UDim2.new(0, 150, 0, 50)
     button.Position = position or UDim2.new(0, 125, 0, 90)
-    button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    button.BackgroundTransparency = 0.4
+    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextScaled = true
     button.Font = Enum.Font.GothamBold
     button.AutoButtonColor = false
     button.ClipsDescendants = true
-    button.Parent = guiUI
-    
+    button.Visible = true
+    button.ZIndex = 100
+    button.Parent = gui
+
     local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 12)
-    
+    corner.CornerRadius = UDim.new(0, 10)
+
     local stroke = Instance.new("UIStroke", button)
-    stroke.Color = Color3.fromRGB(255, 50, 80)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
     stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    
-    local grad = Instance.new("UIGradient", button)
-    grad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 80)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150, 30, 100)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 150, 255))
-    }
-    grad.Rotation = 45
-    grad.Transparency = NumberSequence.new{
-        NumberSequenceKeypoint.new(0, 0.7),
-        NumberSequenceKeypoint.new(0.5, 0.85),
-        NumberSequenceKeypoint.new(1, 0.7)
-    }
-    
-    task.spawn(function()
-        local rot = 45
-        while button.Parent do
-            rot = rot + 0.5
-            grad.Rotation = rot
-            task.wait(0.05)
-        end
-    end)
-    
+
     button.MouseButton1Click:Connect(function()
         clickSnd:Play()
         callback()
     end)
-    
-    button.MouseEnter:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
+
+    button.MouseButton1Down:Connect(function(x, y)
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 145, 0, 48)}):Play()
+
+        local ripple = Instance.new("Frame")
+        ripple.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.BackgroundTransparency = 1
+        ripple.Position = UDim2.fromOffset(x - button.AbsolutePosition.X, y - button.AbsolutePosition.Y)
+        ripple.Size = UDim2.fromOffset(50, 50)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.ZIndex = 101
+        ripple.Parent = button
+
+        local rippleCorner = Instance.new("UICorner", ripple)
+        rippleCorner.CornerRadius = UDim.new(1, 0)
+
+        TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.6,
+            Size = UDim2.fromOffset(150, 150)
+        }):Play()
+
+        task.spawn(function()
+            task.wait(0.5)
+            if ripple and ripple.Parent then
+                ripple:Destroy()
+            end
+        end)
     end)
-    button.MouseLeave:Connect(function()
-        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0, 150, 0, 50)}):Play()
+        end
     end)
-    
+
     local dragging = false
     local dragStart = nil
     local startPos = nil
-    
+
     button.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -1065,7 +1393,7 @@ local function createFloatingButton(name, text, color, callback, position)
             startPos = button.Position
         end
     end)
-    
+
     UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
@@ -1077,30 +1405,35 @@ local function createFloatingButton(name, text, color, callback, position)
             )
         end
     end)
-    
+
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
-    
+
     button.Size = UDim2.new(0, 0, 0, 0)
+
     TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 160, 0, 55)
+        Size = UDim2.new(0, 150, 0, 50)
     }):Play()
-    
+
     floatingButtons[name] = button
     notify("XDarkHUB", "Button created: " .. text)
+
     return button
 end
 
 local function removeFloatingButton(name)
     if floatingButtons[name] then
         local button = floatingButtons[name]
+
         TweenService:Create(button, TweenInfo.new(0.3), {Size = UDim2.new(0, 0, 0, 0)}):Play()
         task.wait(0.3)
+
         button:Destroy()
         floatingButtons[name] = nil
+
         notify("XDarkHUB", "Button removed: " .. name)
     end
 end
@@ -1119,6 +1452,7 @@ local C_COL = {
     wht = Color3.fromRGB(255, 255, 255),
     dim = Color3.fromRGB(65, 65, 80),
 }
+
 local A_COL = {
     base = Color3.fromRGB(235, 35, 60),
     dim = Color3.fromRGB(65, 12, 24),
@@ -1127,20 +1461,58 @@ local A_COL = {
     soft = Color3.fromRGB(190, 45, 70),
 }
 
-local function crn(o, r) local c = Instance.new("UICorner", o) c.CornerRadius = UDim.new(0, r or 8) end
-local function stk(o, c, t, tr) local s = Instance.new("UIStroke", o) s.Color = c s.Thickness = t or 1 s.Transparency = tr or 0 end
-local function grd(o, cs, rot) local g = Instance.new("UIGradient", o) g.Color = ColorSequence.new(cs) g.Rotation = rot or 0 end
-local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play end
+local function crn(o, r)
+    local c = Instance.new("UICorner", o)
+    c.CornerRadius = UDim.new(0, r or 8)
+end
 
--- Background particles
+local function stk(o, c, t, tr)
+    local s = Instance.new("UIStroke", o)
+    s.Color = c
+    s.Thickness = t or 1
+    s.Transparency = tr or 0
+end
+
+local function grd(o, cs, rot)
+    local g = Instance.new("UIGradient", o)
+    g.Color = ColorSequence.new(cs)
+    g.Rotation = rot or 0
+end
+
+local function ani(o, p, t, s)
+    TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play()
+end
+
+do
+    local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui")
+    if old then old:Destroy() end
+end
+
+local guiUI = Instance.new("ScreenGui")
+guiUI.Name = "AutoFarmGui"
+guiUI.ResetOnSpawn = false
+guiUI.IgnoreGuiInset = true
+guiUI.DisplayOrder = 999999
+guiUI.Parent = player:WaitForChild("PlayerGui")
+
+gui = guiUI
+
+collectSound.Parent = guiUI
+killSound.Parent = guiUI
+deathSound.Parent = guiUI
+clickSnd.Parent = guiUI
+
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C_COL.bg
 bgF.BackgroundTransparency = 0.08
 bgF.BorderSizePixel = 0
 bgF.ZIndex = 0
+bgF.Active = false
+bgF.InputTransparent = true
 bgF.Parent = guiUI
 crn(bgF, 0)
+
 grd(bgF, {
     ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 4, 14)),
     ColorSequenceKeypoint.new(0.5, Color3.fromRGB(8, 8, 12)),
@@ -1157,6 +1529,7 @@ task.spawn(function()
 end)
 
 local pCols = {A_COL.base, A_COL.neo, A_COL.lit, Color3.fromRGB(255, 20, 40), Color3.fromRGB(255, 115, 135)}
+
 for i = 1, 28 do
     local sz = math.random(2, 11)
     local p = Instance.new("Frame")
@@ -1166,8 +1539,11 @@ for i = 1, 28 do
     p.BackgroundTransparency = math.random(45, 82) / 100
     p.BorderSizePixel = 0
     p.ZIndex = 0
+    p.Active = false
+    p.InputTransparent = true
     p.Parent = bgF
     crn(p, math.random(1, 5))
+
     task.spawn(function()
         while p.Parent do
             local d = math.random(16, 36)
@@ -1180,7 +1556,6 @@ for i = 1, 28 do
     end)
 end
 
--- Main frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
 frame.Position = UDim2.new(0.5, -400, 0.5, -300)
@@ -1204,9 +1579,12 @@ crn(topLine, 1)
 
 frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-ani(frame, {Size = UDim2.new(0, 800, 0, 600), Position = UDim2.new(0.5, -400, 0.5, -300)}, 0.6, Enum.EasingStyle.Back)
 
--- Header
+ani(frame, {
+    Size = UDim2.new(0, 800, 0, 600),
+    Position = UDim2.new(0.5, -400, 0.5, -300)
+}, 0.6, Enum.EasingStyle.Back)
+
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 60)
 tBar.BackgroundColor3 = C_COL.panel
@@ -1216,6 +1594,7 @@ tBar.Active = true
 tBar.ZIndex = 2
 tBar.Parent = frame
 crn(tBar, 10)
+
 grd(tBar, {
     ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 14, 24)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 10, 16))
@@ -1274,26 +1653,31 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- Dragging
 do
     local dr, ds, sp = false, nil, nil
+
     tBar.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dr = true; ds = i.Position; sp = frame.Position
+            dr = true
+            ds = i.Position
+            sp = frame.Position
         end
     end)
+
     UserInputService.InputChanged:Connect(function(i)
         if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
             local d = i.Position - ds
             frame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
         end
     end)
+
     UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dr = false
+        end
     end)
 end
 
--- Container
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -65)
 ctr.Position = UDim2.new(0, 0, 0, 65)
@@ -1324,7 +1708,6 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- Tabs
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -1342,7 +1725,7 @@ local function createTab(name, icon, order)
     btn.AutoButtonColor = false
     btn.Parent = lPan
     crn(btn, 10)
-    
+
     local ind = Instance.new("Frame")
     ind.Size = UDim2.new(0, 3, 0, 30)
     ind.Position = UDim2.new(0, 0, 0.5, -15)
@@ -1352,7 +1735,7 @@ local function createTab(name, icon, order)
     ind.ZIndex = 6
     ind.Parent = btn
     crn(ind, 2)
-    
+
     local ic = Instance.new("TextLabel")
     ic.Size = UDim2.new(0, 40, 1, 0)
     ic.Position = UDim2.new(0, 15, 0, 0)
@@ -1363,7 +1746,7 @@ local function createTab(name, icon, order)
     ic.TextColor3 = C_COL.mut
     ic.ZIndex = 6
     ic.Parent = btn
-    
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -60, 1, 0)
     lbl.Position = UDim2.new(0, 55, 0, 0)
@@ -1375,21 +1758,23 @@ local function createTab(name, icon, order)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 6
     lbl.Parent = btn
-    
+
     tabs[name] = {btn = btn, ic = ic, ind = ind, lbl = lbl}
-    
+
     btn.MouseEnter:Connect(function()
         if currentTab ~= name then
             ani(btn, {BackgroundTransparency = 0.3}, 0.15)
             ani(ic, {TextColor3 = C_COL.txt}, 0.15)
         end
     end)
+
     btn.MouseLeave:Connect(function()
         if currentTab ~= name then
             ani(btn, {BackgroundTransparency = 1}, 0.15)
             ani(ic, {TextColor3 = C_COL.mut}, 0.15)
         end
     end)
+
     return btn
 end
 
@@ -1405,14 +1790,17 @@ local function createTabContent(name)
     c.Visible = false
     c.ZIndex = 2
     c.Parent = rPan
+
     local p = Instance.new("UIPadding", c)
     p.PaddingLeft = UDim.new(0, 25)
     p.PaddingRight = UDim.new(0, 25)
     p.PaddingTop = UDim.new(0, 20)
     p.PaddingBottom = UDim.new(0, 20)
+
     local l = Instance.new("UIListLayout", c)
     l.SortOrder = Enum.SortOrder.LayoutOrder
     l.Padding = UDim.new(0, 12)
+
     tabContents[name] = c
 end
 
@@ -1424,6 +1812,7 @@ local function switchTab(name)
         t.lbl.TextColor3 = C_COL.mut
         t.ind.BackgroundTransparency = 1
     end
+
     if tabs[name] then
         tabs[name].btn.BackgroundTransparency = 0.35
         tabs[name].btn.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
@@ -1432,6 +1821,7 @@ local function switchTab(name)
         tabs[name].ind.BackgroundTransparency = 0
         tabs[name].ind.BackgroundColor3 = A_COL.neo
     end
+
     for n, c in pairs(tabContents) do
         if n == name then
             c.Visible = true
@@ -1441,6 +1831,7 @@ local function switchTab(name)
             c.Visible = false
         end
     end
+
     currentTab = name
 end
 
@@ -1449,9 +1840,11 @@ createTab("Murderer", "🔪", 2)
 createTab("ESP", "👁️", 3)
 createTab("Player", "🎯", 4)
 createTab("Farm", "⚙️", 5)
-createTab("Visual", "✨", 6)
 
-for n in pairs(tabs) do createTabContent(n) end
+for n in pairs(tabs) do
+    createTabContent(n)
+end
+
 for n, t in pairs(tabs) do
     t.btn.MouseButton1Click:Connect(function()
         clickSnd:Play()
@@ -1459,7 +1852,6 @@ for n, t in pairs(tabs) do
     end)
 end
 
--- UI Components
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 26)
@@ -1472,6 +1864,7 @@ local function secT(par, ord, txt)
     l.LayoutOrder = ord
     l.ZIndex = 2
     l.Parent = par
+
     local ln = Instance.new("Frame")
     ln.Size = UDim2.new(1, 0, 0, 1)
     ln.BackgroundColor3 = A_COL.base
@@ -1489,6 +1882,7 @@ local function statR(par, ord, name)
     r.LayoutOrder = ord
     r.ZIndex = 2
     r.Parent = par
+
     local ln = Instance.new("Frame")
     ln.Size = UDim2.new(1, 0, 0, 1)
     ln.Position = UDim2.new(0, 0, 1, 0)
@@ -1497,6 +1891,7 @@ local function statR(par, ord, name)
     ln.BorderSizePixel = 0
     ln.ZIndex = 2
     ln.Parent = r
+
     local dot = Instance.new("Frame")
     dot.Size = UDim2.new(0, 5, 0, 5)
     dot.Position = UDim2.new(0, 0, 0.5, -2.5)
@@ -1505,6 +1900,7 @@ local function statR(par, ord, name)
     dot.ZIndex = 2
     dot.Parent = r
     crn(dot, 3)
+
     local n = Instance.new("TextLabel")
     n.Size = UDim2.new(0.6, 0, 1, 0)
     n.Position = UDim2.new(0, 18, 0, 0)
@@ -1516,6 +1912,7 @@ local function statR(par, ord, name)
     n.TextXAlignment = Enum.TextXAlignment.Left
     n.ZIndex = 2
     n.Parent = r
+
     local v = Instance.new("TextLabel")
     v.Size = UDim2.new(0.4, -18, 1, 0)
     v.Position = UDim2.new(0.6, 0, 0, 0)
@@ -1527,6 +1924,7 @@ local function statR(par, ord, name)
     v.TextXAlignment = Enum.TextXAlignment.Right
     v.ZIndex = 2
     v.Parent = r
+
     return v
 end
 
@@ -1534,9 +1932,11 @@ local function togC(par, ord, label, onTog)
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
     cd.BackgroundTransparency = 1
+    cd.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
     cd.LayoutOrder = ord
     cd.ZIndex = 2
     cd.Parent = par
+
     local ln = Instance.new("Frame")
     ln.Size = UDim2.new(1, 0, 0, 1)
     ln.Position = UDim2.new(0, 0, 1, 0)
@@ -1545,6 +1945,7 @@ local function togC(par, ord, label, onTog)
     ln.BorderSizePixel = 0
     ln.ZIndex = 2
     ln.Parent = cd
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -110, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -1555,6 +1956,7 @@ local function togC(par, ord, label, onTog)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 2
     lbl.Parent = cd
+
     local sw = Instance.new("Frame")
     sw.Size = UDim2.new(0, 60, 0, 30)
     sw.Position = UDim2.new(1, -68, 0.5, -15)
@@ -1564,6 +1966,7 @@ local function togC(par, ord, label, onTog)
     sw.Parent = cd
     crn(sw, 15)
     stk(sw, Color3.fromRGB(55, 55, 70), 1)
+
     local ind = Instance.new("Frame")
     ind.Size = UDim2.new(0, 20, 0, 20)
     ind.Position = UDim2.new(0, 5, 0.5, -10)
@@ -1572,6 +1975,7 @@ local function togC(par, ord, label, onTog)
     ind.ZIndex = 2
     ind.Parent = sw
     crn(ind, 10)
+
     local pl = Instance.new("TextLabel")
     pl.Size = UDim2.new(1, 0, 1, 0)
     pl.Position = UDim2.new(0, 28, 0, 0)
@@ -1583,6 +1987,7 @@ local function togC(par, ord, label, onTog)
     pl.TextXAlignment = Enum.TextXAlignment.Left
     pl.ZIndex = 2
     pl.Parent = sw
+
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 1, 0)
     btn.BackgroundTransparency = 1
@@ -1590,10 +1995,13 @@ local function togC(par, ord, label, onTog)
     btn.ZIndex = 3
     btn.Active = true
     btn.Parent = cd
+
     local st = false
+
     btn.MouseButton1Click:Connect(function()
         clickSnd:Play()
         st = not st
+
         if st then
             ani(sw, {BackgroundColor3 = A_COL.dim}, 0.2)
             sw.UIStroke.Color = A_COL.base
@@ -1609,10 +2017,21 @@ local function togC(par, ord, label, onTog)
             ani(pl, {TextColor3 = C_COL.mut}, 0.2)
             cd.BackgroundTransparency = 1
         end
+
         if onTog then onTog(st) end
     end)
-    btn.MouseEnter:Connect(function() if not st then ani(cd, {BackgroundColor3 = Color3.fromRGB(18, 18, 24), BackgroundTransparency = 0.5}, 0.15) end end)
-    btn.MouseLeave:Connect(function() if not st then cd.BackgroundTransparency = 1 end end)
+
+    btn.MouseEnter:Connect(function()
+        if not st then
+            ani(cd, {BackgroundColor3 = Color3.fromRGB(18, 18, 24), BackgroundTransparency = 0.5}, 0.15)
+        end
+    end)
+
+    btn.MouseLeave:Connect(function()
+        if not st then
+            cd.BackgroundTransparency = 1
+        end
+    end)
 end
 
 local function mkBtn(par, ord, text, color, callback)
@@ -1631,8 +2050,15 @@ local function mkBtn(par, ord, text, color, callback)
     b.Parent = par
     crn(b, 10)
     stk(b, A_COL.neo, 1.5)
-    b.MouseEnter:Connect(function() ani(b, {BackgroundColor3 = A_COL.neo}, 0.15) end)
-    b.MouseLeave:Connect(function() ani(b, {BackgroundColor3 = color or A_COL.base}, 0.15) end)
+
+    b.MouseEnter:Connect(function()
+        ani(b, {BackgroundColor3 = A_COL.neo}, 0.15)
+    end)
+
+    b.MouseLeave:Connect(function()
+        ani(b, {BackgroundColor3 = color or A_COL.base}, 0.15)
+    end)
+
     b.MouseButton1Click:Connect(function()
         clickSnd:Play()
         callback()
@@ -1646,7 +2072,9 @@ local sheriffC = tabContents["Sheriff"]
 secT(sheriffC, 1, "⭐ SHERIFF TOOLS")
 
 mkBtn(sheriffC, 2, "🔫 SHOOT MURDERER", A_COL.base, shootMurderer)
+
 mkBtn(sheriffC, 3, "🔫 TP TO DROPPED GUN", Color3.fromRGB(255, 200, 0), teleportToGun)
+
 mkBtn(sheriffC, 4, "📌 FLOATING: TP TO GUN", Color3.fromRGB(100, 100, 0), function()
     if floatingButtons["TP_TO_GUN"] then
         removeFloatingButton("TP_TO_GUN")
@@ -1654,6 +2082,7 @@ mkBtn(sheriffC, 4, "📌 FLOATING: TP TO GUN", Color3.fromRGB(100, 100, 0), func
         createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 200, 0), teleportToGun, UDim2.new(0, 125, 0, 90))
     end
 end)
+
 mkBtn(sheriffC, 5, "📌 FLOATING: SHOOT", Color3.fromRGB(100, 20, 30), function()
     if floatingButtons["SHOOT_MURDERER"] then
         removeFloatingButton("SHOOT_MURDERER")
@@ -1662,9 +2091,17 @@ mkBtn(sheriffC, 5, "📌 FLOATING: SHOOT", Color3.fromRGB(100, 20, 30), function
     end
 end)
 
-togC(sheriffC, 6, "Auto Shoot Murderer", function(s) autoShooting = s end)
-togC(sheriffC, 7, "Auto Get Gun On Drop", function(s) autoGetDroppedGun = s end)
-togC(sheriffC, 8, "Instakill Murderer", function(s) instakillshoot = s end)
+togC(sheriffC, 6, "Auto Shoot Murderer", function(s)
+    autoShooting = s
+end)
+
+togC(sheriffC, 7, "Auto Get Gun On Drop", function(s)
+    autoGetDroppedGun = s
+end)
+
+togC(sheriffC, 8, "Instakill Murderer", function(s)
+    instakillshoot = s
+end)
 
 mkBtn(sheriffC, 9, "📋 SEND NAMES TO CHAT", Color3.fromRGB(50, 100, 200), sendNamesToChat)
 mkBtn(sheriffC, 10, "📋 COPY SHERIFF NAME", Color3.fromRGB(80, 80, 80), copySheriffName)
@@ -1681,10 +2118,21 @@ mkBtn(murdererC, 3, "💀 KILL CLOSEST PLAYER", Color3.fromRGB(200, 0, 0), killC
 mkBtn(murdererC, 4, "💀 KILL EVERYONE", Color3.fromRGB(150, 0, 0), killEveryone)
 mkBtn(murdererC, 5, "🔒 HOLD EVERYONE HOSTAGE", Color3.fromRGB(100, 0, 50), holdHostage)
 
-togC(murdererC, 6, "Auto Knife Throw", function(s) loopThrow = s end)
-togC(murdererC, 7, "Murderer Kill Aura", function(s) toggleKillAura(s) end)
-togC(murdererC, 8, "Spawn Knife Near Player", function(s) spawnAtPlayer = s end)
-togC(murdererC, 9, "Ignore Knife Throws", function(s) ignoreknifethrow = s end)
+togC(murdererC, 6, "Auto Knife Throw", function(s)
+    loopThrow = s
+end)
+
+togC(murdererC, 7, "Murderer Kill Aura", function(s)
+    toggleKillAura(s)
+end)
+
+togC(murdererC, 8, "Spawn Knife Near Player", function(s)
+    spawnAtPlayer = s
+end)
+
+togC(murdererC, 9, "Ignore Knife Throws", function(s)
+    ignoreknifethrow = s
+end)
 
 mkBtn(murdererC, 10, "⚡ GOD MODE (UNSTABLE)", Color3.fromRGB(150, 0, 150), godMode)
 
@@ -1696,16 +2144,13 @@ secT(espC, 1, "👁️ ESP TOGGLES")
 
 togC(espC, 2, "Players ESP", function(s)
     playerESP = s
+
     if s then
-        if not findMurderer() or not findSheriff() then
-            notify("XDarkHUB", "Waiting for roles...")
-            repeat task.wait(1) until findSheriff() or findMurderer()
-        end
-        reloadESP()
-    else
-        for _, h in pairs(espHighlights) do if h then h:Destroy() end end
-        espHighlights = {}
+        ensureEspWatcher()
+        notify("XDarkHUB", "ESP ON")
     end
+
+    refreshESP()
 end)
 
 togC(espC, 3, "Dropped Gun ESP", function(s)
@@ -1720,7 +2165,7 @@ end)
 
 togC(espC, 5, "Hide My Own ESP", function(s)
     hideMeEsp = s
-    reloadESP()
+    refreshESP()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -1734,7 +2179,6 @@ mkBtn(playerC, 3, "🗺️ TELEPORT TO MAP", Color3.fromRGB(50, 150, 50), telepo
 
 secT(playerC, 4, "⚙️ SETTINGS")
 
--- Shoot offset input
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1742,6 +2186,7 @@ do
     cd.LayoutOrder = 5
     cd.ZIndex = 2
     cd.Parent = playerC
+
     local ln = Instance.new("Frame")
     ln.Size = UDim2.new(1, 0, 0, 1)
     ln.Position = UDim2.new(0, 0, 1, 0)
@@ -1750,6 +2195,7 @@ do
     ln.BorderSizePixel = 0
     ln.ZIndex = 2
     ln.Parent = cd
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0.5, 0, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -1760,6 +2206,7 @@ do
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 2
     lbl.Parent = cd
+
     local input = Instance.new("TextBox")
     input.Size = UDim2.new(0.4, 0, 1, 0)
     input.Position = UDim2.new(0.55, 0, 0, 0)
@@ -1773,6 +2220,7 @@ do
     input.ZIndex = 2
     input.Parent = cd
     crn(input, 8)
+
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
         if val then
@@ -1782,7 +2230,6 @@ do
     end)
 end
 
--- Offset to ping multiplier
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1790,6 +2237,7 @@ do
     cd.LayoutOrder = 6
     cd.ZIndex = 2
     cd.Parent = playerC
+
     local ln = Instance.new("Frame")
     ln.Size = UDim2.new(1, 0, 0, 1)
     ln.Position = UDim2.new(0, 0, 1, 0)
@@ -1798,6 +2246,7 @@ do
     ln.BorderSizePixel = 0
     ln.ZIndex = 2
     ln.Parent = cd
+
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(0.5, 0, 1, 0)
     lbl.BackgroundTransparency = 1
@@ -1808,6 +2257,7 @@ do
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.ZIndex = 2
     lbl.Parent = cd
+
     local input = Instance.new("TextBox")
     input.Size = UDim2.new(0.4, 0, 1, 0)
     input.Position = UDim2.new(0.55, 0, 0, 0)
@@ -1821,6 +2271,7 @@ do
     input.ZIndex = 2
     input.Parent = cd
     crn(input, 8)
+
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
         if val then
@@ -1835,12 +2286,15 @@ end
 -- ═══════════════════════════════════════════════════════════════════════════════
 local fC = tabContents["Farm"]
 secT(fC, 1, "📊 STATS")
+
 local counterV = statR(fC, 2, "Coins")
 local timerV = statR(fC, 3, "Time")
 local rateV = statR(fC, 4, "Rate")
 local pCoinV = statR(fC, 5, "Total")
+
 secT(fC, 6, "ROLE")
 local roleV = statR(fC, 7, "Status")
+
 secT(fC, 8, "BAG")
 local bagVal = statR(fC, 9, "State")
 
@@ -1850,6 +2304,7 @@ mkBtn(fC, 10, "🔪 FLING MURDERER", A_COL.base, function()
         notify("XDarkHUB", "No murderer to fling.")
         return
     end
+
     miniFling(murderer)
 end)
 
@@ -1859,63 +2314,53 @@ mkBtn(fC, 11, "⭐ FLING SHERIFF", Color3.fromRGB(50, 150, 255), function()
         notify("XDarkHUB", "No sheriff to fling.")
         return
     end
+
     miniFling(sheriff)
 end)
 
-togC(fC, 12, "Auto Farm", function(s) isActive = s end)
-togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
+togC(fC, 12, "Auto Farm", function(s)
+    isActive = s
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - VISUAL EFFECTS (НОВАЯ ВКЛАДКА)
--- ═══════════════════════════════════════════════════════════════════════════════
-local visualC = tabContents["Visual"]
-secT(visualC, 1, "✨ VISUAL EFFECTS")
-
-mkBtn(visualC, 2, "✨ ENABLE EFFECTS", Color3.fromRGB(255, 50, 80), function()
-    applyVisualEffects()
-    notify("XDarkHUB", "Visual effects enabled!")
+    if s then
+        startFarming()
+    else
+        farmStopped = true
+    end
 end)
 
-mkBtn(visualC, 3, "❌ DISABLE EFFECTS", Color3.fromRGB(80, 80, 80), function()
-    removeVisualEffects()
-    notify("XDarkHUB", "Visual effects disabled!")
+togC(fC, 13, "Anti-AFK", function(s)
+    antiAFK = s
 end)
-
-secT(visualC, 4, "📝 ОПИСАНИЕ")
-
-local desc = Instance.new("TextLabel")
-desc.Size = UDim2.new(1, 0, 0, 100)
-desc.BackgroundTransparency = 1
-desc.Text = "• Крылья снизу (свечение)\n• Вращающийся круг под ногами\n• Пульсирующее свечение сверху\n\nЭффекты автоматически применяются при респавне"
-desc.TextColor3 = C_COL.txt
-desc.Font = Enum.Font.Gotham
-desc.TextSize = 12
-desc.TextXAlignment = Enum.TextXAlignment.Left
-desc.TextYAlignment = Enum.TextYAlignment.Top
-desc.LayoutOrder = 5
-desc.Parent = visualC
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  UI UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
-    isMurderer = (findMurderer() == localplayer)
-    isSheriff = (findSheriff() == localplayer)
+    local r = getPlayerRole(player)
+    isMurderer = (r == "Murderer")
+    isSheriff = (r == "Sheriff")
 end
 
 local function getPlayerCoins(p)
     local ls = p:FindFirstChild("leaderstats")
+
     if ls then
         for _, v in ipairs(ls:GetChildren()) do
             if v:IsA("IntValue") or v:IsA("NumberValue") then
                 local n = v.Name:lower()
-                if n:find("coin") or n:find("money") or n:find("cash") or n:find("gold") then return v.Value end
+                if n:find("coin") or n:find("money") or n:find("cash") or n:find("gold") then
+                    return v.Value
+                end
             end
         end
+
         for _, v in ipairs(ls:GetChildren()) do
-            if v:IsA("IntValue") or v:IsA("NumberValue") then return v.Value end
+            if v:IsA("IntValue") or v:IsA("NumberValue") then
+                return v.Value
+            end
         end
     end
+
     return 0
 end
 
@@ -1925,6 +2370,7 @@ end
 
 function updateRoleUI()
     checkRole()
+
     if isMurderer then
         roleV.Text = "Murderer"
         roleV.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -1939,6 +2385,7 @@ end
 
 function updateBagUI()
     local cc = getCollectedCoins()
+
     if farmStopped then
         bagVal.Text = "Stopped"
         bagVal.TextColor3 = Color3.fromRGB(255, 80, 80)
@@ -1953,80 +2400,133 @@ end
 
 function stopFarming()
     farmStopped = true
+    isActive = false
     updateBagUI()
     notify("XDarkHUB", "Stopped")
 end
 
--- Farm loop
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
+
     local d = (pos - rootPart.Position).Magnitude
     local dur = math.max(0.1, d / spd)
+
     local tw = TweenService:Create(rootPart, TweenInfo.new(dur, Enum.EasingStyle.Linear), {CFrame = CFrame.new(pos)})
     tw:Play()
+
     local c = false
-    local to = task.delay(dur + 2, function() c = true; tw:Cancel() end)
+    local to = task.delay(dur + 2, function()
+        c = true
+        tw:Cancel()
+    end)
+
     tw.Completed:Wait()
-    if not c then task.cancel(to) end
+
+    if not c then
+        task.cancel(to)
+    end
+
     return not c
 end
 
 function startFarming()
+    if farmRunning then return end
+
+    farmRunning = true
     initialCoins = getPlayerCoins(player)
     startTime = tick()
     visitedPositions = {}
     bagFull = false
     farmStopped = false
+
     counterV.Text = "0"
     timerV.Text = "0s"
     rateV.Text = "0"
+
     updateRoleUI()
     updateBagUI()
     notify("XDarkHUB", "Farm ON")
-    
+
     task.spawn(function()
         while isActive do
             local e = tick() - startTime
-            timerV.Text = math.floor(e) .. "s"
             local cc = getCollectedCoins()
+
+            timerV.Text = math.floor(e) .. "s"
+            counterV.Text = tostring(cc)
             rateV.Text = tostring(e > 0 and math.floor(cc / e * 3600) or 0)
             pCoinV.Text = tostring(getPlayerCoins(player))
-            task.wait(0.1)
+
+            updateRoleUI()
+            updateBagUI()
+
+            task.wait(0.25)
         end
     end)
-    
+
     task.spawn(function()
         while isActive do
-            if farmStopped then task.wait(1) continue end
+            if farmStopped then
+                task.wait(1)
+                continue
+            end
+
             character = player.Character
-            if not character then task.wait(0.5) continue end
+            if not character then
+                task.wait(0.5)
+                continue
+            end
+
             rootPart = character:FindFirstChild("HumanoidRootPart")
-            if not rootPart then task.wait(0.5) continue end
+            if not rootPart then
+                task.wait(0.5)
+                continue
+            end
+
             checkRole()
+
             local cl, sh = nil, math.huge
+
             for _, o in ipairs(workspace:GetDescendants()) do
                 if o:IsA("BasePart") and o.Name == "Coin_Server" then
                     local ic = false
+
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if p.Character and o:IsDescendantOf(p.Character) then ic = true; break end
+                        if p.Character and o:IsDescendantOf(p.Character) then
+                            ic = true
+                            break
+                        end
                     end
+
                     if not ic and o.Parent and o:IsDescendantOf(workspace) and not visitedPositions[o] then
                         local d = (o.Position - rootPart.Position).Magnitude
-                        if d < sh and d < 300 then cl = o; sh = d end
+                        if d < sh and d < 300 then
+                            cl = o
+                            sh = d
+                        end
                     end
                 end
             end
+
             if cl then
                 local cp = cl.Position
                 local cr = cl
+
                 if farmStopped then continue end
+
                 if flyTo(cp, flySpeed) and not farmStopped then
                     task.wait(0.3)
+
                     if cr.Parent and cr:IsDescendantOf(workspace) then
                         local ic = false
+
                         for _, p in ipairs(Players:GetPlayers()) do
-                            if p.Character and cr:IsDescendantOf(p.Character) then ic = true; break end
+                            if p.Character and cr:IsDescendantOf(p.Character) then
+                                ic = true
+                                break
+                            end
                         end
+
                         if not ic and (cr.Position - rootPart.Position).Magnitude < 5 then
                             collectSound:Play()
                             updateBagUI()
@@ -2039,15 +2539,23 @@ function startFarming()
                     end
                 end
             else
-                if next(visitedPositions) then visitedPositions = {} end
+                if next(visitedPositions) then
+                    visitedPositions = {}
+                end
+
                 task.wait(1)
             end
+
             task.wait(0.1)
         end
+
+        farmRunning = false
     end)
 end
 
--- Menu button
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  MENU BUTTON
+-- ═══════════════════════════════════════════════════════════════════════════════
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
@@ -2075,42 +2583,50 @@ end)
 
 do
     local dr, ds, sp = false, nil, nil
+
     mBtn.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dr = true; ds = i.Position; sp = mBtn.Position
+            dr = true
+            ds = i.Position
+            sp = mBtn.Position
         end
     end)
+
     UserInputService.InputChanged:Connect(function(i)
         if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
             local d = i.Position - ds
             mBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
         end
     end)
+
     UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = false end
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            dr = false
+        end
     end)
 end
 
 mBtn.MouseButton1Click:Connect(function()
     clickSnd:Play()
+
     local v = frame.Visible
     frame.Visible = not v
     bgF.Visible = not v
 end)
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  FINAL CONNECTIONS
+-- ═══════════════════════════════════════════════════════════════════════════════
 player.CharacterAdded:Connect(function(ch)
     character = ch
     rootPart = ch:WaitForChild("HumanoidRootPart")
     visitedPositions = {}
     farmStopped = false
+
     task.wait(1.5)
+
     checkRole()
     updateRoleUI()
-    -- Перезапуск визуальных эффектов при респавне
-    if visualEffectsEnabled then
-        visualEffectsEnabled = false
-        applyVisualEffects()
-    end
 end)
 
 player.Idled:Connect(function()
@@ -2124,7 +2640,9 @@ end)
 RunService.Stepped:Connect(function()
     if isActive and character and not farmStopped then
         for _, v in ipairs(character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
         end
     end
 end)
@@ -2132,6 +2650,6 @@ end)
 updateRoleUI()
 updateBagUI()
 switchTab("Sheriff")
+
 notify("XDarkHUB", "v34 Loaded - Full MM2 Module!")
-notify("XDarkHUB", "All YARHM functions included!")
-notify("XDarkHUB", "Visual effects tab added!")
+notify("XDarkHUB", "ESP + floating buttons fixed!")
