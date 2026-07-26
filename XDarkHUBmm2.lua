@@ -3,8 +3,6 @@
 -- ║   ВСЕ ФУНКЦИИ ИЗ YARHM + ПЛАВАЮЩИЕ КНОПКИ + НАШ UI                          ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
-if not game:IsLoaded() then game.Loaded:Wait() end
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -20,30 +18,15 @@ local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  GUI INIT (САМОЕ ПЕРВОЕ!)
+--  GUI INIT (СОЗДАЁТСЯ ПЕРВЫМ!)
 -- ═══════════════════════════════════════════════════════════════════════════════
-do local old = player:WaitForChild("PlayerGui"):FindFirstChild("XDarkHUB_GUI") if old then old:Destroy() end end
+do local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui") if old then old:Destroy() end end
 local guiUI = Instance.new("ScreenGui")
-guiUI.Name = "XDarkHUB_GUI"
+guiUI.Name = "AutoFarmGui"
 guiUI.ResetOnSpawn = false
 guiUI.IgnoreGuiInset = true
 guiUI.DisplayOrder = 999
-guiUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local success, err = pcall(function()
-    if gethui then
-        guiUI.Parent = gethui()
-    elseif syn and syn.protect_gui then
-        syn.protect_gui(guiUI)
-        guiUI.Parent = game:GetService("CoreGui")
-    else
-        guiUI.Parent = player:WaitForChild("PlayerGui")
-    end
-end)
-
-if not success then
-    guiUI.Parent = player:WaitForChild("PlayerGui")
-end
+guiUI.Parent = player:WaitForChild("PlayerGui")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
@@ -89,9 +72,6 @@ local loopThrow = false
 local ignoreknifethrow = false
 local killAuraCon = nil
 
-local espHighlights = {}
-local floatingButtons = {}
-
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ЗВУКИ
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -99,17 +79,14 @@ local collectSound = Instance.new("Sound")
 collectSound.SoundId = "rbxassetid://12221967"
 collectSound.Volume = 1
 collectSound.Parent = guiUI
-
 local killSound = Instance.new("Sound")
 killSound.SoundId = "rbxassetid://9120392731"
 killSound.Volume = 0.8
 killSound.Parent = guiUI
-
 local deathSound = Instance.new("Sound")
 deathSound.SoundId = "rbxassetid://9120392731"
 deathSound.Volume = 0.6
 deathSound.Parent = guiUI
-
 local clickSnd = Instance.new("Sound")
 clickSnd.SoundId = "rbxassetid://169759176"
 clickSnd.Volume = 0.25
@@ -238,161 +215,158 @@ end
 --  MINI FLING (ИЗ YARHM)
 -- ═══════════════════════════════════════════════════════════════════════════════
 function miniFling(playerToFling)
-    pcall(function()
-        local Character = player.Character
-        local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
-        local RootPart = Humanoid and Humanoid.RootPart
-        local TCharacter = playerToFling.Character
-        local THumanoid, TRootPart, THead, Accessory, Handle
+    local Character = player.Character
+    local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+    local RootPart = Humanoid and Humanoid.RootPart
+    local TCharacter = playerToFling.Character
+    local THumanoid, TRootPart, THead, Accessory, Handle
+    
+    if TCharacter:FindFirstChildOfClass("Humanoid") then
+        THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
+    end
+    if THumanoid and THumanoid.RootPart then
+        TRootPart = THumanoid.RootPart
+    end
+    if TCharacter:FindFirstChild("Head") then
+        THead = TCharacter.Head
+    end
+    if TCharacter:FindFirstChildOfClass("Accessory") then
+        Accessory = TCharacter:FindFirstChildOfClass("Accessory")
+    end
+    if Accessory and Accessory:FindFirstChild("Handle") then
+        Handle = Accessory.Handle
+    end
+    
+    if Character and Humanoid and RootPart then
+        if RootPart.Velocity.Magnitude < 50 then
+            getgenv().OldPos = RootPart.CFrame
+        end
         
-        if TCharacter:FindFirstChildOfClass("Humanoid") then
-            THumanoid = TCharacter:FindFirstChildOfClass("Humanoid")
-        end
-        if THumanoid and THumanoid.RootPart then
-            TRootPart = THumanoid.RootPart
-        end
-        if TCharacter:FindFirstChild("Head") then
-            THead = TCharacter.Head
-        end
-        if TCharacter:FindFirstChildOfClass("Accessory") then
-            Accessory = TCharacter:FindFirstChildOfClass("Accessory")
-        end
-        if Accessory and Accessory:FindFirstChild("Handle") then
-            Handle = Accessory.Handle
+        if THead then
+            workspace.CurrentCamera.CameraSubject = THead
+        elseif not THead and Handle then
+            workspace.CurrentCamera.CameraSubject = Handle
+        elseif THumanoid and TRootPart then
+            workspace.CurrentCamera.CameraSubject = THumanoid
         end
         
-        if Character and Humanoid and RootPart then
-            if RootPart.Velocity.Magnitude < 50 then
-                getgenv().OldPos = RootPart.CFrame
-            end
-            
-            if THead then
-                workspace.CurrentCamera.CameraSubject = THead
-            elseif not THead and Handle then
-                workspace.CurrentCamera.CameraSubject = Handle
-            elseif THumanoid and TRootPart then
-                workspace.CurrentCamera.CameraSubject = THumanoid
-            end
-            
-            if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
-            
-            local FPos = function(BasePart, Pos, Ang)
-                RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
-                Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
-                RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
-                RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
-            end
-            
-            local SFBasePart = function(BasePart)
-                local TimeToWait = 2
-                local Time = tick()
-                local Angle = 0
-                repeat
-                    if RootPart and THumanoid then
-                        if BasePart.Velocity.Magnitude < 50 then
-                            Angle = Angle + 100
-                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
-                            task.wait()
-                        else
-                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
-                            task.wait()
-                            FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
-                            task.wait()
-                        end
-                    else break end
-                until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= playerToFling.Character or playerToFling.Parent ~= Players or playerToFling.Character ~= TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
-            end
-            
-            workspace.FallenPartsDestroyHeight = 0/0
-            
-            local BV = Instance.new("BodyVelocity")
-            BV.Name = "EpixVel"
-            BV.Parent = RootPart
-            BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
-            BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
-            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-            
-            if TRootPart and THead then
-                if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
-                    SFBasePart(THead)
-                else
-                    SFBasePart(TRootPart)
-                end
-            elseif TRootPart and not THead then
-                SFBasePart(TRootPart)
-            elseif not TRootPart and THead then
-                SFBasePart(THead)
-            elseif not TRootPart and not THead and Accessory and Handle then
-                SFBasePart(Handle)
-            else
-                notify("XDarkHUB", "Can't find a proper part to fling.")
-            end
-            
-            BV:Destroy()
-            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-            workspace.CurrentCamera.CameraSubject = Humanoid
-            
+        if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
+        
+        local FPos = function(BasePart, Pos, Ang)
+            RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+            Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+            RootPart.Velocity = Vector3.new(9e7, 9e7 * 10, 9e7)
+            RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        end
+        
+        local SFBasePart = function(BasePart)
+            local TimeToWait = 2
+            local Time = tick()
+            local Angle = 0
             repeat
-                RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
-                Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
-                Humanoid:ChangeState("GettingUp")
-                table.foreach(Character:GetChildren(), function(_, x)
-                    if x:IsA("BasePart") then
-                        x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                if RootPart and THumanoid then
+                    if BasePart.Velocity.Magnitude < 50 then
+                        Angle = Angle + 100
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(2.25, 1.5, -2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(-2.25, -1.5, 2.25) + THumanoid.MoveDirection * BasePart.Velocity.Magnitude / 1.25, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, 1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0) + THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle), 0, 0))
+                        task.wait()
+                    else
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, -THumanoid.WalkSpeed), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, 1.5, THumanoid.WalkSpeed), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, -TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, 1.5, TRootPart.Velocity.Magnitude / 1.25), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0))
+                        task.wait()
+                        FPos(BasePart, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))
+                        task.wait()
                     end
-                end)
-                task.wait()
-            until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
-            
-            workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
-        else
-            notify("XDarkHUB", "No valid character.")
+                else break end
+            until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= playerToFling.Character or playerToFling.Parent ~= Players or playerToFling.Character ~= TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
         end
-    end)
+        
+        workspace.FallenPartsDestroyHeight = 0/0
+        
+        local BV = Instance.new("BodyVelocity")
+        BV.Name = "EpixVel"
+        BV.Parent = RootPart
+        BV.Velocity = Vector3.new(9e8, 9e8, 9e8)
+        BV.MaxForce = Vector3.new(1/0, 1/0, 1/0)
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        
+        if TRootPart and THead then
+            if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then
+                SFBasePart(THead)
+            else
+                SFBasePart(TRootPart)
+            end
+        elseif TRootPart and not THead then
+            SFBasePart(TRootPart)
+        elseif not TRootPart and THead then
+            SFBasePart(THead)
+        elseif not TRootPart and not THead and Accessory and Handle then
+            SFBasePart(Handle)
+        else
+            notify("XDarkHUB", "Can't find a proper part to fling.")
+        end
+        
+        BV:Destroy()
+        Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        workspace.CurrentCamera.CameraSubject = Humanoid
+        
+        repeat
+            RootPart.CFrame = getgenv().OldPos * CFrame.new(0, .5, 0)
+            Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0, .5, 0))
+            Humanoid:ChangeState("GettingUp")
+            table.foreach(Character:GetChildren(), function(_, x)
+                if x:IsA("BasePart") then
+                    x.Velocity, x.RotVelocity = Vector3.new(), Vector3.new()
+                end
+            end)
+            task.wait()
+        until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+        
+        workspace.FallenPartsDestroyHeight = getgenv().FPDH or -500
+    else
+        notify("XDarkHUB", "No valid character.")
+    end
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ESP ФУНКЦИИ (ИСПРАВЛЕНО: gui -> guiUI)
 -- ═══════════════════════════════════════════════════════════════════════════════
+local espHighlights = {}
+
 local function reloadESP()
     if not playerESP then return end
-    for key, h in pairs(espHighlights) do 
-        if h and h:IsA("Highlight") then 
-            h:Destroy() 
-        end 
-    end
+    for _, h in pairs(espHighlights) do if h then h:Destroy() end end
     espHighlights = {}
     
-    for _, pl in ipairs(Players:GetPlayers()) do
+    local listplayers = Players:GetPlayers()
+    for _, pl in ipairs(listplayers) do
         if pl == localplayer and hideMeEsp then continue end
-        local ch = pl.Character
-        if ch and ch:FindFirstChild("HumanoidRootPart") then
+        if pl.Character ~= nil then
+            local ch = pl.Character
             task.spawn(function()
                 local color
                 if pl == findMurderer() then
@@ -418,10 +392,9 @@ local function reloadESP()
 end
 
 local function reloadTrapESP()
-    for key, obj in pairs(espHighlights) do
+    for _, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Trap") then
             obj:Destroy()
-            espHighlights[key] = nil
         end
     end
     if not trapDetection then return end
@@ -443,10 +416,9 @@ local function reloadTrapESP()
 end
 
 local function reloadGunESP()
-    for key, obj in pairs(espHighlights) do
+    for _, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Gun") then
             obj:Destroy()
-            espHighlights[key] = nil
         end
     end
     if not gunDropESP then return end
@@ -506,9 +478,7 @@ function shootMurderer()
             CFrame.new(predictedPosition)
         }
     end
-    pcall(function()
-        localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
-    end)
+    localplayer.Character:WaitForChild("Gun"):WaitForChild("Shoot"):FireServer(unpack(args))
     notify("XDarkHUB", "Shot fired!")
 end
 
@@ -540,9 +510,7 @@ function knifeThrow()
     if spawnAtPlayer then
         argsThrowRemote[1] = CFrame.new(nearestHRP.Position + (nearestHRP.CFrame.LookVector * 5))
     end
-    pcall(function()
-        localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
-    end)
+    localplayer.Character:WaitForChild("Knife"):WaitForChild("Events"):WaitForChild("KnifeThrown"):FireServer(unpack(argsThrowRemote))
     notify("XDarkHUB", "Knife thrown!")
 end
 
@@ -571,7 +539,7 @@ function killClosest()
     nearestHRP.CFrame = localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame + localplayer.Character:FindFirstChild("HumanoidRootPart").CFrame.LookVector * 2
     task.wait(0.1)
     local args = {[1] = "Slash"}
-    pcall(function() localplayer.Character.Knife.Stab:FireServer(unpack(args)) end)
+    localplayer.Character.Knife.Stab:FireServer(unpack(args))
     notify("XDarkHUB", "Killed closest!")
 end
 
@@ -596,7 +564,7 @@ function killEveryone()
         end
     end
     local args = {[1] = "Slash"}
-    pcall(function() localplayer.Character.Knife.Stab:FireServer(unpack(args)) end)
+    localplayer.Character.Knife.Stab:FireServer(unpack(args))
     notify("XDarkHUB", "Killed everyone!")
 end
 
@@ -615,31 +583,29 @@ function holdHostage()
 end
 
 function godMode()
-    pcall(function()
-        local Cam = workspace.CurrentCamera
-        local Pos, Char = Cam.CFrame, localplayer.Character
-        local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
-        local nHuman = Human:Clone()
-        nHuman.Parent = Char
-        localplayer.Character = nil
-        nHuman:SetStateEnabled(15, false)
-        nHuman:SetStateEnabled(1, false)
-        nHuman:SetStateEnabled(0, false)
-        nHuman.BreakJointsOnDeath = true
-        Human:Destroy()
-        localplayer.Character = Char
-        Cam.CameraSubject = nHuman
-        Cam.CFrame = Pos
-        nHuman.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-        local Script = Char:FindFirstChild("Animate")
-        if Script then
-            Script.Disabled = true
-            task.wait()
-            Script.Disabled = false
-        end
-        nHuman.Health = nHuman.MaxHealth
-        notify("XDarkHUB", "God mode activated!")
-    end)
+    local Cam = workspace.CurrentCamera
+    local Pos, Char = Cam.CFrame, localplayer.Character
+    local Human = Char and Char:FindFirstChildWhichIsA("Humanoid")
+    local nHuman = Human:Clone()
+    nHuman.Parent = Char
+    localplayer.Character = nil
+    nHuman:SetStateEnabled(15, false)
+    nHuman:SetStateEnabled(1, false)
+    nHuman:SetStateEnabled(0, false)
+    nHuman.BreakJointsOnDeath = true
+    Human:Destroy()
+    localplayer.Character = Char
+    Cam.CameraSubject = nHuman
+    Cam.CFrame = Pos
+    nHuman.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+    local Script = Char:FindFirstChild("Animate")
+    if Script then
+        Script.Disabled = true
+        task.wait()
+        Script.Disabled = false
+    end
+    nHuman.Health = nHuman.MaxHealth
+    notify("XDarkHUB", "God mode activated!")
 end
 
 function teleportToGun()
@@ -687,13 +653,11 @@ function sendNamesToChat()
     local murdName = murd and murd.Name or "-"
     local sherName = sher and sher.Name or "-"
     local message = string.format("Murderer: %s | Sheriff: %s | <<XDarkHUB>>", murdName, sherName)
-    pcall(function()
-        local textchannels = TextChatService:WaitForChild("TextChannels"):GetChildren()
-        for _, textchannel in ipairs(textchannels) do
-            if textchannel.Name == "RBXSystem" then continue end
-            pcall(function() textchannel:SendAsync(message) end)
-        end
-    end)
+    local textchannels = TextChatService:WaitForChild("TextChannels"):GetChildren()
+    for _, textchannel in ipairs(textchannels) do
+        if textchannel.Name == "RBXSystem" then continue end
+        pcall(function() textchannel:SendAsync(message) end)
+    end
     notify("XDarkHUB", "Names sent to chat!")
 end
 
@@ -860,8 +824,10 @@ pcall(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLOATING BUTTONS SYSTEM (КРАСИВЫЕ ПОЛУПРОЗРАЧНЫЕ С ЭФФЕКТОМ)
+--  FLOATING BUTTONS SYSTEM (ИСПРАВЛЕНО: gui -> guiUI)
 -- ═══════════════════════════════════════════════════════════════════════════════
+local floatingButtons = {}
+
 local function createFloatingButton(name, text, color, callback, position)
     if floatingButtons[name] then
         floatingButtons[name]:Destroy()
@@ -870,9 +836,9 @@ local function createFloatingButton(name, text, color, callback, position)
     
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 160, 0, 55)
+    button.Size = UDim2.new(0, 150, 0, 50)
     button.Position = position or UDim2.new(0, 125, 0, 90)
-    button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
     button.BackgroundTransparency = 0.4
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -883,7 +849,7 @@ local function createFloatingButton(name, text, color, callback, position)
     button.Parent = guiUI
     
     local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 10)
     
     local stroke = Instance.new("UIStroke", button)
     stroke.Color = Color3.fromRGB(255, 50, 80)
@@ -919,11 +885,9 @@ local function createFloatingButton(name, text, color, callback, position)
     
     button.MouseEnter:Connect(function()
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
     end)
     button.MouseLeave:Connect(function()
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
     end)
     
     local dragging = false
@@ -958,7 +922,7 @@ local function createFloatingButton(name, text, color, callback, position)
     
     button.Size = UDim2.new(0, 0, 0, 0)
     TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 160, 0, 55)
+        Size = UDim2.new(0, 150, 0, 50)
     }):Play()
     
     floatingButtons[name] = button
@@ -1004,7 +968,6 @@ local function stk(o, c, t, tr) local s = Instance.new("UIStroke", o) s.Color = 
 local function grd(o, cs, rot) local g = Instance.new("UIGradient", o) g.Color = ColorSequence.new(cs) g.Rotation = rot or 0 end
 local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play end
 
--- Background particles
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C_COL.bg
@@ -1052,7 +1015,6 @@ for i = 1, 28 do
     end)
 end
 
--- Main frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
 frame.Position = UDim2.new(0.5, -400, 0.5, -300)
@@ -1074,7 +1036,10 @@ topLine.ZIndex = 3
 topLine.Parent = frame
 crn(topLine, 1)
 
--- Header
+frame.Size = UDim2.new(0, 0, 0, 0)
+frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+ani(frame, {Size = UDim2.new(0, 800, 0, 600), Position = UDim2.new(0.5, -400, 0.5, -300)}, 0.6, Enum.EasingStyle.Back)
+
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 60)
 tBar.BackgroundColor3 = C_COL.panel
@@ -1142,7 +1107,6 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
--- Dragging
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -1161,7 +1125,6 @@ do
     end)
 end
 
--- Container
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -65)
 ctr.Position = UDim2.new(0, 0, 0, 65)
@@ -1192,7 +1155,6 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
--- Tabs
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -1326,7 +1288,6 @@ for n, t in pairs(tabs) do
     end)
 end
 
--- UI Components
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 26)
@@ -1506,61 +1467,39 @@ local function mkBtn(par, ord, text, color, callback)
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - SHERIFF
--- ═══════════════════════════════════════════════════════════════════════════════
 local sheriffC = tabContents["Sheriff"]
 secT(sheriffC, 1, "⭐ SHERIFF TOOLS")
-
 mkBtn(sheriffC, 2, "🔫 SHOOT MURDERER", A_COL.base, shootMurderer)
 mkBtn(sheriffC, 3, "🔫 TP TO DROPPED GUN", Color3.fromRGB(255, 200, 0), teleportToGun)
 mkBtn(sheriffC, 4, "📌 FLOATING: TP TO GUN", Color3.fromRGB(100, 100, 0), function()
-    if floatingButtons["TP_TO_GUN"] then
-        removeFloatingButton("TP_TO_GUN")
-    else
-        createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 200, 0), teleportToGun, UDim2.new(0, 125, 0, 90))
-    end
+    if floatingButtons["TP_TO_GUN"] then removeFloatingButton("TP_TO_GUN")
+    else createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 200, 0), teleportToGun, UDim2.new(0, 125, 0, 90)) end
 end)
 mkBtn(sheriffC, 5, "📌 FLOATING: SHOOT", Color3.fromRGB(100, 20, 30), function()
-    if floatingButtons["SHOOT_MURDERER"] then
-        removeFloatingButton("SHOOT_MURDERER")
-    else
-        createFloatingButton("SHOOT_MURDERER", "🔫 SHOOT MURDERER", A_COL.base, shootMurderer, UDim2.new(0, 125, 0, 150))
-    end
+    if floatingButtons["SHOOT_MURDERER"] then removeFloatingButton("SHOOT_MURDERER")
+    else createFloatingButton("SHOOT_MURDERER", "🔫 SHOOT MURDERER", A_COL.base, shootMurderer, UDim2.new(0, 125, 0, 150)) end
 end)
-
 togC(sheriffC, 6, "Auto Shoot Murderer", function(s) autoShooting = s end)
 togC(sheriffC, 7, "Auto Get Gun On Drop", function(s) autoGetDroppedGun = s end)
 togC(sheriffC, 8, "Instakill Murderer", function(s) instakillshoot = s end)
-
 mkBtn(sheriffC, 9, "📋 SEND NAMES TO CHAT", Color3.fromRGB(50, 100, 200), sendNamesToChat)
 mkBtn(sheriffC, 10, "📋 COPY SHERIFF NAME", Color3.fromRGB(80, 80, 80), copySheriffName)
 mkBtn(sheriffC, 11, "📋 COPY MURDERER NAME", Color3.fromRGB(80, 80, 80), copyMurdererName)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - MURDERER
--- ═══════════════════════════════════════════════════════════════════════════════
 local murdererC = tabContents["Murderer"]
 secT(murdererC, 1, "🔪 MURDERER TOOLS")
-
 mkBtn(murdererC, 2, "🔪 KNIFE THROW TO CLOSEST", A_COL.base, knifeThrow)
 mkBtn(murdererC, 3, "💀 KILL CLOSEST PLAYER", Color3.fromRGB(200, 0, 0), killClosest)
 mkBtn(murdererC, 4, "💀 KILL EVERYONE", Color3.fromRGB(150, 0, 0), killEveryone)
 mkBtn(murdererC, 5, "🔒 HOLD EVERYONE HOSTAGE", Color3.fromRGB(100, 0, 50), holdHostage)
-
 togC(murdererC, 6, "Auto Knife Throw", function(s) loopThrow = s end)
 togC(murdererC, 7, "Murderer Kill Aura", function(s) toggleKillAura(s) end)
 togC(murdererC, 8, "Spawn Knife Near Player", function(s) spawnAtPlayer = s end)
 togC(murdererC, 9, "Ignore Knife Throws", function(s) ignoreknifethrow = s end)
-
 mkBtn(murdererC, 10, "⚡ GOD MODE (UNSTABLE)", Color3.fromRGB(150, 0, 150), godMode)
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - ESP
--- ═══════════════════════════════════════════════════════════════════════════════
 local espC = tabContents["ESP"]
 secT(espC, 1, "👁️ ESP TOGGLES")
-
 togC(espC, 2, "Players ESP", function(s)
     playerESP = s
     if s then
@@ -1574,34 +1513,15 @@ togC(espC, 2, "Players ESP", function(s)
         espHighlights = {}
     end
 end)
+togC(espC, 3, "Dropped Gun ESP", function(s) gunDropESP = s; reloadGunESP() end)
+togC(espC, 4, "Traps ESP", function(s) trapDetection = s; reloadTrapESP() end)
+togC(espC, 5, "Hide My Own ESP", function(s) hideMeEsp = s; reloadESP() end)
 
-togC(espC, 3, "Dropped Gun ESP", function(s)
-    gunDropESP = s
-    reloadGunESP()
-end)
-
-togC(espC, 4, "Traps ESP", function(s)
-    trapDetection = s
-    reloadTrapESP()
-end)
-
-togC(espC, 5, "Hide My Own ESP", function(s)
-    hideMeEsp = s
-    reloadESP()
-end)
-
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - PLAYER
--- ═══════════════════════════════════════════════════════════════════════════════
 local playerC = tabContents["Player"]
 secT(playerC, 1, "🎯 TELEPORTS")
-
 mkBtn(playerC, 2, "🏠 TELEPORT TO LOBBY", Color3.fromRGB(50, 100, 200), teleportToLobby)
 mkBtn(playerC, 3, "🗺️ TELEPORT TO MAP", Color3.fromRGB(50, 150, 50), teleportToMap)
-
 secT(playerC, 4, "⚙️ SETTINGS")
-
--- Shoot offset input
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1642,14 +1562,9 @@ do
     crn(input, 8)
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
-        if val then
-            shootOffset = val
-            notify("XDarkHUB", "Offset set to " .. val)
-        end
+        if val then shootOffset = val; notify("XDarkHUB", "Offset set to " .. val) end
     end)
 end
-
--- Offset to ping multiplier
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1690,16 +1605,10 @@ do
     crn(input, 8)
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
-        if val then
-            offsetToPingMult = val
-            notify("XDarkHUB", "Ping mult set to " .. val)
-        end
+        if val then offsetToPingMult = val; notify("XDarkHUB", "Ping mult set to " .. val) end
     end)
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
---  TAB CONTENT - FARM
--- ═══════════════════════════════════════════════════════════════════════════════
 local fC = tabContents["Farm"]
 secT(fC, 1, "📊 STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -1713,27 +1622,19 @@ local bagVal = statR(fC, 9, "State")
 
 mkBtn(fC, 10, "🔪 FLING MURDERER", A_COL.base, function()
     local murderer = findMurderer()
-    if not murderer then
-        notify("XDarkHUB", "No murderer to fling.")
-        return
-    end
+    if not murderer then notify("XDarkHUB", "No murderer to fling.") return end
     miniFling(murderer)
 end)
-
 mkBtn(fC, 11, "⭐ FLING SHERIFF", Color3.fromRGB(50, 150, 255), function()
     local sheriff = findSheriff()
-    if not sheriff then
-        notify("XDarkHUB", "No sheriff to fling.")
-        return
-    end
+    if not sheriff then notify("XDarkHUB", "No sheriff to fling.") return end
     miniFling(sheriff)
 end)
-
 togC(fC, 12, "Auto Farm", function(s) isActive = s end)
 togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  UI UPDATE FUNCTIONS
+--  UI UPDATE (ИСПРАВЛЕНО: checkRole больше не вызывает getPlayerRole)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
     isMurderer = (findMurderer() == localplayer)
@@ -1794,7 +1695,6 @@ function stopFarming()
     notify("XDarkHUB", "Stopped")
 end
 
--- Farm loop
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     local d = (pos - rootPart.Position).Magnitude
@@ -1884,7 +1784,6 @@ function startFarming()
     end)
 end
 
--- Menu button
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
