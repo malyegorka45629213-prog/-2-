@@ -1,6 +1,6 @@
 -- ╔══════════════════════════════════════════════════════════════════════════════╗
--- ║                         XDarkHUB v34 · FULL MM2 MODULE                       ║
--- ║   ИСПРАВЛЕНО: ESP ПО РОЛЯМ + ПЛАВАЮЩИЕ КНОПКИ + СТАТУС РОЛИ                 ║
+-- ║                    XDarkHUB v35 · FULL MM2 MODULE + VISUALS                  ║
+-- ║   ESP ПО РОЛЯМ + ПЛАВАЮЩИЕ КНОПКИ + ВКЛАДКА ВИЗУАЛЬНЫХ ЭФФЕКТОВ             ║
 -- ╚══════════════════════════════════════════════════════════════════════════════╝
 
 local Players = game:GetService("Players")
@@ -15,8 +15,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local localplayer = player
-local character = player.Character or player.CharacterAdded:Wait()
-local rootPart = character:WaitForChild("HumanoidRootPart")
+local character = player.Character
+local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+task.spawn(function()
+    if character and not rootPart then
+        rootPart = character:WaitForChild("HumanoidRootPart", 10)
+    end
+end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 --  ПЕРЕМЕННЫЕ СОСТОЯНИЯ
@@ -1127,6 +1133,439 @@ workspace.ChildAdded:Connect(function(chi)
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
+--  VISUAL EFFECTS SYSTEM (НОВОЕ В v35)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local visualState = {
+    wings = false,
+    circle = false,
+    halo = false,
+    aura = false,
+    fire = false,
+    smoke = false,
+    trails = false,
+    eyes = false,
+    light = false,
+}
+
+local visualObjects = {}
+local wingFeathers = {}
+local circleOrbs = {}
+local eyeParts = {}
+local haloDisc = nil
+local circleOuter = nil
+local circleInner = nil
+
+local function registerVisual(name, obj)
+    visualObjects[name] = visualObjects[name] or {}
+    table.insert(visualObjects[name], obj)
+end
+
+local function clearVisual(name)
+    if visualObjects[name] then
+        for _, obj in ipairs(visualObjects[name]) do
+            pcall(function()
+                obj:Destroy()
+            end)
+        end
+        visualObjects[name] = nil
+    end
+
+    if name == "wings" then wingFeathers = {} end
+    if name == "circle" then
+        circleOrbs = {}
+        circleOuter = nil
+        circleInner = nil
+    end
+    if name == "halo" then haloDisc = nil end
+    if name == "eyes" then eyeParts = {} end
+end
+
+local function clearAllVisuals()
+    local names = {}
+    for name in pairs(visualObjects) do
+        table.insert(names, name)
+    end
+
+    for _, name in ipairs(names) do
+        clearVisual(name)
+    end
+
+    wingFeathers = {}
+    circleOrbs = {}
+    eyeParts = {}
+    haloDisc = nil
+    circleOuter = nil
+    circleInner = nil
+end
+
+local function makeNeonPart(props)
+    local p = Instance.new("Part")
+    p.Material = Enum.Material.Neon
+    p.Anchored = true
+    p.CanCollide = false
+    p.CastShadow = false
+    p.TopSurface = Enum.SurfaceType.Smooth
+    p.BottomSurface = Enum.SurfaceType.Smooth
+
+    for k, v in pairs(props) do
+        p[k] = v
+    end
+
+    return p
+end
+
+local function applyWings()
+    clearVisual("wings")
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for side = -1, 1, 2 do
+        for i = 1, 6 do
+            local feather = makeNeonPart({
+                Name = "XDarkFeather",
+                Size = Vector3.new(0.12, 3.4 - i * 0.38, 1.2 - i * 0.1),
+                Color = Color3.fromRGB(255, math.max(10, 55 - i * 7), math.max(20, 70 - i * 8)),
+                Transparency = 0.05 + i * 0.04,
+                Parent = char,
+            })
+
+            registerVisual("wings", feather)
+            table.insert(wingFeathers, {part = feather, side = side, i = i})
+        end
+    end
+
+    local wingLight = Instance.new("PointLight")
+    wingLight.Color = Color3.fromRGB(255, 30, 50)
+    wingLight.Brightness = 1.2
+    wingLight.Range = 12
+    wingLight.Parent = hrp
+    registerVisual("wings", wingLight)
+end
+
+local function applyCircle()
+    clearVisual("circle")
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    circleOuter = makeNeonPart({
+        Name = "XDarkCircleOuter",
+        Shape = Enum.PartType.Cylinder,
+        Size = Vector3.new(0.18, 9, 9),
+        Color = Color3.fromRGB(255, 25, 45),
+        Transparency = 0.45,
+        Parent = char,
+    })
+    registerVisual("circle", circleOuter)
+
+    circleInner = makeNeonPart({
+        Name = "XDarkCircleInner",
+        Shape = Enum.PartType.Cylinder,
+        Size = Vector3.new(0.2, 5, 5),
+        Color = Color3.fromRGB(255, 80, 100),
+        Transparency = 0.3,
+        Parent = char,
+    })
+    registerVisual("circle", circleInner)
+
+    for k = 1, 8 do
+        local orb = makeNeonPart({
+            Name = "XDarkCircleOrb",
+            Shape = Enum.PartType.Ball,
+            Size = Vector3.new(0.35, 0.35, 0.35),
+            Color = Color3.fromRGB(255, 60, 80),
+            Transparency = 0.1,
+            Parent = char,
+        })
+
+        registerVisual("circle", orb)
+        table.insert(circleOrbs, {part = orb, k = k})
+    end
+
+    local att = Instance.new("Attachment", hrp)
+    att.Position = Vector3.new(0, -3, 0)
+    registerVisual("circle", att)
+
+    local em = Instance.new("ParticleEmitter", att)
+    em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+    em.Color = ColorSequence.new(Color3.fromRGB(255, 40, 60), Color3.fromRGB(140, 0, 25))
+    em.Rate = 45
+    em.Lifetime = NumberRange.new(0.8, 1.4)
+    em.Speed = NumberRange.new(2, 4)
+    em.SpreadAngle = Vector2.new(180, 180)
+    em.LightEmission = 1
+    em.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.35),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    em.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.25),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    registerVisual("circle", em)
+
+    local cl = Instance.new("PointLight")
+    cl.Color = Color3.fromRGB(255, 30, 55)
+    cl.Brightness = 1.5
+    cl.Range = 16
+    cl.Parent = hrp
+    registerVisual("circle", cl)
+end
+
+local function applyHalo()
+    clearVisual("halo")
+
+    local char = player.Character
+    local head = char and char:FindFirstChild("Head")
+    if not head then return end
+
+    haloDisc = makeNeonPart({
+        Name = "XDarkHalo",
+        Shape = Enum.PartType.Cylinder,
+        Size = Vector3.new(0.12, 2.4, 2.4),
+        Color = Color3.fromRGB(255, 45, 65),
+        Transparency = 0.2,
+        Parent = char,
+    })
+    registerVisual("halo", haloDisc)
+
+    local hl = Instance.new("PointLight")
+    hl.Color = Color3.fromRGB(255, 40, 60)
+    hl.Brightness = 0.8
+    hl.Range = 8
+    hl.Parent = head
+    registerVisual("halo", hl)
+end
+
+local function applyEmitter(name, texture, c1, c2, rate, speed, spread, sizeStart, attPos, emissionDir)
+    clearVisual(name)
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local att = Instance.new("Attachment", hrp)
+    att.Position = attPos or Vector3.new(0, 0, 0)
+    registerVisual(name, att)
+
+    local em = Instance.new("ParticleEmitter", att)
+    em.Texture = texture
+    em.Color = ColorSequence.new(c1, c2)
+    em.Rate = rate
+    em.Lifetime = NumberRange.new(0.6, 1.2)
+    em.Speed = NumberRange.new(speed * 0.6, speed)
+    em.SpreadAngle = Vector2.new(spread, spread)
+    em.LightEmission = 1
+
+    if emissionDir then
+        em.EmissionDirection = emissionDir
+    end
+
+    em.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, sizeStart),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    em.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.2),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    registerVisual(name, em)
+end
+
+local function applyTrails()
+    clearVisual("trails")
+
+    local char = player.Character
+    if not char then return end
+
+    local handNames = {"LeftHand", "RightHand", "Left Arm", "Right Arm"}
+
+    for _, hn in ipairs(handNames) do
+        local hand = char:FindFirstChild(hn)
+        if hand then
+            local a0 = Instance.new("Attachment", hand)
+            a0.Position = Vector3.new(0, 0.35, 0)
+
+            local a1 = Instance.new("Attachment", hand)
+            a1.Position = Vector3.new(0, -0.35, 0)
+
+            local trail = Instance.new("Trail", hand)
+            trail.Attachment0 = a0
+            trail.Attachment1 = a1
+            trail.Color = ColorSequence.new(Color3.fromRGB(255, 35, 55), Color3.fromRGB(110, 0, 20))
+            trail.Lifetime = 0.45
+            trail.LightEmission = 1
+            trail.LightInfluence = 0
+            trail.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0.15),
+                NumberSequenceKeypoint.new(1, 1)
+            })
+
+            registerVisual("trails", a0)
+            registerVisual("trails", a1)
+            registerVisual("trails", trail)
+        end
+    end
+end
+
+local function applyEyes()
+    clearVisual("eyes")
+
+    local char = player.Character
+    local head = char and char:FindFirstChild("Head")
+    if not head then return end
+
+    for side = -1, 1, 2 do
+        local eye = makeNeonPart({
+            Name = "XDarkEye",
+            Size = Vector3.new(0.12, 0.14, 0.14),
+            Color = Color3.fromRGB(255, 20, 40),
+            Transparency = 0,
+            Parent = char,
+        })
+
+        registerVisual("eyes", eye)
+        table.insert(eyeParts, {part = eye, side = side})
+    end
+
+    local el = Instance.new("PointLight")
+    el.Color = Color3.fromRGB(255, 25, 45)
+    el.Brightness = 0.7
+    el.Range = 6
+    el.Parent = head
+    registerVisual("eyes", el)
+end
+
+local function applyLight()
+    clearVisual("light")
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local l = Instance.new("PointLight")
+    l.Color = Color3.fromRGB(255, 30, 50)
+    l.Brightness = 2
+    l.Range = 18
+    l.Parent = hrp
+    registerVisual("light", l)
+end
+
+local function applyVisual(name)
+    if name == "wings" then
+        applyWings()
+    elseif name == "circle" then
+        applyCircle()
+    elseif name == "halo" then
+        applyHalo()
+    elseif name == "aura" then
+        applyEmitter("aura", "rbxasset://textures/particles/sparkles_main.dds",
+            Color3.fromRGB(255, 45, 65), Color3.fromRGB(130, 0, 25),
+            55, 4, 180, 0.45, Vector3.new(0, -0.5, 0), nil)
+    elseif name == "fire" then
+        applyEmitter("fire", "rbxasset://textures/particles/fire_main.dds",
+            Color3.fromRGB(255, 70, 40), Color3.fromRGB(140, 0, 0),
+            45, 5, 22, 1.1, Vector3.new(0, -2.6, 0), Enum.NormalId.Top)
+    elseif name == "smoke" then
+        applyEmitter("smoke", "rbxasset://textures/particles/smoke_main.dds",
+            Color3.fromRGB(90, 5, 15), Color3.fromRGB(30, 0, 5),
+            30, 2.5, 30, 1.5, Vector3.new(0, -2.2, 0), Enum.NormalId.Top)
+    elseif name == "trails" then
+        applyTrails()
+    elseif name == "eyes" then
+        applyEyes()
+    elseif name == "light" then
+        applyLight()
+    end
+end
+
+local function reapplyVisuals()
+    clearAllVisuals()
+
+    for name, on in pairs(visualState) do
+        if on then
+            pcall(function()
+                applyVisual(name)
+            end)
+        end
+    end
+end
+
+-- Анимация крыльев, круга, нимба и глаз
+RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local t = tick()
+
+    if visualState.wings and hrp and #wingFeathers > 0 then
+        local flap = math.sin(t * 3.2) * 12
+
+        for _, f in ipairs(wingFeathers) do
+            if f.part.Parent then
+                local i, side = f.i, f.side
+                local yaw = side * (15 + i * 10 + flap)
+                local tilt = side * (5 + i * 4)
+
+                f.part.CFrame = hrp.CFrame
+                    * CFrame.new(side * (0.5 + i * 0.22), 1.2 - i * 0.14, 0.9)
+                    * CFrame.Angles(0, math.rad(yaw), math.rad(tilt))
+            end
+        end
+    end
+
+    if visualState.circle and hrp then
+        local basePos = hrp.CFrame * CFrame.new(0, -3.1, 0)
+
+        if circleOuter and circleOuter.Parent then
+            circleOuter.CFrame = basePos * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(t * 1.2, 0, 0)
+        end
+
+        if circleInner and circleInner.Parent then
+            circleInner.CFrame = basePos * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(-t * 2, 0, 0)
+        end
+
+        for _, o in ipairs(circleOrbs) do
+            if o.part.Parent then
+                local ang = t * 1.6 + (o.k / 8) * math.pi * 2
+                local orbPos = hrp.Position + Vector3.new(
+                    math.cos(ang) * 4.6,
+                    -3.1 + math.sin(t * 3 + o.k) * 0.25,
+                    math.sin(ang) * 4.6
+                )
+                o.part.CFrame = CFrame.new(orbPos)
+            end
+        end
+    end
+
+    if visualState.halo and haloDisc and haloDisc.Parent then
+        local head = char:FindFirstChild("Head")
+        if head then
+            local bob = math.sin(t * 2.2) * 0.12
+            haloDisc.CFrame = head.CFrame
+                * CFrame.new(0, 1.8 + bob, 0)
+                * CFrame.Angles(0, 0, math.rad(90))
+                * CFrame.Angles(t * 2.5, 0, 0)
+        end
+    end
+
+    if visualState.eyes and #eyeParts > 0 then
+        local head = char:FindFirstChild("Head")
+        if head then
+            for _, e in ipairs(eyeParts) do
+                if e.part.Parent then
+                    e.part.CFrame = head.CFrame * CFrame.new(e.side * 0.35, 0.12, -0.52)
+                end
+            end
+        end
+    end
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 --  ROLE DATA LISTENER / REMOTE HOOKS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function applyRolePayload(payload, sourceName)
@@ -1488,12 +1927,30 @@ do
     if old then old:Destroy() end
 end
 
+local function getGuiParent()
+    if gethui and type(gethui) == "function" then
+        local ok, res = pcall(gethui)
+        if ok and res then
+            return res
+        end
+    end
+
+    if get_hidden_gui and type(get_hidden_gui) == "function" then
+        local ok, res = pcall(get_hidden_gui)
+        if ok and res then
+            return res
+        end
+    end
+
+    return player:WaitForChild("PlayerGui")
+end
+
 local guiUI = Instance.new("ScreenGui")
 guiUI.Name = "AutoFarmGui"
 guiUI.ResetOnSpawn = false
 guiUI.IgnoreGuiInset = true
 guiUI.DisplayOrder = 999999
-guiUI.Parent = player:WaitForChild("PlayerGui")
+guiUI.Parent = getGuiParent()
 
 gui = guiUI
 
@@ -1645,7 +2102,7 @@ local vLbl = Instance.new("TextLabel")
 vLbl.Size = UDim2.new(0, 80, 1, 0)
 vLbl.Position = UDim2.new(1, -90, 0, 0)
 vLbl.BackgroundTransparency = 1
-vLbl.Text = "[v34]"
+vLbl.Text = "[v35]"
 vLbl.Font = Enum.Font.Code
 vLbl.TextSize = 12
 vLbl.TextColor3 = C_COL.mut
@@ -1840,6 +2297,7 @@ createTab("Murderer", "🔪", 2)
 createTab("ESP", "👁️", 3)
 createTab("Player", "🎯", 4)
 createTab("Farm", "⚙️", 5)
+createTab("Visuals", "✨", 6)
 
 for n in pairs(tabs) do
     createTabContent(n)
@@ -1997,10 +2455,10 @@ local function togC(par, ord, label, onTog)
     btn.Parent = cd
 
     local st = false
+    local control = {}
 
-    btn.MouseButton1Click:Connect(function()
-        clickSnd:Play()
-        st = not st
+    local function applyState(newState)
+        st = newState
 
         if st then
             ani(sw, {BackgroundColor3 = A_COL.dim}, 0.2)
@@ -2019,6 +2477,17 @@ local function togC(par, ord, label, onTog)
         end
 
         if onTog then onTog(st) end
+    end
+
+    function control:Set(state)
+        if st ~= state then
+            applyState(state)
+        end
+    end
+
+    btn.MouseButton1Click:Connect(function()
+        clickSnd:Play()
+        applyState(not st)
     end)
 
     btn.MouseEnter:Connect(function()
@@ -2032,6 +2501,8 @@ local function togC(par, ord, label, onTog)
             cd.BackgroundTransparency = 1
         end
     end)
+
+    return control
 end
 
 local function mkBtn(par, ord, text, color, callback)
@@ -2072,7 +2543,6 @@ local sheriffC = tabContents["Sheriff"]
 secT(sheriffC, 1, "⭐ SHERIFF TOOLS")
 
 mkBtn(sheriffC, 2, "🔫 SHOOT MURDERER", A_COL.base, shootMurderer)
-
 mkBtn(sheriffC, 3, "🔫 TP TO DROPPED GUN", Color3.fromRGB(255, 200, 0), teleportToGun)
 
 mkBtn(sheriffC, 4, "📌 FLOATING: TP TO GUN", Color3.fromRGB(100, 100, 0), function()
@@ -2330,6 +2800,73 @@ end)
 
 togC(fC, 13, "Anti-AFK", function(s)
     antiAFK = s
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - VISUALS (НОВОЕ В v35)
+-- ═══════════════════════════════════════════════════════════════════════════════
+local visC = tabContents["Visuals"]
+secT(visC, 1, "✨ VISUAL EFFECTS")
+
+local visualToggles = {}
+
+visualToggles.wings = togC(visC, 2, "Crimson Wings (Красные Крылья)", function(s)
+    visualState.wings = s
+    if s then applyVisual("wings") else clearVisual("wings") end
+end)
+
+visualToggles.circle = togC(visC, 3, "Magic Circle (Круг Под Ногами)", function(s)
+    visualState.circle = s
+    if s then applyVisual("circle") else clearVisual("circle") end
+end)
+
+visualToggles.halo = togC(visC, 4, "Halo (Нимб Сверху)", function(s)
+    visualState.halo = s
+    if s then applyVisual("halo") else clearVisual("halo") end
+end)
+
+visualToggles.aura = togC(visC, 5, "Red Aura Particles (Красная Аура)", function(s)
+    visualState.aura = s
+    if s then applyVisual("aura") else clearVisual("aura") end
+end)
+
+visualToggles.fire = togC(visC, 6, "Fire Aura (Огненная Аура)", function(s)
+    visualState.fire = s
+    if s then applyVisual("fire") else clearVisual("fire") end
+end)
+
+visualToggles.smoke = togC(visC, 7, "Dark Smoke (Тёмный Дым)", function(s)
+    visualState.smoke = s
+    if s then applyVisual("smoke") else clearVisual("smoke") end
+end)
+
+visualToggles.trails = togC(visC, 8, "Neon Trails (Трейлы На Руках)", function(s)
+    visualState.trails = s
+    if s then applyVisual("trails") else clearVisual("trails") end
+end)
+
+visualToggles.eyes = togC(visC, 9, "Glowing Eyes (Светящиеся Глаза)", function(s)
+    visualState.eyes = s
+    if s then applyVisual("eyes") else clearVisual("eyes") end
+end)
+
+visualToggles.light = togC(visC, 10, "Red Light (Красная Подсветка)", function(s)
+    visualState.light = s
+    if s then applyVisual("light") else clearVisual("light") end
+end)
+
+mkBtn(visC, 11, "🔥 FULL SET - ВСЕ ЭФФЕКТЫ", A_COL.base, function()
+    for _, t in pairs(visualToggles) do
+        t:Set(true)
+    end
+    notify("XDarkHUB", "Full visual set ON!")
+end)
+
+mkBtn(visC, 12, "🧹 CLEAR ALL EFFECTS", Color3.fromRGB(80, 80, 80), function()
+    for _, t in pairs(visualToggles) do
+        t:Set(false)
+    end
+    notify("XDarkHUB", "All visuals cleared!")
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
@@ -2627,6 +3164,7 @@ player.CharacterAdded:Connect(function(ch)
 
     checkRole()
     updateRoleUI()
+    reapplyVisuals()
 end)
 
 player.Idled:Connect(function()
@@ -2651,5 +3189,5 @@ updateRoleUI()
 updateBagUI()
 switchTab("Sheriff")
 
-notify("XDarkHUB", "v34 Loaded - Full MM2 Module!")
-notify("XDarkHUB", "ESP + floating buttons fixed!")
+notify("XDarkHUB", "v35 Loaded - Visuals Update!")
+notify("XDarkHUB", "Новая вкладка Visuals с эффектами!")
