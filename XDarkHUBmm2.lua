@@ -1388,7 +1388,7 @@ xpcall(function()
     bgLayer.BorderSizePixel = 0
     bgLayer.ZIndex = 0
     bgLayer.Active = false
-    bgLayer.InputTransparent = true
+    pcall(function() bgLayer.InputTransparent = true end)
     bgLayer.Visible = true
     bgLayer.Parent = guiUI
 
@@ -2389,7 +2389,7 @@ xpcall(function()
     switchTab("Шериф")
 
     notify("XDarkHUB", "v41 загружен!")
-    notify("XDarkHUB", "3D визуалы + скорость фарма + фон!")
+    notify("XDarkHUB", "Ошибка InputTransparent исправлена!")
 
     xdStatus("XDarkHUB v41: меню готово", Color3.fromRGB(80, 255, 120))
     xdDelay(4, function() pcall(function() if statusLabel then statusLabel.Visible = false end end) end)
