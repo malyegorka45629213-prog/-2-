@@ -352,7 +352,7 @@ xpcall(function()
 
         local TCharacter = playerToFling and playerToFling.Character
         if not TCharacter then
-            notify("XDarkHUB", "No target character.")
+            notify("XDarkHUB", "Нет цели.")
             return
         end
 
@@ -363,7 +363,7 @@ xpcall(function()
         local Handle = Accessory and Accessory:FindFirstChild("Handle")
 
         if not (Character and Humanoid and RootPart) then
-            notify("XDarkHUB", "No valid character.")
+            notify("XDarkHUB", "Нет персонажа.")
             return
         end
 
@@ -390,7 +390,7 @@ xpcall(function()
         end
 
         if not TCharacter:FindFirstChildWhichIsA("BasePart") then
-            notify("XDarkHUB", "Can't find a proper part to fling.")
+            notify("XDarkHUB", "Не за что флингануть.")
             return
         end
 
@@ -496,7 +496,7 @@ xpcall(function()
         elseif Handle then
             SFBasePart(Handle)
         else
-            notify("XDarkHUB", "Can't find a proper part to fling.")
+            notify("XDarkHUB", "Не за что флингануть.")
         end
 
         BV:Destroy()
@@ -2093,7 +2093,7 @@ xpcall(function()
     topBar.ZIndex = 2
     topBar.Parent = frame
 
-    local topGrad = gradient(topBar, {
+    gradient(topBar, {
         ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 15, 22)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 10, 15)),
     }, 0)
@@ -2172,7 +2172,7 @@ xpcall(function()
     verBadge.Position = UDim2.new(0, 182, 0.5, -9)
     verBadge.BackgroundColor3 = COL.accentDim
     verBadge.BorderSizePixel = 0
-    verBadge.Text = "v37"
+    verBadge.Text = "v38"
     verBadge.Font = Enum.Font.GothamBold
     verBadge.TextSize = 11
     verBadge.TextColor3 = COL.accentHot
@@ -2200,12 +2200,26 @@ xpcall(function()
     sideLine.ZIndex = 3
     sideLine.Parent = sidebar
 
-    local sideLayout = Instance.new("UIListLayout", sidebar)
-    sideLayout.Padding = UDim.new(0, 6)
+    local tabScroll = Instance.new("ScrollingFrame")
+    tabScroll.Size = UDim2.new(1, 0, 1, -52)
+    tabScroll.Position = UDim2.new(0, 0, 0, 8)
+    tabScroll.BackgroundTransparency = 1
+    tabScroll.BorderSizePixel = 0
+    tabScroll.ScrollBarThickness = 0
+    tabScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    tabScroll.ZIndex = 3
+    tabScroll.Parent = sidebar
+
+    pcall(function()
+        tabScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    end)
+
+    local sideLayout = Instance.new("UIListLayout", tabScroll)
+    sideLayout.Padding = UDim.new(0, 7)
     sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local sidePad = Instance.new("UIPadding", sidebar)
-    sidePad.PaddingTop = UDim.new(0, 10)
+    local sidePad = Instance.new("UIPadding", tabScroll)
+    sidePad.PaddingTop = UDim.new(0, 2)
     sidePad.PaddingLeft = UDim.new(0, 9)
     sidePad.PaddingRight = UDim.new(0, 9)
 
@@ -2235,11 +2249,11 @@ xpcall(function()
     local currentTab = nil
 
     local function switchTab(name)
-        for n, data in pairs(tabs) do
-            tween(data.btn, {BackgroundTransparency = 1}, 0.15)
-            tween(data.icon, {TextColor3 = COL.textDim}, 0.15)
-            tween(data.label, {TextColor3 = COL.textDim}, 0.15)
-            tween(data.indicator, {BackgroundTransparency = 1}, 0.15)
+        for n, d in pairs(tabs) do
+            tween(d.btn, {BackgroundColor3 = COL.card}, 0.18)
+            tween(d.icon, {TextColor3 = COL.textDim}, 0.18)
+            tween(d.label, {TextColor3 = COL.textDim}, 0.18)
+            tween(d.indicator, {BackgroundTransparency = 1}, 0.18)
         end
 
         for n, c in pairs(contents) do
@@ -2248,7 +2262,7 @@ xpcall(function()
 
         if tabs[name] then
             local d = tabs[name]
-            tween(d.btn, {BackgroundTransparency = 0.4, BackgroundColor3 = COL.cardHover}, 0.2)
+            tween(d.btn, {BackgroundColor3 = COL.accentDim}, 0.2)
             tween(d.icon, {TextColor3 = COL.accentHot}, 0.2)
             tween(d.label, {TextColor3 = COL.text}, 0.2)
             tween(d.indicator, {BackgroundTransparency = 0}, 0.2)
@@ -2265,24 +2279,25 @@ xpcall(function()
 
     local function addTab(name, icon, order)
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 44)
+        b.Size = UDim2.new(1, 0, 0, 46)
         b.BackgroundColor3 = COL.card
-        b.BackgroundTransparency = 1
+        b.BackgroundTransparency = 0
         b.Text = ""
         b.BorderSizePixel = 0
         b.AutoButtonColor = false
         b.LayoutOrder = order
-        b.ZIndex = 3
-        b.Parent = sidebar
+        b.ZIndex = 4
+        b.Parent = tabScroll
         corner(b, 10)
+        stroke(b, COL.border, 1, 0.55)
 
         local indicator = Instance.new("Frame")
-        indicator.Size = UDim2.new(0, 3, 0, 24)
-        indicator.Position = UDim2.new(0, 0, 0.5, -12)
+        indicator.Size = UDim2.new(0, 3, 0, 26)
+        indicator.Position = UDim2.new(0, 0, 0.5, -13)
         indicator.BackgroundColor3 = COL.accentHot
         indicator.BackgroundTransparency = 1
         indicator.BorderSizePixel = 0
-        indicator.ZIndex = 4
+        indicator.ZIndex = 5
         indicator.Parent = b
         corner(indicator, 2)
 
@@ -2292,9 +2307,9 @@ xpcall(function()
         iconLbl.BackgroundTransparency = 1
         iconLbl.Text = icon
         iconLbl.Font = Enum.Font.GothamBold
-        iconLbl.TextSize = 17
+        iconLbl.TextSize = 18
         iconLbl.TextColor3 = COL.textDim
-        iconLbl.ZIndex = 4
+        iconLbl.ZIndex = 5
         iconLbl.Parent = b
 
         local nameLbl = Instance.new("TextLabel")
@@ -2306,21 +2321,21 @@ xpcall(function()
         nameLbl.TextSize = 13
         nameLbl.TextColor3 = COL.textDim
         nameLbl.TextXAlignment = Enum.TextXAlignment.Left
-        nameLbl.ZIndex = 4
+        nameLbl.ZIndex = 5
         nameLbl.Parent = b
 
         tabs[name] = {btn = b, icon = iconLbl, label = nameLbl, indicator = indicator}
 
         b.MouseEnter:Connect(function()
             if currentTab ~= name then
-                tween(b, {BackgroundTransparency = 0.6}, 0.15)
+                tween(b, {BackgroundColor3 = COL.cardHover}, 0.15)
                 tween(iconLbl, {TextColor3 = COL.text}, 0.15)
             end
         end)
 
         b.MouseLeave:Connect(function()
             if currentTab ~= name then
-                tween(b, {BackgroundTransparency = 1}, 0.15)
+                tween(b, {BackgroundColor3 = COL.card}, 0.15)
                 tween(iconLbl, {TextColor3 = COL.textDim}, 0.15)
             end
         end)
@@ -3199,10 +3214,10 @@ xpcall(function()
 
     switchTab("Шериф")
 
-    notify("XDarkHUB", "v37 загружен!")
-    notify("XDarkHUB", "Новый дизайн + улучшенные крылья!")
+    notify("XDarkHUB", "v38 загружен!")
+    notify("XDarkHUB", "Вкладки снова на месте!")
 
-    xdStatus("XDarkHUB v37: меню готово", Color3.fromRGB(80, 255, 120))
+    xdStatus("XDarkHUB v38: меню готово", Color3.fromRGB(80, 255, 120))
 
     xdDelay(4, function()
         pcall(function()
