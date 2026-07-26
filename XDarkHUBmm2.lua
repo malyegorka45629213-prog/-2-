@@ -18,7 +18,7 @@ local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  GUI INIT (СОЗДАЁТСЯ ПЕРВЫМ!)
+--  GUI INIT (САМОЕ ПЕРВОЕ!)
 -- ═══════════════════════════════════════════════════════════════════════════════
 do local old = player:WaitForChild("PlayerGui"):FindFirstChild("AutoFarmGui") if old then old:Destroy() end end
 local guiUI = Instance.new("ScreenGui")
@@ -359,10 +359,14 @@ local espHighlights = {}
 
 local function reloadESP()
     if not playerESP then return end
-    for _, h in pairs(espHighlights) do if h then h:Destroy() end end
+    for key, h in pairs(espHighlights) do 
+        if h and h:IsA("Highlight") then 
+            h:Destroy() 
+        end 
+    end
     espHighlights = {}
     
-    local listplayers = Players:GetPlayers()
+    local listplayers = Players:GetChildren()
     for _, pl in ipairs(listplayers) do
         if pl == localplayer and hideMeEsp then continue end
         if pl.Character ~= nil then
@@ -392,9 +396,10 @@ local function reloadESP()
 end
 
 local function reloadTrapESP()
-    for _, obj in pairs(espHighlights) do
+    for key, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Trap") then
             obj:Destroy()
+            espHighlights[key] = nil
         end
     end
     if not trapDetection then return end
@@ -416,9 +421,10 @@ local function reloadTrapESP()
 end
 
 local function reloadGunESP()
-    for _, obj in pairs(espHighlights) do
+    for key, obj in pairs(espHighlights) do
         if obj and obj.Name and obj.Name:find("Gun") then
             obj:Destroy()
+            espHighlights[key] = nil
         end
     end
     if not gunDropESP then return end
@@ -824,7 +830,7 @@ pcall(function()
 end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  FLOATING BUTTONS SYSTEM (ИСПРАВЛЕНО: gui -> guiUI)
+--  FLOATING BUTTONS SYSTEM (КРАСИВЫЕ ПОЛУПРОЗРАЧНЫЕ С ЭФФЕКТОМ)
 -- ═══════════════════════════════════════════════════════════════════════════════
 local floatingButtons = {}
 
@@ -836,9 +842,9 @@ local function createFloatingButton(name, text, color, callback, position)
     
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 150, 0, 50)
+    button.Size = UDim2.new(0, 160, 0, 55)
     button.Position = position or UDim2.new(0, 125, 0, 90)
-    button.BackgroundColor3 = color or Color3.fromRGB(31, 31, 31)
+    button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     button.BackgroundTransparency = 0.4
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -849,7 +855,7 @@ local function createFloatingButton(name, text, color, callback, position)
     button.Parent = guiUI
     
     local corner = Instance.new("UICorner", button)
-    corner.CornerRadius = UDim.new(0, 10)
+    corner.CornerRadius = UDim.new(0, 12)
     
     local stroke = Instance.new("UIStroke", button)
     stroke.Color = Color3.fromRGB(255, 50, 80)
@@ -885,9 +891,11 @@ local function createFloatingButton(name, text, color, callback, position)
     
     button.MouseEnter:Connect(function()
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.2}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0}):Play()
     end)
     button.MouseLeave:Connect(function()
         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundTransparency = 0.4}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Transparency = 0.3}):Play()
     end)
     
     local dragging = false
@@ -922,7 +930,7 @@ local function createFloatingButton(name, text, color, callback, position)
     
     button.Size = UDim2.new(0, 0, 0, 0)
     TweenService:Create(button, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 150, 0, 50)
+        Size = UDim2.new(0, 160, 0, 55)
     }):Play()
     
     floatingButtons[name] = button
@@ -968,6 +976,7 @@ local function stk(o, c, t, tr) local s = Instance.new("UIStroke", o) s.Color = 
 local function grd(o, cs, rot) local g = Instance.new("UIGradient", o) g.Color = ColorSequence.new(cs) g.Rotation = rot or 0 end
 local function ani(o, p, t, s) TweenService:Create(o, TweenInfo.new(t or 0.25, s or Enum.EasingStyle.Quint), p):Play end
 
+-- Background particles
 local bgF = Instance.new("Frame")
 bgF.Size = UDim2.new(1, 0, 1, 0)
 bgF.BackgroundColor3 = C_COL.bg
@@ -1015,6 +1024,7 @@ for i = 1, 28 do
     end)
 end
 
+-- Main frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 800, 0, 600)
 frame.Position = UDim2.new(0.5, -400, 0.5, -300)
@@ -1040,6 +1050,7 @@ frame.Size = UDim2.new(0, 0, 0, 0)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 ani(frame, {Size = UDim2.new(0, 800, 0, 600), Position = UDim2.new(0.5, -400, 0.5, -300)}, 0.6, Enum.EasingStyle.Back)
 
+-- Header
 local tBar = Instance.new("Frame")
 tBar.Size = UDim2.new(1, 0, 0, 60)
 tBar.BackgroundColor3 = C_COL.panel
@@ -1107,6 +1118,7 @@ vLbl.TextXAlignment = Enum.TextXAlignment.Right
 vLbl.ZIndex = 3
 vLbl.Parent = tBar
 
+-- Dragging
 do
     local dr, ds, sp = false, nil, nil
     tBar.InputBegan:Connect(function(i)
@@ -1125,6 +1137,7 @@ do
     end)
 end
 
+-- Container
 local ctr = Instance.new("Frame")
 ctr.Size = UDim2.new(1, 0, 1, -65)
 ctr.Position = UDim2.new(0, 0, 0, 65)
@@ -1155,6 +1168,7 @@ rPan.BackgroundTransparency = 1
 rPan.ZIndex = 2
 rPan.Parent = ctr
 
+-- Tabs
 local tabs = {}
 local tabContents = {}
 local currentTab = nil
@@ -1288,6 +1302,7 @@ for n, t in pairs(tabs) do
     end)
 end
 
+-- UI Components
 local function secT(par, ord, txt)
     local l = Instance.new("TextLabel")
     l.Size = UDim2.new(1, 0, 0, 26)
@@ -1467,39 +1482,61 @@ local function mkBtn(par, ord, text, color, callback)
     end)
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - SHERIFF
+-- ═══════════════════════════════════════════════════════════════════════════════
 local sheriffC = tabContents["Sheriff"]
 secT(sheriffC, 1, "⭐ SHERIFF TOOLS")
+
 mkBtn(sheriffC, 2, "🔫 SHOOT MURDERER", A_COL.base, shootMurderer)
 mkBtn(sheriffC, 3, "🔫 TP TO DROPPED GUN", Color3.fromRGB(255, 200, 0), teleportToGun)
 mkBtn(sheriffC, 4, "📌 FLOATING: TP TO GUN", Color3.fromRGB(100, 100, 0), function()
-    if floatingButtons["TP_TO_GUN"] then removeFloatingButton("TP_TO_GUN")
-    else createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 200, 0), teleportToGun, UDim2.new(0, 125, 0, 90)) end
+    if floatingButtons["TP_TO_GUN"] then
+        removeFloatingButton("TP_TO_GUN")
+    else
+        createFloatingButton("TP_TO_GUN", "🔫 TP TO GUN", Color3.fromRGB(255, 200, 0), teleportToGun, UDim2.new(0, 125, 0, 90))
+    end
 end)
 mkBtn(sheriffC, 5, "📌 FLOATING: SHOOT", Color3.fromRGB(100, 20, 30), function()
-    if floatingButtons["SHOOT_MURDERER"] then removeFloatingButton("SHOOT_MURDERER")
-    else createFloatingButton("SHOOT_MURDERER", "🔫 SHOOT MURDERER", A_COL.base, shootMurderer, UDim2.new(0, 125, 0, 150)) end
+    if floatingButtons["SHOOT_MURDERER"] then
+        removeFloatingButton("SHOOT_MURDERER")
+    else
+        createFloatingButton("SHOOT_MURDERER", "🔫 SHOOT MURDERER", A_COL.base, shootMurderer, UDim2.new(0, 125, 0, 150))
+    end
 end)
+
 togC(sheriffC, 6, "Auto Shoot Murderer", function(s) autoShooting = s end)
 togC(sheriffC, 7, "Auto Get Gun On Drop", function(s) autoGetDroppedGun = s end)
 togC(sheriffC, 8, "Instakill Murderer", function(s) instakillshoot = s end)
+
 mkBtn(sheriffC, 9, "📋 SEND NAMES TO CHAT", Color3.fromRGB(50, 100, 200), sendNamesToChat)
 mkBtn(sheriffC, 10, "📋 COPY SHERIFF NAME", Color3.fromRGB(80, 80, 80), copySheriffName)
 mkBtn(sheriffC, 11, "📋 COPY MURDERER NAME", Color3.fromRGB(80, 80, 80), copyMurdererName)
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - MURDERER
+-- ═══════════════════════════════════════════════════════════════════════════════
 local murdererC = tabContents["Murderer"]
 secT(murdererC, 1, "🔪 MURDERER TOOLS")
+
 mkBtn(murdererC, 2, "🔪 KNIFE THROW TO CLOSEST", A_COL.base, knifeThrow)
 mkBtn(murdererC, 3, "💀 KILL CLOSEST PLAYER", Color3.fromRGB(200, 0, 0), killClosest)
 mkBtn(murdererC, 4, "💀 KILL EVERYONE", Color3.fromRGB(150, 0, 0), killEveryone)
 mkBtn(murdererC, 5, "🔒 HOLD EVERYONE HOSTAGE", Color3.fromRGB(100, 0, 50), holdHostage)
+
 togC(murdererC, 6, "Auto Knife Throw", function(s) loopThrow = s end)
 togC(murdererC, 7, "Murderer Kill Aura", function(s) toggleKillAura(s) end)
 togC(murdererC, 8, "Spawn Knife Near Player", function(s) spawnAtPlayer = s end)
 togC(murdererC, 9, "Ignore Knife Throws", function(s) ignoreknifethrow = s end)
+
 mkBtn(murdererC, 10, "⚡ GOD MODE (UNSTABLE)", Color3.fromRGB(150, 0, 150), godMode)
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - ESP
+-- ═══════════════════════════════════════════════════════════════════════════════
 local espC = tabContents["ESP"]
 secT(espC, 1, "👁️ ESP TOGGLES")
+
 togC(espC, 2, "Players ESP", function(s)
     playerESP = s
     if s then
@@ -1513,15 +1550,34 @@ togC(espC, 2, "Players ESP", function(s)
         espHighlights = {}
     end
 end)
-togC(espC, 3, "Dropped Gun ESP", function(s) gunDropESP = s; reloadGunESP() end)
-togC(espC, 4, "Traps ESP", function(s) trapDetection = s; reloadTrapESP() end)
-togC(espC, 5, "Hide My Own ESP", function(s) hideMeEsp = s; reloadESP() end)
 
+togC(espC, 3, "Dropped Gun ESP", function(s)
+    gunDropESP = s
+    reloadGunESP()
+end)
+
+togC(espC, 4, "Traps ESP", function(s)
+    trapDetection = s
+    reloadTrapESP()
+end)
+
+togC(espC, 5, "Hide My Own ESP", function(s)
+    hideMeEsp = s
+    reloadESP()
+end)
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - PLAYER
+-- ═══════════════════════════════════════════════════════════════════════════════
 local playerC = tabContents["Player"]
 secT(playerC, 1, "🎯 TELEPORTS")
+
 mkBtn(playerC, 2, "🏠 TELEPORT TO LOBBY", Color3.fromRGB(50, 100, 200), teleportToLobby)
 mkBtn(playerC, 3, "🗺️ TELEPORT TO MAP", Color3.fromRGB(50, 150, 50), teleportToMap)
+
 secT(playerC, 4, "⚙️ SETTINGS")
+
+-- Shoot offset input
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1562,9 +1618,14 @@ do
     crn(input, 8)
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
-        if val then shootOffset = val; notify("XDarkHUB", "Offset set to " .. val) end
+        if val then
+            shootOffset = val
+            notify("XDarkHUB", "Offset set to " .. val)
+        end
     end)
 end
+
+-- Offset to ping multiplier
 do
     local cd = Instance.new("Frame")
     cd.Size = UDim2.new(1, 0, 0, 52)
@@ -1605,10 +1666,16 @@ do
     crn(input, 8)
     input.FocusLost:Connect(function()
         local val = tonumber(input.Text)
-        if val then offsetToPingMult = val; notify("XDarkHUB", "Ping mult set to " .. val) end
+        if val then
+            offsetToPingMult = val
+            notify("XDarkHUB", "Ping mult set to " .. val)
+        end
     end)
 end
 
+-- ═══════════════════════════════════════════════════════════════════════════════
+--  TAB CONTENT - FARM
+-- ═══════════════════════════════════════════════════════════════════════════════
 local fC = tabContents["Farm"]
 secT(fC, 1, "📊 STATS")
 local counterV = statR(fC, 2, "Coins")
@@ -1622,19 +1689,27 @@ local bagVal = statR(fC, 9, "State")
 
 mkBtn(fC, 10, "🔪 FLING MURDERER", A_COL.base, function()
     local murderer = findMurderer()
-    if not murderer then notify("XDarkHUB", "No murderer to fling.") return end
+    if not murderer then
+        notify("XDarkHUB", "No murderer to fling.")
+        return
+    end
     miniFling(murderer)
 end)
+
 mkBtn(fC, 11, "⭐ FLING SHERIFF", Color3.fromRGB(50, 150, 255), function()
     local sheriff = findSheriff()
-    if not sheriff then notify("XDarkHUB", "No sheriff to fling.") return end
+    if not sheriff then
+        notify("XDarkHUB", "No sheriff to fling.")
+        return
+    end
     miniFling(sheriff)
 end)
+
 togC(fC, 12, "Auto Farm", function(s) isActive = s end)
 togC(fC, 13, "Anti-AFK", function(s) antiAFK = s end)
 
 -- ═══════════════════════════════════════════════════════════════════════════════
---  UI UPDATE (ИСПРАВЛЕНО: checkRole больше не вызывает getPlayerRole)
+--  UI UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════════════════════════════
 local function checkRole()
     isMurderer = (findMurderer() == localplayer)
@@ -1695,6 +1770,7 @@ function stopFarming()
     notify("XDarkHUB", "Stopped")
 end
 
+-- Farm loop
 function flyTo(pos, spd)
     if not rootPart or farmStopped then return false end
     local d = (pos - rootPart.Position).Magnitude
@@ -1784,6 +1860,7 @@ function startFarming()
     end)
 end
 
+-- Menu button
 local mBtn = Instance.new("TextButton")
 mBtn.Size = UDim2.new(0, 70, 0, 70)
 mBtn.Position = UDim2.new(0, 20, 1, -90)
