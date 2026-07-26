@@ -32,7 +32,6 @@ local function xdStatus(text, color)
             statusLabel.Position = UDim2.new(0.5, -280, 0, 8)
             statusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             statusLabel.BackgroundTransparency = 0.35
-            statusLabel.BorderSizePixel = 0
             statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
             statusLabel.Font = Enum.Font.GothamBold
             statusLabel.TextScaled = true
@@ -91,6 +90,8 @@ xpcall(function()
     local isHero = false
     local farmStopped = false
     local farmRunning = false
+    local flingOnFullBag = false
+    local alreadyFlungOnFull = false
     local MAX_BAG = 40
 
     local playerESP = false
@@ -159,7 +160,6 @@ xpcall(function()
                 t.Size = UDim2.new(1, 0, 0, 44)
                 t.BackgroundColor3 = Color3.fromRGB(26, 14, 20)
                 t.BackgroundTransparency = 1
-                t.BorderSizePixel = 0
                 t.LayoutOrder = toastOrder
                 t.ZIndex = 201
                 t.Parent = toastHolder
@@ -167,7 +167,7 @@ xpcall(function()
                 stroke(t, COL.accent, 1, 0.35)
                 local bar = Instance.new("Frame")
                 bar.Size = UDim2.new(0, 3, 1, -16); bar.Position = UDim2.new(0, 0, 0, 8)
-                bar.BackgroundColor3 = COL.accentHot; bar.BorderSizePixel = 0; bar.BackgroundTransparency = 1
+                bar.BackgroundColor3 = COL.accentHot; bar.BackgroundTransparency = 1
                 bar.ZIndex = 202; bar.Parent = t; corner(bar, 2)
                 local lbl = Instance.new("TextLabel")
                 lbl.Size = UDim2.new(1, -22, 1, 0); lbl.Position = UDim2.new(0, 13, 0, 0)
@@ -497,10 +497,7 @@ xpcall(function()
     end
 
     function shootMurderer()
-        if findSheriff() ~= localplayer then
-            notify("XDarkHUB", "Ты не шериф и не герой.")
-            return
-        end
+        if findSheriff() ~= localplayer then notify("XDarkHUB", "Ты не шериф и не герой."); return end
         local murderer = findMurderer() or findSheriffThatsNotMe()
         if not murderer or not murderer.Character then notify("XDarkHUB", "Нет убийцы для выстрела."); return end
         if not localplayer.Character:FindFirstChild("Gun") then
@@ -861,14 +858,20 @@ xpcall(function()
     local visualState = {wings=false, circle=false, halo=false, aura=false, fire=false, smoke=false, trails=false, eyes=false, light=false, lightning=false}
     local visualObjects = {}
     local wingFeathers = {}
+    local wingMembranes = {}
     local wingSpine = nil
+    local circleGlow = nil
+    local circleInnerDisc = nil
+    local circleCore = nil
+    local circleOuterSegs = {}
+    local circleMiddleSegs = {}
+    local circleRunes = {}
     local circleOrbs = {}
+    local circlePillars = {}
+    local circleLight = nil
+    local haloDisc = nil
     local haloMotes = {}
     local eyeParts = {}
-    local haloDisc = nil
-    local circleOuter = nil
-    local circleInner = nil
-    local circleRing = nil
 
     local function registerVisual(name, obj)
         visualObjects[name] = visualObjects[name] or {}
@@ -880,8 +883,12 @@ xpcall(function()
             for _, obj in ipairs(visualObjects[name]) do pcall(function() obj:Destroy() end) end
             visualObjects[name] = nil
         end
-        if name == "wings" then wingFeathers = {}; wingSpine = nil end
-        if name == "circle" then circleOrbs = {}; circleOuter = nil; circleInner = nil; circleRing = nil end
+        if name == "wings" then wingFeathers = {}; wingMembranes = {}; wingSpine = nil end
+        if name == "circle" then
+            circleGlow = nil; circleInnerDisc = nil; circleCore = nil
+            circleOuterSegs = {}; circleMiddleSegs = {}; circleRunes = {}
+            circleOrbs = {}; circlePillars = {}; circleLight = nil
+        end
         if name == "halo" then haloDisc = nil; haloMotes = {} end
         if name == "eyes" then eyeParts = {} end
     end
@@ -890,8 +897,10 @@ xpcall(function()
         local names = {}
         for name in pairs(visualObjects) do table.insert(names, name) end
         for _, name in ipairs(names) do clearVisual(name) end
-        wingFeathers = {}; wingSpine = nil
-        circleOrbs = {}; circleOuter = nil; circleInner = nil; circleRing = nil
+        wingFeathers = {}; wingMembranes = {}; wingSpine = nil
+        circleGlow = nil; circleInnerDisc = nil; circleCore = nil
+        circleOuterSegs = {}; circleMiddleSegs = {}; circleRunes = {}
+        circleOrbs = {}; circlePillars = {}; circleLight = nil
         haloDisc = nil; haloMotes = {}
         eyeParts = {}
     end
@@ -910,36 +919,59 @@ xpcall(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+
+        local darkRed = Color3.fromRGB(170, 12, 32)
+        local brightRed = Color3.fromRGB(255, 55, 70)
+        local gold = Color3.fromRGB(255, 200, 100)
+
         for side = -1, 1, 2 do
-            local membrane = makeNeonPart({Name="XDarkWingMembrane", Size=Vector3.new(0.08,3.2,2.6), Color=Color3.fromRGB(130,10,28), Transparency=0.55, Parent=char})
+            local membrane = makeNeonPart({Name="XDarkMembrane", Size=Vector3.new(0.06, 3.4, 2.8), Color=Color3.fromRGB(120, 8, 24), Transparency=0.6, Parent=char})
             registerVisual("wings", membrane)
-            table.insert(wingFeathers, {part=membrane, side=side, i=0, layer="membrane"})
-            for i = 1, 9 do
-                local t = i / 9
-                local feather = makeNeonPart({Name="XDarkFeatherOuter", Size=Vector3.new(0.1, 4.0 - t*2.0, 1.0 - t*0.45), Color=Color3.fromRGB(255, math.floor(20 + t*130), math.floor(40 + t*45)), Transparency=0.02 + t*0.15, Parent=char})
-                registerVisual("wings", feather)
-                table.insert(wingFeathers, {part=feather, side=side, i=i, layer="outer"})
+            table.insert(wingMembranes, {part=membrane, side=side})
+
+            for i = 1, 8 do
+                local t = i / 8
+                local len1 = 2.2 - t * 0.9
+                local len2 = 1.6 - t * 0.7
+                local width = 1.05 - t * 0.45
+                local base = makeNeonPart({Name="XDarkPrimB", Size=Vector3.new(0.1, len1, width), Color=darkRed:lerp(brightRed, t*0.5), Transparency=0.03, Parent=char})
+                local tip = makeNeonPart({Name="XDarkPrimT", Size=Vector3.new(0.1, len2, width*0.75), Color=brightRed:lerp(gold, t), Transparency=0.02 + t*0.1, Parent=char})
+                registerVisual("wings", base); registerVisual("wings", tip)
+                table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="prim"})
             end
-            for i = 1, 6 do
-                local t = i / 6
-                local feather = makeNeonPart({Name="XDarkFeatherInner", Size=Vector3.new(0.1, 2.1 - t*0.8, 0.75 - t*0.25), Color=Color3.fromRGB(255, math.floor(115 + t*80), math.floor(70 + t*40)), Transparency=0.05, Parent=char})
-                registerVisual("wings", feather)
-                table.insert(wingFeathers, {part=feather, side=side, i=i, layer="inner"})
+
+            for i = 1, 5 do
+                local t = i / 5
+                local len1 = 1.5 - t * 0.5
+                local len2 = 0.9 - t * 0.3
+                local base = makeNeonPart({Name="XDarkSecB", Size=Vector3.new(0.1, len1, 0.7 - t*0.2), Color=Color3.fromRGB(220, 40, 55), Transparency=0.05, Parent=char})
+                local tip = makeNeonPart({Name="XDarkSecT", Size=Vector3.new(0.1, len2, 0.55 - t*0.15), Color=Color3.fromRGB(255, 120, 80), Transparency=0.05, Parent=char})
+                registerVisual("wings", base); registerVisual("wings", tip)
+                table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="sec"})
+            end
+
+            for i = 1, 3 do
+                local cov = makeNeonPart({Name="XDarkCovert", Size=Vector3.new(0.1, 0.7 - i*0.12, 0.5), Color=gold, Transparency=0.08, Parent=char})
+                registerVisual("wings", cov)
+                table.insert(wingFeathers, {base=cov, tip=nil, len1=0.7 - i*0.12, len2=0, side=side, i=i, layer="cov"})
             end
         end
-        wingSpine = makeNeonPart({Name="XDarkWingSpine", Size=Vector3.new(0.24,1.8,0.24), Color=Color3.fromRGB(255,45,65), Transparency=0.05, Parent=char})
+
+        wingSpine = makeNeonPart({Name="XDarkSpine", Size=Vector3.new(0.26, 1.9, 0.26), Color=Color3.fromRGB(255, 50, 70), Transparency=0.04, Parent=char})
         registerVisual("wings", wingSpine)
-        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1, 1)
+
+        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.2, 1)
         registerVisual("wings", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        em.Color = ColorSequence.new(Color3.fromRGB(255, 80, 90), Color3.fromRGB(255, 165, 85))
-        em.Rate = 35; em.Lifetime = NumberRange.new(0.5, 1.1); em.Speed = NumberRange.new(1, 3)
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 90, 100), Color3.fromRGB(255, 190, 100))
+        em.Rate = 40; em.Lifetime = NumberRange.new(0.6, 1.3); em.Speed = NumberRange.new(1, 3.5)
         em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
-        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 0)})
+        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.32), NumberSequenceKeypoint.new(1, 0)})
         registerVisual("wings", em)
+
         local wingLight = Instance.new("PointLight")
-        wingLight.Color = Color3.fromRGB(255, 40, 60); wingLight.Brightness = 1.6; wingLight.Range = 16
+        wingLight.Color = Color3.fromRGB(255, 45, 65); wingLight.Brightness = 1.8; wingLight.Range = 18
         wingLight.Parent = hrp
         registerVisual("wings", wingLight)
     end
@@ -949,31 +981,61 @@ xpcall(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        circleOuter = makeNeonPart({Name="XDarkCircleOuter", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.18,9,9), Color=Color3.fromRGB(255,25,45), Transparency=0.45, Parent=char})
-        registerVisual("circle", circleOuter)
-        circleInner = makeNeonPart({Name="XDarkCircleInner", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.2,5,5), Color=Color3.fromRGB(255,80,100), Transparency=0.3, Parent=char})
-        registerVisual("circle", circleInner)
-        circleRing = makeNeonPart({Name="XDarkCircleRing", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.14,7,7), Color=Color3.fromRGB(255,150,90), Transparency=0.5, Parent=char})
-        registerVisual("circle", circleRing)
-        for k = 1, 12 do
-            local orb = makeNeonPart({Name="XDarkCircleOrb", Shape=Enum.PartType.Ball, Size=Vector3.new(0.32,0.32,0.32), Color=(k%3==0) and Color3.fromRGB(255,160,90) or Color3.fromRGB(255,60,80), Transparency=0.1, Parent=char})
+
+        circleGlow = makeNeonPart({Name="XDarkGlow", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 11, 11), Color=Color3.fromRGB(180, 15, 35), Transparency=0.78, Parent=char})
+        registerVisual("circle", circleGlow)
+
+        circleInnerDisc = makeNeonPart({Name="XDarkInner", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.16, 4.4, 4.4), Color=Color3.fromRGB(255, 60, 80), Transparency=0.55, Parent=char})
+        registerVisual("circle", circleInnerDisc)
+
+        circleCore = makeNeonPart({Name="XDarkCore", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.18, 2.0, 2.0), Color=Color3.fromRGB(255, 160, 90), Transparency=0.35, Parent=char})
+        registerVisual("circle", circleCore)
+
+        for k = 1, 18 do
+            local seg = makeNeonPart({Name="XDarkOutSeg", Size=Vector3.new(1.5, 0.12, 0.28), Color=Color3.fromRGB(255, 30, 55), Transparency=0.15, Parent=char})
+            registerVisual("circle", seg)
+            table.insert(circleOuterSegs, {part=seg, k=k})
+        end
+
+        for k = 1, 14 do
+            local seg = makeNeonPart({Name="XDarkMidSeg", Size=Vector3.new(1.3, 0.12, 0.24), Color=Color3.fromRGB(255, 120, 70), Transparency=0.2, Parent=char})
+            registerVisual("circle", seg)
+            table.insert(circleMiddleSegs, {part=seg, k=k})
+        end
+
+        for k = 1, 8 do
+            local rune = makeNeonPart({Name="XDarkRune", Size=Vector3.new(0.5, 0.5, 0.12), Color=Color3.fromRGB(255, 200, 100), Transparency=0.1, Parent=char})
+            registerVisual("circle", rune)
+            table.insert(circleRunes, {part=rune, k=k})
+        end
+
+        for k = 1, 10 do
+            local orb = makeNeonPart({Name="XDarkOrb", Shape=Enum.PartType.Ball, Size=Vector3.new(0.34, 0.34, 0.34), Color=(k%2==0) and Color3.fromRGB(255,180,90) or Color3.fromRGB(255,50,70), Transparency=0.08, Parent=char})
             registerVisual("circle", orb)
             table.insert(circleOrbs, {part=orb, k=k})
         end
+
+        for k = 1, 6 do
+            local pillar = makeNeonPart({Name="XDarkPillar", Size=Vector3.new(0.18, 7, 0.18), Color=Color3.fromRGB(255, 60, 80), Transparency=0.55, Parent=char})
+            registerVisual("circle", pillar)
+            table.insert(circlePillars, {part=pillar, k=k})
+        end
+
         local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, -3, 0)
         registerVisual("circle", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        em.Color = ColorSequence.new(Color3.fromRGB(255,40,60), Color3.fromRGB(255,140,70))
-        em.Rate = 55; em.Lifetime = NumberRange.new(0.8, 1.5); em.Speed = NumberRange.new(2, 5)
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 50, 70), Color3.fromRGB(255, 170, 90))
+        em.Rate = 60; em.Lifetime = NumberRange.new(0.9, 1.6); em.Speed = NumberRange.new(3, 6)
         em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
         em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0)})
-        em.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 1)})
+        em.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1)})
         registerVisual("circle", em)
-        local cl = Instance.new("PointLight")
-        cl.Color = Color3.fromRGB(255,30,55); cl.Brightness = 1.6; cl.Range = 18
-        cl.Parent = hrp
-        registerVisual("circle", cl)
+
+        circleLight = Instance.new("PointLight")
+        circleLight.Color = Color3.fromRGB(255, 40, 60); circleLight.Brightness = 1.8; circleLight.Range = 20
+        circleLight.Parent = hrp
+        registerVisual("circle", circleLight)
     end
 
     local function applyHalo()
@@ -981,15 +1043,15 @@ xpcall(function()
         local char = player.Character
         local head = char and char:FindFirstChild("Head")
         if not head then return end
-        haloDisc = makeNeonPart({Name="XDarkHalo", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.12,2.4,2.4), Color=Color3.fromRGB(255,45,65), Transparency=0.2, Parent=char})
+        haloDisc = makeNeonPart({Name="XDarkHalo", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.12, 2.4, 2.4), Color=Color3.fromRGB(255, 45, 65), Transparency=0.2, Parent=char})
         registerVisual("halo", haloDisc)
         for k = 1, 6 do
-            local mote = makeNeonPart({Name="XDarkHaloMote", Shape=Enum.PartType.Ball, Size=Vector3.new(0.18,0.18,0.18), Color=Color3.fromRGB(255,120,90), Transparency=0.1, Parent=char})
+            local mote = makeNeonPart({Name="XDarkHaloMote", Shape=Enum.PartType.Ball, Size=Vector3.new(0.18, 0.18, 0.18), Color=Color3.fromRGB(255, 120, 90), Transparency=0.1, Parent=char})
             registerVisual("halo", mote)
             table.insert(haloMotes, {part=mote, k=k})
         end
         local hl = Instance.new("PointLight")
-        hl.Color = Color3.fromRGB(255,40,60); hl.Brightness = 0.9; hl.Range = 9
+        hl.Color = Color3.fromRGB(255, 40, 60); hl.Brightness = 0.9; hl.Range = 9
         hl.Parent = head
         registerVisual("halo", hl)
     end
@@ -1023,7 +1085,7 @@ xpcall(function()
                 local a1 = Instance.new("Attachment", hand); a1.Position = Vector3.new(0, -0.35, 0)
                 local trail = Instance.new("Trail", hand)
                 trail.Attachment0 = a0; trail.Attachment1 = a1
-                trail.Color = ColorSequence.new(Color3.fromRGB(255,35,55), Color3.fromRGB(255,140,70))
+                trail.Color = ColorSequence.new(Color3.fromRGB(255, 35, 55), Color3.fromRGB(255, 140, 70))
                 trail.Lifetime = 0.45; trail.LightEmission = 1; trail.LightInfluence = 0
                 trail.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1)})
                 registerVisual("trails", a0); registerVisual("trails", a1); registerVisual("trails", trail)
@@ -1037,12 +1099,12 @@ xpcall(function()
         local head = char and char:FindFirstChild("Head")
         if not head then return end
         for side = -1, 1, 2 do
-            local eye = makeNeonPart({Name="XDarkEye", Size=Vector3.new(0.12,0.14,0.14), Color=Color3.fromRGB(255,20,40), Transparency=0, Parent=char})
+            local eye = makeNeonPart({Name="XDarkEye", Size=Vector3.new(0.12, 0.14, 0.14), Color=Color3.fromRGB(255, 20, 40), Transparency=0, Parent=char})
             registerVisual("eyes", eye)
             table.insert(eyeParts, {part=eye, side=side})
         end
         local el = Instance.new("PointLight")
-        el.Color = Color3.fromRGB(255,25,45); el.Brightness = 0.7; el.Range = 6
+        el.Color = Color3.fromRGB(255, 25, 45); el.Brightness = 0.7; el.Range = 6
         el.Parent = head
         registerVisual("eyes", el)
     end
@@ -1053,7 +1115,7 @@ xpcall(function()
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         local l = Instance.new("PointLight")
-        l.Color = Color3.fromRGB(255,30,50); l.Brightness = 2; l.Range = 18
+        l.Color = Color3.fromRGB(255, 30, 50); l.Brightness = 2; l.Range = 18
         l.Parent = hrp
         registerVisual("light", l)
     end
@@ -1067,7 +1129,7 @@ xpcall(function()
         registerVisual("lightning", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        em.Color = ColorSequence.new(Color3.fromRGB(255,220,180), Color3.fromRGB(255,60,60))
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 220, 180), Color3.fromRGB(255, 60, 60))
         em.Rate = 70; em.Lifetime = NumberRange.new(0.08, 0.25); em.Speed = NumberRange.new(8, 15)
         em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
         em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.22), NumberSequenceKeypoint.new(1, 0)})
@@ -1101,55 +1163,123 @@ xpcall(function()
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local t = tick()
+
             if visualState.wings and hrp and #wingFeathers > 0 then
-                local bob = math.sin(t * 2.6 + 0.5) * 0.09
+                local bob = math.sin(t * 2.4 + 0.5) * 0.1
+                local flap = math.sin(t * 2.4)
+
                 for _, f in ipairs(wingFeathers) do
-                    if f.part.Parent then
+                    if f.base.Parent then
                         local i, side = f.i, f.side
-                        if f.layer == "membrane" then
-                            local spread = 25 + math.sin(t * 2.6) * 14
-                            f.part.CFrame = hrp.CFrame * CFrame.new(side * 0.9, 1.1 + bob, 1.0) * CFrame.Angles(0, math.rad(side * spread), math.rad(side * -12))
-                        elseif f.layer == "outer" then
-                            local phase = math.sin(t * 2.6 - i * 0.18) * 20
-                            local spread = 10 + i * 7.5 + phase * (0.5 + i * 0.06)
-                            local tilt = -6 - i * 2.5 + math.sin(t * 2.6 - i * 0.15) * 5
-                            f.part.CFrame = hrp.CFrame * CFrame.new(side * (0.32 + i * 0.165), 1.5 - i * 0.11 + bob, 0.78 + i * 0.028) * CFrame.Angles(0, math.rad(side * spread), math.rad(side * tilt))
+                        local baseCF
+
+                        if f.layer == "prim" then
+                            local phase = math.sin(t * 2.4 - i * 0.22)
+                            local spread = 12 + i * 8 + phase * 16 * (0.4 + i * 0.07)
+                            local lift = -4 - i * 2 + phase * 8
+                            baseCF = hrp.CFrame * CFrame.new(side * (0.35 + i * 0.17), 1.55 - i * 0.1 + bob, 0.8 + i * 0.03) * CFrame.Angles(0, math.rad(side * spread), math.rad(side * lift))
+                        elseif f.layer == "sec" then
+                            local phase = math.sin(t * 2.4 - i * 0.28)
+                            local spread = 8 + i * 11 + phase * 10
+                            baseCF = hrp.CFrame * CFrame.new(side * (0.3 + i * 0.12), 1.05 - i * 0.12 + bob, 0.62) * CFrame.Angles(0, math.rad(side * spread), math.rad(side * -3))
                         else
-                            local phase = math.sin(t * 2.6 - i * 0.22) * 14
-                            local spread = 6 + i * 10 + phase
-                            f.part.CFrame = hrp.CFrame * CFrame.new(side * (0.28 + i * 0.11), 1.0 - i * 0.12 + bob, 0.62) * CFrame.Angles(0, math.rad(side * spread), math.rad(side * -4))
+                            local spread = 5 + i * 14
+                            baseCF = hrp.CFrame * CFrame.new(side * (0.28 + i * 0.1), 0.75 - i * 0.1 + bob, 0.55) * CFrame.Angles(0, math.rad(side * spread), 0)
+                        end
+
+                        f.base.CFrame = baseCF * CFrame.new(0, f.len1 / 2, 0)
+                        if f.tip then
+                            f.tip.CFrame = baseCF * CFrame.new(0, f.len1 + f.len2 / 2, 0)
                         end
                     end
                 end
-                if wingSpine and wingSpine.Parent then
-                    wingSpine.CFrame = hrp.CFrame * CFrame.new(0, 1.15 + bob, 0.88)
-                end
-            end
-            if visualState.circle and hrp then
-                local basePos = hrp.CFrame * CFrame.new(0, -3.1, 0)
-                if circleOuter and circleOuter.Parent then circleOuter.CFrame = basePos * CFrame.Angles(0,0,math.rad(90)) * CFrame.Angles(t*1.2,0,0) end
-                if circleInner and circleInner.Parent then circleInner.CFrame = basePos * CFrame.Angles(0,0,math.rad(90)) * CFrame.Angles(-t*2,0,0) end
-                if circleRing and circleRing.Parent then circleRing.CFrame = basePos * CFrame.Angles(0,0,math.rad(90)) * CFrame.Angles(t*3,0,0) end
-                for _, o in ipairs(circleOrbs) do
-                    if o.part.Parent then
-                        local ang = t * 1.6 + (o.k / 12) * math.pi * 2
-                        o.part.CFrame = CFrame.new(hrp.Position + Vector3.new(math.cos(ang)*4.6, -3.1 + math.sin(t*3 + o.k)*0.3, math.sin(ang)*4.6))
+
+                for _, m in ipairs(wingMembranes) do
+                    if m.part.Parent then
+                        local spread = 28 + flap * 12
+                        m.part.CFrame = hrp.CFrame * CFrame.new(m.side * 1.0, 1.2 + bob, 1.05) * CFrame.Angles(0, math.rad(m.side * spread), math.rad(m.side * -10))
                     end
                 end
+
+                if wingSpine and wingSpine.Parent then
+                    wingSpine.CFrame = hrp.CFrame * CFrame.new(0, 1.2 + bob, 0.9)
+                end
             end
+
+            if visualState.circle and hrp then
+                local centerY = hrp.Position.Y - 3.1
+                local pulse = (math.sin(t * 3) + 1) / 2
+                local cx, cz = hrp.Position.X, hrp.Position.Z
+
+                if circleGlow and circleGlow.Parent then
+                    circleGlow.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90))
+                    circleGlow.Transparency = 0.72 + pulse * 0.12
+                end
+                if circleInnerDisc and circleInnerDisc.Parent then
+                    circleInnerDisc.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(t * 1.5, 0, 0)
+                end
+                if circleCore and circleCore.Parent then
+                    circleCore.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(-t * 2.5, 0, 0)
+                    circleCore.Transparency = 0.3 + pulse * 0.2
+                end
+
+                for _, s in ipairs(circleOuterSegs) do
+                    if s.part.Parent then
+                        local ang = (s.k / 18) * math.pi * 2 + t * 0.8
+                        local pos = Vector3.new(cx + math.cos(ang) * 4.5, centerY, cz + math.sin(ang) * 4.5)
+                        s.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.pi / 2 - ang, 0)
+                    end
+                end
+                for _, s in ipairs(circleMiddleSegs) do
+                    if s.part.Parent then
+                        local ang = (s.k / 14) * math.pi * 2 - t * 1.3
+                        local pos = Vector3.new(cx + math.cos(ang) * 3.3, centerY, cz + math.sin(ang) * 3.3)
+                        s.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.pi / 2 - ang, 0)
+                    end
+                end
+                for _, r in ipairs(circleRunes) do
+                    if r.part.Parent then
+                        local ang = (r.k / 8) * math.pi * 2 + t * 0.5
+                        local bobY = centerY + 0.5 + math.sin(t * 2.5 + r.k) * 0.25
+                        local pos = Vector3.new(cx + math.cos(ang) * 3.9, bobY, cz + math.sin(ang) * 3.9)
+                        r.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, math.pi / 2 - ang, math.rad(45))
+                    end
+                end
+                for _, o in ipairs(circleOrbs) do
+                    if o.part.Parent then
+                        local ang = (o.k / 10) * math.pi * 2 + t * 1.8
+                        local bobY = centerY + 0.3 + math.sin(t * 3.2 + o.k) * 0.35
+                        local pos = Vector3.new(cx + math.cos(ang) * 4.8, bobY, cz + math.sin(ang) * 4.8)
+                        o.part.CFrame = CFrame.new(pos)
+                    end
+                end
+                for _, p in ipairs(circlePillars) do
+                    if p.part.Parent then
+                        local ang = (p.k / 6) * math.pi * 2 + t * 0.8
+                        local pos = Vector3.new(cx + math.cos(ang) * 4.5, centerY + 3.5, cz + math.sin(ang) * 4.5)
+                        p.part.CFrame = CFrame.new(pos)
+                        p.part.Transparency = 0.45 + pulse * 0.25
+                    end
+                end
+                if circleLight then
+                    circleLight.Brightness = 1.5 + pulse * 1.2
+                end
+            end
+
             if visualState.halo and haloDisc and haloDisc.Parent then
                 local head = char:FindFirstChild("Head")
                 if head then
                     local bob = math.sin(t * 2.2) * 0.12
-                    haloDisc.CFrame = head.CFrame * CFrame.new(0, 1.8 + bob, 0) * CFrame.Angles(0,0,math.rad(90)) * CFrame.Angles(t*2.5,0,0)
+                    haloDisc.CFrame = head.CFrame * CFrame.new(0, 1.8 + bob, 0) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(t * 2.5, 0, 0)
                     for _, m in ipairs(haloMotes) do
                         if m.part.Parent then
                             local ang = t * 2 + (m.k / 6) * math.pi * 2
-                            m.part.CFrame = CFrame.new(head.Position + Vector3.new(math.cos(ang)*1.4, 1.8 + bob + math.sin(t*4 + m.k)*0.1, math.sin(ang)*1.4))
+                            m.part.CFrame = CFrame.new(head.Position + Vector3.new(math.cos(ang) * 1.4, 1.8 + bob + math.sin(t * 4 + m.k) * 0.1, math.sin(ang) * 1.4))
                         end
                     end
                 end
             end
+
             if visualState.eyes and #eyeParts > 0 then
                 local head = char:FindFirstChild("Head")
                 if head then
@@ -1362,7 +1492,7 @@ xpcall(function()
     verBadge.Position = UDim2.new(0, 200, 0.5, -9)
     verBadge.BackgroundColor3 = COL.accentDim
     verBadge.BorderSizePixel = 0
-    verBadge.Text = "v39"
+    verBadge.Text = "v40"
     verBadge.Font = Enum.Font.GothamBold
     verBadge.TextSize = 11
     verBadge.TextColor3 = COL.accentHot
@@ -1550,7 +1680,6 @@ xpcall(function()
         holder.ZIndex = 3
         holder.Parent = parent
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0, 0, 1, 0)
         lbl.BackgroundTransparency = 1
         lbl.Text = text
         lbl.Font = Enum.Font.GothamBlack
@@ -1560,7 +1689,6 @@ xpcall(function()
         lbl.ZIndex = 3
         lbl.Parent = holder
         pcall(function()
-            lbl.Size = UDim2.new(0, 0, 1, 0)
             local len = #text * 7.5 + 4
             lbl.Size = UDim2.new(0, len, 1, 0)
             local line = Instance.new("Frame")
@@ -1912,6 +2040,7 @@ xpcall(function()
         startTime = tick()
         visitedPositions = {}
         farmStopped = false
+        alreadyFlungOnFull = false
         counterV.Text = "0"; timerV.Text = "0s"; rateV.Text = "0"
         updateRoleUI(); updateBagUI()
         notify("XDarkHUB", "Фарм включён")
@@ -1924,6 +2053,22 @@ xpcall(function()
                 rateV.Text = tostring(e > 0 and math.floor(cc / e * 3600) or 0)
                 pCoinV.Text = tostring(getPlayerCoins(player))
                 updateRoleUI(); updateBagUI()
+
+                if cc >= MAX_BAG then
+                    if flingOnFullBag and not alreadyFlungOnFull then
+                        alreadyFlungOnFull = true
+                        local murderer = findMurderer()
+                        if murderer then
+                            notify("XDarkHUB", "Мешок полный — флингаю убийцу!")
+                            xdSpawn(function()
+                                pcall(function() miniFling(murderer) end)
+                            end)
+                        end
+                    end
+                else
+                    alreadyFlungOnFull = false
+                end
+
                 xdWait(0.25)
             end
         end)
@@ -1991,16 +2136,17 @@ xpcall(function()
         isActive = s
         if s then startFarming() else farmStopped = true end
     end)
-    makeToggle(farmC, 12, "Анти-АФК", function(s) antiAFK = s end)
+    makeToggle(farmC, 12, "🔪 Флинг убийцы при полном мешке", function(s) flingOnFullBag = s end)
+    makeToggle(farmC, 13, "Анти-АФК", function(s) antiAFK = s end)
 
     local visC = contents["Визуал"]
     local visualToggles = {}
     makeSection(visC, 0, "ВИЗУАЛЬНЫЕ ЭФФЕКТЫ")
-    visualToggles.wings = makeToggle(visC, 1, "🪽 Крылья (3 слоя + искры)", function(s)
+    visualToggles.wings = makeToggle(visC, 1, "🪽 Крылья (3 слоя + золото)", function(s)
         visualState.wings = s
         if s then applyVisualSafe("wings") else clearVisual("wings") end
     end)
-    visualToggles.circle = makeToggle(visC, 2, "⭕ Магический круг (3 кольца)", function(s)
+    visualToggles.circle = makeToggle(visC, 2, "⭕ Магическая печать", function(s)
         visualState.circle = s
         if s then applyVisualSafe("circle") else clearVisual("circle") end
     end)
@@ -2093,6 +2239,7 @@ xpcall(function()
         rootPart = ch:WaitForChild("HumanoidRootPart")
         visitedPositions = {}
         farmStopped = false
+        alreadyFlungOnFull = false
         xdWait(1.25)
         checkRole()
         pcall(function() updateRoleUI() end)
@@ -2121,10 +2268,10 @@ xpcall(function()
     pcall(function() updateBagUI() end)
     switchTab("Шериф")
 
-    notify("XDarkHUB", "v39 загружен!")
-    notify("XDarkHUB", "Герой теперь определяется!")
+    notify("XDarkHUB", "v40 загружен!")
+    notify("XDarkHUB", "Флинг при полном мешке + новые визуалы!")
 
-    xdStatus("XDarkHUB v39: меню готово", Color3.fromRGB(80, 255, 120))
+    xdStatus("XDarkHUB v40: меню готово", Color3.fromRGB(80, 255, 120))
     xdDelay(4, function() pcall(function() if statusLabel then statusLabel.Visible = false end end) end)
 end, function(err)
     xdError(err)
