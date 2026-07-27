@@ -1,4 +1,4 @@
-ъlocal function safeParentGui(obj)
+local function safeParentGui(obj)
     local attempts = {}
     if gethui and type(gethui) == "function" then table.insert(attempts, function() return gethui() end) end
     if get_hidden_gui and type(get_hidden_gui) == "function" then table.insert(attempts, function() return get_hidden_gui() end) end
