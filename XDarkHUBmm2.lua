@@ -1,10 +1,14 @@
 local function safeParentGui(obj)
-    local attempts = {}
-    if gethui and type(gethui)=="function" then table.insert(attempts,function() return gethui() end) end
-    if get_hidden_gui and type(get_hidden_gui)=="function" then table.insert(attempts,function() return get_hidden_gui() end) end
-    table.insert(attempts,function() local pl=game:GetService("Players").LocalPlayer return pl and pl:FindFirstChild("PlayerGui") end)
-    table.insert(attempts,function() return game:GetService("CoreGui") end)
-    for _,fn in ipairs(attempts) do local ok,res=pcall(fn) if ok and res then local ok2=pcall(function() obj.Parent=res end) if ok2 and obj.Parent==res then return res end end end
+    local function try(fn) local ok,res=pcall(fn); if ok and res then local ok2=pcall(function() obj.Parent=res end); if ok2 and obj.Parent==res then return res end end; return nil end
+    if gethui and type(gethui)=="function" then local r=try(function() return gethui() end); if r then return r end end
+    if get_hidden_gui and type(get_hidden_gui)=="function" then local r=try(function() return get_hidden_gui() end); if r then return r end end
+    local Players=game:GetService("Players"); local deadline=tick()+7
+    while tick()<deadline do
+        local pl=Players.LocalPlayer
+        if pl then local pg=pl:FindFirstChild("PlayerGui"); if pg then local r=try(function() return pg end); if r then return r end end end
+        local r2=try(function() return game:GetService("CoreGui") end); if r2 then return r2 end
+        wait(0.25)
+    end
     return nil
 end
 local statusGui,statusLabel
@@ -22,11 +26,16 @@ local function xdStatus(text,color)
         if statusLabel then statusLabel.Visible=true; statusLabel.Text=text; statusLabel.TextColor3=color or Color3.fromRGB(255,255,255) end
     end)
 end
-local function xdError(err) pcall(function() warn("[XDarkHUB ERROR] "..tostring(err)) end); xdStatus("XDarkHUB ERROR: "..tostring(err),Color3.fromRGB(255,70,70)) end
+local function xdError(err)
+    pcall(function() warn("[XDarkHUB ERROR] "..tostring(err)) end)
+    pcall(function() game:GetService("StarterGui"):SetCore("SendNotification",{Title="XDarkHUB ERROR",Text=tostring(err):sub(1,140),Duration=9}) end)
+    xdStatus("XDarkHUB ERROR: "..tostring(err),Color3.fromRGB(255,70,70))
+end
 local xdWait=(task and task.wait) or wait
 local xdDelay=function(t,f) if task and task.delay then task.delay(t,f) else delay(t,f) end end
 local xdSpawn=function(f) if task and task.spawn then task.spawn(f) else spawn(f) end end
 xdStatus("XDarkHUB: загрузка...",Color3.fromRGB(255,255,255))
+pcall(function() game:GetService("StarterGui"):SetCore("SendNotification",{Title="XDarkHUB",Text="инжект пойман — грузим меню...",Duration=2}) end)
 xpcall(function()
     local Players=game:GetService("Players"); local TweenService=game:GetService("TweenService"); local RunService=game:GetService("RunService")
     local UserInputService=game:GetService("UserInputService"); local VirtualUser=game:GetService("VirtualUser"); local StarterGui=game:GetService("StarterGui")
@@ -426,14 +435,18 @@ xpcall(function()
         end)
     end)
 
-    -- ================= GUI (тёмный + красный, стиль картинки + украшения) =================
+    -- ================= GUI (тёмный + красный) =================
     local viewport=Vector2.new(1000,700); pcall(function() viewport=workspace.CurrentCamera.ViewportSize end)
     local function clamp(n,min,max) return math.min(max,math.max(min,n)) end
     local guiW=clamp(viewport.X*0.55,440,600); local guiH=clamp(viewport.Y*0.62,320,440)
     pcall(function() local pg=player:FindFirstChild("PlayerGui"); if pg then local old=pg:FindFirstChild("AutoFarmGui"); if old then old:Destroy() end end end)
     local guiUI=Instance.new("ScreenGui"); guiUI.Name="AutoFarmGui"; guiUI.ResetOnSpawn=false; guiUI.Enabled=true
-    pcall(function() guiUI.IgnoreGuiInset=true end); pcall(function() guiUI.DisplayOrder=999999 end); if not safeParentGui(guiUI) then error("GUI parent not found") end
+    pcall(function() guiUI.IgnoreGuiInset=true end); pcall(function() guiUI.DisplayOrder=999999 end)
+    local guiParent=nil
+    for attempt=1,4 do guiParent=safeParentGui(guiUI); if guiParent then break end; pcall(function() StarterGui:SetCore("SendNotification",{Title="XDarkHUB",Text="ищу куда вставить GUI (попытка "..attempt..")...",Duration=2}) end); xdWait(1) end
+    if not guiParent then pcall(function() StarterGui:SetCore("SendNotification",{Title="XDarkHUB ERROR",Text="Exploit не дал gethui/PlayerGui/CoreGui — обнови эксплойт или дай права.",Duration=10}) end); warn("[XDarkHUB] no gui parent"); return end
     local guiScale=Instance.new("UIScale",guiUI); guiScale.Scale=1
+    pcall(function() StarterGui:SetCore("SendNotification",{Title="XDarkHUB",Text="GUI вставлен ("..tostring(guiParent.Name).."), строим меню...",Duration=2}) end)
     local clickSnd=Instance.new("Sound"); clickSnd.SoundId="rbxassetid://169759176"; clickSnd.Volume=0.25; clickSnd.Parent=guiUI
     local collectSound=Instance.new("Sound"); collectSound.SoundId="rbxassetid://12221967"; collectSound.Volume=1; collectSound.Parent=guiUI
     local clickEnabled=true; local function playClick() if clickEnabled then pcall(function() clickSnd:Play() end) end end
@@ -580,7 +593,7 @@ xpcall(function()
     makeSection(flingC,4,"ПЛАВАЮЩИЕ КНОПКИ"); makeButtonRow(flingC,5,"📌  Телепорт к пушке",function() if floatingButtons["TP_GUN"] then removeFloatingButton("TP_GUN") else createFloatingButton("TP_GUN","🔫 К ПУШКЕ",COL.accent,teleportToGun,UDim2.new(0,120,0,80)) end end,false); makeButtonRow(flingC,6,"📌  Выстрел",function() if floatingButtons["SHOOT"] then removeFloatingButton("SHOOT") else createFloatingButton("SHOOT","🔫 ВЫСТРЕЛ",COL.accent,shootMurderer,UDim2.new(0,120,0,135)) end end,false)
     makeSection(flingC,7,"ЧАТ / ИМЕНА"); makeButtonRow(flingC,8,"💬  Имена в чат",sendNamesToChat,false); makeButtonRow(flingC,9,"📋  Имя шерифа",copySheriffName,false); makeButtonRow(flingC,10,"📋  Имя убийцы",copyMurdererName,false)
     local themeC=contents["Theme"]
-    makeSection(themeC,0,"ИНТЕРФЕЙС"); makeToggleRow(themeC,1,"🔊  Звук кликов",true,function(s) clickEnabled=s end); makeSliderRow(themeC,2,"Прозрачность меню",0,80,0,0,function(v) frame.BackgroundTransparency=v/100 end); makeToggleRow(themeC,3,"🌫  Частицы фона в игре",false,function(s) bgParticlesOn=s; bgLayer.Visible=frame.Visible or bgParticlesOn; notify("XDarkHUB",s and "Фон включён и в игре" or "Фон только выключен") end)
+    makeSection(themeC,0,"ИНТЕРФЕЙС"); makeToggleRow(themeC,1,"🔊  Звук кликов",true,function(s) clickEnabled=s end); makeSliderRow(themeC,2,"Прозрачность меню",0,80,0,0,function(v) frame.BackgroundTransparency=v/100 end); makeToggleRow(themeC,3,"🌫  Частицы фона в игре",false,function(s) bgParticlesOn=s; bgLayer.Visible=frame.Visible or bgParticlesOn; notify("XDarkHUB",s and "Фон включён и в игре" or "Фон выключен") end)
     makeSection(themeC,4,"ИНФО"); local verStat=makeStatRow(themeC,5,"Версия"); verStat.Text="v42"; local buildStat=makeStatRow(themeC,6,"Сборка"); buildStat.Text="XDarkHUB"
     local function checkRole() local r=getPlayerRole(player); isMurderer=(r=="Murderer"); isSheriff=(r=="Sheriff"); isHero=(r=="Hero") end
     local function getPlayerCoins(p) local ls=p:FindFirstChild("leaderstats"); if ls then for _,v in ipairs(ls:GetChildren()) do if v:IsA("IntValue") or v:IsA("NumberValue") then local n=v.Name:lower(); if n:find("coin") or n:find("money") or n:find("cash") or n:find("gold") then return v.Value end end end; for _,v in ipairs(ls:GetChildren()) do if v:IsA("IntValue") or v:IsA("NumberValue") then return v.Value end end end; return 0 end
@@ -615,12 +628,15 @@ xpcall(function()
     mBtn.MouseButton1Click:Connect(function() playClick(); frame.Visible=not frame.Visible; bgLayer.Visible=frame.Visible or bgParticlesOn end)
     local fpsCount=0; RunService.RenderStepped:Connect(function() fpsCount=fpsCount+1 end)
     xdSpawn(function() while true do xdWait(1); pcall(function() perfChip.Text=fpsCount.." FPS · "..math.floor(localplayer:GetNetworkPing()*1000).." ms" end); fpsCount=0 end end)
-    frame.Size=UDim2.new(0,0,0,0); frame.Position=UDim2.new(0.5,0,0.5,0); frame.BackgroundTransparency=1
-    tween(frame,{Size=UDim2.new(0,guiW,0,guiH),Position=UDim2.new(0.5,-guiW/2,0.5,-guiH/2),BackgroundTransparency=0},0.55,Enum.EasingStyle.Back,Enum.EasingDirection.Out)
+    -- безопасное появление: окно УЖЕ видимо и полноразмерно, анимируем только scale (если твин не сыграет — окно всё равно на месте)
+    frame.Visible=true; frame.BackgroundTransparency=0
+    pcall(function() guiScale.Scale=0.92; tween(guiScale,{Scale=1},0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out) end)
+    xdDelay(0.6,function() pcall(function() guiScale.Scale=1 end); pcall(function() frame.Visible=true; frame.BackgroundTransparency=0 end) end)
     player.CharacterAdded:Connect(function(ch) character=ch; rootPart=ch:WaitForChild("HumanoidRootPart"); visitedPositions={}; farmStopped=false; alreadyFlungOnFull=false; bagFullNotified=false; xdWait(1.25); checkRole(); pcall(function() updateRoleUI() end); reapplyVisuals() end)
     player.Idled:Connect(function() if antiAFK then pcall(function() VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame); xdWait(1); VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame) end) end end)
     RunService.Stepped:Connect(function() if isActive and character and not farmStopped then for _,v in ipairs(character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide=false end end end end)
     pcall(function() updateRoleUI() end); pcall(function() updateBagUI() end); switchTab("Main")
     notify("XDarkHUB","v42 загружен!"); notify("XDarkHUB","Крылья + орб + круг (bloom, красный)!")
+    pcall(function() StarterGui:SetCore("SendNotification",{Title="XDarkHUB",Text="меню готово ✓ — кнопка X внизу слева",Duration=3}) end)
     xdStatus("XDarkHUB v42: меню готово",Color3.fromRGB(80,255,120)); xdDelay(4,function() pcall(function() if statusLabel then statusLabel.Visible=false end end) end)
 end, function(err) xdError(err) end)
