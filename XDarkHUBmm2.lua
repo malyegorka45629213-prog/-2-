@@ -1,6 +1,5 @@
 local HUB_NAME = "XDarkHUB"   -- <-- СЮДА СВОЁ НАЗВАНИЕ ХАБА
 
--- индикатор на экран (чтобы тишины больше не было)
 local _banGui, _banTxt
 local function ban(msg, col)
     pcall(function()
@@ -157,6 +156,9 @@ xpcall(function()
         text = Color3.fromRGB(232, 232, 236),
         textDim = Color3.fromRGB(142, 142, 152),
         border = Color3.fromRGB(42, 42, 48),
+        track = Color3.fromRGB(52, 52, 58),
+        line = Color3.fromRGB(40, 40, 46),
+        knob = Color3.fromRGB(245, 245, 248),
     }
 
     local function corner(o, r)
@@ -871,14 +873,16 @@ xpcall(function()
         end)
     end)
 
-    local visualState = {wings=false, circle=false, halo=false, aura=false, fire=false, smoke=false, trails=false, eyes=false, light=false, lightning=false}
+    local visualState = {wings=true, circle=true, halo=true, aura=false, fire=false, smoke=false, trails=false, eyes=false, light=false, lightning=false}
     local visualObjects = {}
     local wingFeathers = {}
     local wingMembranes = {}
     local wingSpine = nil
+    local wingSpineGlow = nil
     local circleGlow = nil
     local circleInnerDisc = nil
     local circleCore = nil
+    local circleCoreGlow = nil
     local circleOuterSegs = {}
     local circleMiddleSegs = {}
     local circleRunes = {}
@@ -890,6 +894,7 @@ xpcall(function()
     local circleColumnInner = nil
     local circleLight = nil
     local haloDisc = nil
+    local haloDiscGlow = nil
     local haloMotes = {}
     local eyeParts = {}
 
@@ -902,29 +907,21 @@ xpcall(function()
             for _, obj in ipairs(visualObjects[name]) do pcall(function() obj:Destroy() end) end
             visualObjects[name] = nil
         end
-        if name == "wings" then wingFeathers = {}; wingMembranes = {}; wingSpine = nil end
+        if name == "wings" then wingFeathers = {}; wingMembranes = {}; wingSpine = nil; wingSpineGlow = nil end
         if name == "circle" then
-            circleGlow = nil; circleInnerDisc = nil; circleCore = nil
+            circleGlow = nil; circleInnerDisc = nil; circleCore = nil; circleCoreGlow = nil
             circleOuterSegs = {}; circleMiddleSegs = {}; circleRunes = {}
             circleOrbs = {}; circlePillars = {}
             gyroRing1 = {}; gyroRing2 = {}
             circleColumn = nil; circleColumnInner = nil; circleLight = nil
         end
-        if name == "halo" then haloDisc = nil; haloMotes = {} end
+        if name == "halo" then haloDisc = nil; haloDiscGlow = nil; haloMotes = {} end
         if name == "eyes" then eyeParts = {} end
     end
     local function clearAllVisuals()
         local names = {}
         for name in pairs(visualObjects) do table.insert(names, name) end
         for _, name in ipairs(names) do clearVisual(name) end
-        wingFeathers = {}; wingMembranes = {}; wingSpine = nil
-        circleGlow = nil; circleInnerDisc = nil; circleCore = nil
-        circleOuterSegs = {}; circleMiddleSegs = {}; circleRunes = {}
-        circleOrbs = {}; circlePillars = {}
-        gyroRing1 = {}; gyroRing2 = {}
-        circleColumn = nil; circleColumnInner = nil; circleLight = nil
-        haloDisc = nil; haloMotes = {}
-        eyeParts = {}
     end
     local function makeNeonPart(props)
         local p = Instance.new("Part")
@@ -949,6 +946,21 @@ xpcall(function()
         end)
         return p
     end
+    local function glowClone(src, extraScale, transp, color)
+        local g = nil
+        pcall(function()
+            g = src:Clone(); g.Name = src.Name .. "_glow"; g.Transparency = transp or 0.6
+            if color then g.Color = color end
+            if g:FindFirstChildOfClass("SpecialMesh") then
+                local m0 = src:FindFirstChildOfClass("SpecialMesh")
+                g:FindFirstChildOfClass("SpecialMesh").Scale = m0.Scale * (extraScale or 1.6)
+            else
+                g.Size = src.Size * (extraScale or 1.6)
+            end
+            g.Parent = src.Parent
+        end)
+        return g
+    end
 
     local function applyWings()
         clearVisual("wings")
@@ -956,51 +968,55 @@ xpcall(function()
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         local darkRed = Color3.fromRGB(165, 10, 30)
-        local midRed = Color3.fromRGB(255, 50, 68)
-        local emberC = Color3.fromRGB(255, 120, 70)
-        local gold = Color3.fromRGB(255, 205, 105)
+        local midRed = Color3.fromRGB(255, 70, 90)
+        local emberC = Color3.fromRGB(255, 130, 95)
+        local lightCore = Color3.fromRGB(255, 205, 205)
+        local glowC = Color3.fromRGB(255, 40, 55)
         for side = -1, 1, 2 do
-            local membrane = makeSmoothPart({Name="XDarkMembrane", Color=Color3.fromRGB(120, 8, 24), Transparency=0.62, Parent=char}, Vector3.new(0.22, 3.6, 3.0))
-            registerVisual("wings", membrane)
-            table.insert(wingMembranes, {part=membrane, side=side})
+            local membrane = makeSmoothPart({Name="XDarkMembrane", Color=Color3.fromRGB(140, 10, 28), Transparency=0.55, Parent=char}, Vector3.new(0.22, 3.6, 3.0))
+            local membraneGlow = glowClone(membrane, 1.5, 0.78, glowC)
+            registerVisual("wings", membrane); if membraneGlow then registerVisual("wings", membraneGlow) end
+            table.insert(wingMembranes, {part=membrane, glow=membraneGlow, side=side})
             for i = 1, 9 do
                 local t = i / 9
                 local len1 = 2.4 - t * 1.0
                 local len2 = 1.8 - t * 0.8
                 local width = 1.15 - t * 0.5
-                local base = makeSmoothPart({Name="XDarkPrimB", Color=darkRed:lerp(midRed, t*0.55), Transparency=0.04, Parent=char}, Vector3.new(0.42, len1, width))
-                local tip = makeSmoothPart({Name="XDarkPrimT", Color=midRed:lerp(gold, t*t), Transparency=0.03 + t*0.1, Parent=char}, Vector3.new(0.36, len2, width*0.7))
-                registerVisual("wings", base); registerVisual("wings", tip)
-                table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="prim", curve=0.18 + t*0.24})
+                local base = makeSmoothPart({Name="XDarkPrimB", Color=darkRed:lerp(midRed, t*0.5), Transparency=0.02, Parent=char}, Vector3.new(0.42, len1, width))
+                local baseGlow = glowClone(base, 1.55, 0.62, glowC)
+                local tip = makeSmoothPart({Name="XDarkPrimT", Color=midRed:lerp(lightCore, t*t), Transparency=0.0, Parent=char}, Vector3.new(0.36, len2, width*0.7))
+                registerVisual("wings", base); if baseGlow then registerVisual("wings", baseGlow) end; registerVisual("wings", tip)
+                table.insert(wingFeathers, {base=base, glow=baseGlow, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="prim", curve=0.18 + t*0.24})
             end
             for i = 1, 6 do
                 local t = i / 6
                 local len1 = 1.6 - t * 0.5
                 local len2 = 1.0 - t * 0.3
-                local base = makeSmoothPart({Name="XDarkSecB", Color=midRed:lerp(emberC, t*0.5), Transparency=0.06, Parent=char}, Vector3.new(0.36, len1, 0.75 - t*0.2))
-                local tip = makeSmoothPart({Name="XDarkSecT", Color=emberC, Transparency=0.06, Parent=char}, Vector3.new(0.3, len2, 0.58 - t*0.15))
+                local base = makeSmoothPart({Name="XDarkSecB", Color=midRed:lerp(emberC, t*0.5), Transparency=0.04, Parent=char}, Vector3.new(0.36, len1, 0.75 - t*0.2))
+                local tip = makeSmoothPart({Name="XDarkSecT", Color=emberC:lerp(lightCore, t*0.6), Transparency=0.04, Parent=char}, Vector3.new(0.3, len2, 0.58 - t*0.15))
                 registerVisual("wings", base); registerVisual("wings", tip)
                 table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="sec", curve=0.12})
             end
             for i = 1, 4 do
-                local cov = makeSmoothPart({Name="XDarkCovert", Color=gold, Transparency=0.08, Parent=char}, Vector3.new(0.32, 0.75 - i*0.1, 0.5))
+                local cov = makeSmoothPart({Name="XDarkCovert", Color=lightCore, Transparency=0.05, Parent=char}, Vector3.new(0.32, 0.75 - i*0.1, 0.5))
                 registerVisual("wings", cov)
                 table.insert(wingFeathers, {base=cov, tip=nil, len1=0.75 - i*0.1, len2=0, side=side, i=i, layer="cov", curve=0})
             end
         end
-        wingSpine = makeSmoothPart({Name="XDarkSpine", Color=Color3.fromRGB(255, 50, 70), Transparency=0.05, Parent=char}, Vector3.new(0.42, 2.0, 0.42))
-        registerVisual("wings", wingSpine)
+        wingSpine = makeSmoothPart({Name="XDarkSpine", Color=Color3.fromRGB(255, 90, 105), Transparency=0.03, Parent=char}, Vector3.new(0.42, 2.0, 0.42))
+        wingSpineGlow = glowClone(wingSpine, 1.5, 0.6, glowC)
+        registerVisual("wings", wingSpine); if wingSpineGlow then registerVisual("wings", wingSpineGlow) end
         local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.2, 1)
         registerVisual("wings", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        em.Color = ColorSequence.new(Color3.fromRGB(255, 90, 100), Color3.fromRGB(255, 195, 100))
-        em.Rate = 45; em.Lifetime = NumberRange.new(0.6, 1.3); em.Speed = NumberRange.new(1, 3.5)
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 150, 150), Color3.fromRGB(255, 60, 70))
+        em.Rate = 50; em.Lifetime = NumberRange.new(0.6, 1.3); em.Speed = NumberRange.new(1, 3.5)
         em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
-        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.32), NumberSequenceKeypoint.new(1, 0)})
+        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.36), NumberSequenceKeypoint.new(1, 0)})
         registerVisual("wings", em)
         local wingLight = Instance.new("PointLight")
-        wingLight.Color = Color3.fromRGB(255, 45, 65); wingLight.Brightness = 1.9; wingLight.Range = 19
+        wingLight.Color = Color3.fromRGB(255, 70, 85); wingLight.Brightness = 3.0; wingLight.Range = 24
         wingLight.Parent = hrp
         registerVisual("wings", wingLight)
     end
@@ -1010,63 +1026,65 @@ xpcall(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        circleGlow = makeNeonPart({Name="XDarkGlow", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 11, 11), Color=Color3.fromRGB(180, 15, 35), Transparency=0.78, Parent=char})
+        circleGlow = makeNeonPart({Name="XDarkGlow", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 11, 11), Color=Color3.fromRGB(180, 15, 35), Transparency=0.74, Parent=char})
         registerVisual("circle", circleGlow)
-        circleInnerDisc = makeNeonPart({Name="XDarkInner", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.16, 4.4, 4.4), Color=Color3.fromRGB(255, 60, 80), Transparency=0.55, Parent=char})
+        circleInnerDisc = makeNeonPart({Name="XDarkInner", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.16, 4.4, 4.4), Color=Color3.fromRGB(255, 80, 95), Transparency=0.45, Parent=char})
         registerVisual("circle", circleInnerDisc)
-        circleCore = makeNeonPart({Name="XDarkCore", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.18, 2.0, 2.0), Color=Color3.fromRGB(255, 160, 90), Transparency=0.35, Parent=char})
+        circleCore = makeNeonPart({Name="XDarkCore", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.18, 2.0, 2.0), Color=Color3.fromRGB(255, 200, 150), Transparency=0.2, Parent=char})
         registerVisual("circle", circleCore)
+        circleCoreGlow = glowClone(circleCore, 1.8, 0.5, Color3.fromRGB(255, 40, 55))
+        if circleCoreGlow then registerVisual("circle", circleCoreGlow) end
         for k = 1, 16 do
-            local seg = makeNeonPart({Name="XDarkOutSeg", Size=Vector3.new(1.5, 0.12, 0.28), Color=Color3.fromRGB(255, 30, 55), Transparency=0.15, Parent=char})
+            local seg = makeNeonPart({Name="XDarkOutSeg", Size=Vector3.new(1.5, 0.12, 0.28), Color=Color3.fromRGB(255, 50, 70), Transparency=0.1, Parent=char})
             registerVisual("circle", seg)
             table.insert(circleOuterSegs, {part=seg, k=k})
         end
         for k = 1, 12 do
-            local seg = makeNeonPart({Name="XDarkMidSeg", Size=Vector3.new(1.3, 0.12, 0.24), Color=Color3.fromRGB(255, 120, 70), Transparency=0.2, Parent=char})
+            local seg = makeNeonPart({Name="XDarkMidSeg", Size=Vector3.new(1.3, 0.12, 0.24), Color=Color3.fromRGB(255, 130, 90), Transparency=0.15, Parent=char})
             registerVisual("circle", seg)
             table.insert(circleMiddleSegs, {part=seg, k=k})
         end
         for k = 1, 8 do
-            local rune = makeNeonPart({Name="XDarkRune", Size=Vector3.new(0.5, 0.5, 0.12), Color=Color3.fromRGB(255, 200, 100), Transparency=0.1, Parent=char})
+            local rune = makeNeonPart({Name="XDarkRune", Size=Vector3.new(0.5, 0.5, 0.12), Color=Color3.fromRGB(255, 210, 130), Transparency=0.08, Parent=char})
             registerVisual("circle", rune)
             table.insert(circleRunes, {part=rune, k=k})
         end
         for k = 1, 8 do
-            local orb = makeNeonPart({Name="XDarkOrb", Shape=Enum.PartType.Ball, Size=Vector3.new(0.34, 0.34, 0.34), Color=(k%2==0) and Color3.fromRGB(255,180,90) or Color3.fromRGB(255,50,70), Transparency=0.08, Parent=char})
+            local orb = makeNeonPart({Name="XDarkOrb", Shape=Enum.PartType.Ball, Size=Vector3.new(0.34, 0.34, 0.34), Color=(k%2==0) and Color3.fromRGB(255,190,110) or Color3.fromRGB(255,70,90), Transparency=0.05, Parent=char})
             registerVisual("circle", orb)
             table.insert(circleOrbs, {part=orb, k=k})
         end
         for k = 1, 6 do
-            local pillar = makeNeonPart({Name="XDarkPillar", Size=Vector3.new(0.18, 7, 0.18), Color=Color3.fromRGB(255, 60, 80), Transparency=0.55, Parent=char})
+            local pillar = makeNeonPart({Name="XDarkPillar", Size=Vector3.new(0.18, 7, 0.18), Color=Color3.fromRGB(255, 70, 90), Transparency=0.5, Parent=char})
             registerVisual("circle", pillar)
             table.insert(circlePillars, {part=pillar, k=k})
         end
         for k = 1, 14 do
-            local orb = makeNeonPart({Name="XDarkGyro1", Shape=Enum.PartType.Ball, Size=Vector3.new(0.22, 0.22, 0.22), Color=Color3.fromRGB(255, 85, 100), Transparency=0.1, Parent=char})
+            local orb = makeNeonPart({Name="XDarkGyro1", Shape=Enum.PartType.Ball, Size=Vector3.new(0.22, 0.22, 0.22), Color=Color3.fromRGB(255, 110, 120), Transparency=0.08, Parent=char})
             registerVisual("circle", orb)
             table.insert(gyroRing1, {part=orb, k=k})
         end
         for k = 1, 14 do
-            local orb = makeNeonPart({Name="XDarkGyro2", Shape=Enum.PartType.Ball, Size=Vector3.new(0.18, 0.18, 0.18), Color=Color3.fromRGB(255, 175, 95), Transparency=0.12, Parent=char})
+            local orb = makeNeonPart({Name="XDarkGyro2", Shape=Enum.PartType.Ball, Size=Vector3.new(0.18, 0.18, 0.18), Color=Color3.fromRGB(255, 190, 110), Transparency=0.1, Parent=char})
             registerVisual("circle", orb)
             table.insert(gyroRing2, {part=orb, k=k})
         end
-        circleColumn = makeNeonPart({Name="XDarkColumn", Shape=Enum.PartType.Cylinder, Size=Vector3.new(8, 0.9, 0.9), Color=Color3.fromRGB(255, 55, 75), Transparency=0.68, Parent=char})
+        circleColumn = makeNeonPart({Name="XDarkColumn", Shape=Enum.PartType.Cylinder, Size=Vector3.new(8, 0.9, 0.9), Color=Color3.fromRGB(255, 70, 90), Transparency=0.62, Parent=char})
         registerVisual("circle", circleColumn)
-        circleColumnInner = makeNeonPart({Name="XDarkColumnIn", Shape=Enum.PartType.Cylinder, Size=Vector3.new(8, 0.35, 0.35), Color=Color3.fromRGB(255, 190, 110), Transparency=0.4, Parent=char})
+        circleColumnInner = makeNeonPart({Name="XDarkColumnIn", Shape=Enum.PartType.Cylinder, Size=Vector3.new(8, 0.35, 0.35), Color=Color3.fromRGB(255, 200, 130), Transparency=0.35, Parent=char})
         registerVisual("circle", circleColumnInner)
         local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, -3, 0)
         registerVisual("circle", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-        em.Color = ColorSequence.new(Color3.fromRGB(255, 50, 70), Color3.fromRGB(255, 170, 90))
-        em.Rate = 60; em.Lifetime = NumberRange.new(0.9, 1.6); em.Speed = NumberRange.new(3, 6)
+        em.Color = ColorSequence.new(Color3.fromRGB(255, 70, 85), Color3.fromRGB(255, 180, 110))
+        em.Rate = 65; em.Lifetime = NumberRange.new(0.9, 1.6); em.Speed = NumberRange.new(3, 6)
         em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
-        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0)})
+        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.38), NumberSequenceKeypoint.new(1, 0)})
         em.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1)})
         registerVisual("circle", em)
         circleLight = Instance.new("PointLight")
-        circleLight.Color = Color3.fromRGB(255, 40, 60); circleLight.Brightness = 1.8; circleLight.Range = 20
+        circleLight.Color = Color3.fromRGB(255, 55, 70); circleLight.Brightness = 2.8; circleLight.Range = 24
         circleLight.Parent = hrp
         registerVisual("circle", circleLight)
     end
@@ -1076,15 +1094,17 @@ xpcall(function()
         local char = player.Character
         local head = char and char:FindFirstChild("Head")
         if not head then return end
-        haloDisc = makeNeonPart({Name="XDarkHalo", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.12, 2.4, 2.4), Color=Color3.fromRGB(255, 45, 65), Transparency=0.2, Parent=char})
+        haloDisc = makeNeonPart({Name="XDarkHalo", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.14, 2.6, 2.6), Color=Color3.fromRGB(255, 200, 200), Transparency=0.08, Parent=char})
         registerVisual("halo", haloDisc)
+        haloDiscGlow = glowClone(haloDisc, 1.7, 0.55, Color3.fromRGB(255, 40, 55))
+        if haloDiscGlow then registerVisual("halo", haloDiscGlow) end
         for k = 1, 6 do
-            local mote = makeNeonPart({Name="XDarkHaloMote", Shape=Enum.PartType.Ball, Size=Vector3.new(0.18, 0.18, 0.18), Color=Color3.fromRGB(255, 120, 90), Transparency=0.1, Parent=char})
+            local mote = makeNeonPart({Name="XDarkHaloMote", Shape=Enum.PartType.Ball, Size=Vector3.new(0.2, 0.2, 0.2), Color=Color3.fromRGB(255, 150, 120), Transparency=0.08, Parent=char})
             registerVisual("halo", mote)
             table.insert(haloMotes, {part=mote, k=k})
         end
         local hl = Instance.new("PointLight")
-        hl.Color = Color3.fromRGB(255, 40, 60); hl.Brightness = 0.9; hl.Range = 9
+        hl.Color = Color3.fromRGB(255, 70, 85); hl.Brightness = 2.4; hl.Range = 13
         hl.Parent = head
         registerVisual("halo", hl)
     end
@@ -1118,7 +1138,7 @@ xpcall(function()
                 local a1 = Instance.new("Attachment", hand); a1.Position = Vector3.new(0, -0.35, 0)
                 local trail = Instance.new("Trail", hand)
                 trail.Attachment0 = a0; trail.Attachment1 = a1
-                trail.Color = ColorSequence.new(Color3.fromRGB(255, 35, 55), Color3.fromRGB(255, 140, 70))
+                trail.Color = ColorSequence.new(Color3.fromRGB(255, 60, 75), Color3.fromRGB(255, 150, 90))
                 trail.Lifetime = 0.45; trail.LightEmission = 1; trail.LightInfluence = 0
                 trail.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 1)})
                 registerVisual("trails", a0); registerVisual("trails", a1); registerVisual("trails", trail)
@@ -1132,12 +1152,12 @@ xpcall(function()
         local head = char and char:FindFirstChild("Head")
         if not head then return end
         for side = -1, 1, 2 do
-            local eye = makeNeonPart({Name="XDarkEye", Size=Vector3.new(0.12, 0.14, 0.14), Color=Color3.fromRGB(255, 20, 40), Transparency=0, Parent=char})
+            local eye = makeNeonPart({Name="XDarkEye", Size=Vector3.new(0.12, 0.14, 0.14), Color=Color3.fromRGB(255, 30, 50), Transparency=0, Parent=char})
             registerVisual("eyes", eye)
             table.insert(eyeParts, {part=eye, side=side})
         end
         local el = Instance.new("PointLight")
-        el.Color = Color3.fromRGB(255, 25, 45); el.Brightness = 0.7; el.Range = 6
+        el.Color = Color3.fromRGB(255, 35, 55); el.Brightness = 0.9; el.Range = 7
         el.Parent = head
         registerVisual("eyes", el)
     end
@@ -1148,7 +1168,7 @@ xpcall(function()
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         local l = Instance.new("PointLight")
-        l.Color = Color3.fromRGB(255, 30, 50); l.Brightness = 2; l.Range = 18
+        l.Color = Color3.fromRGB(255, 40, 60); l.Brightness = 2.2; l.Range = 20
         l.Parent = hrp
         registerVisual("light", l)
     end
@@ -1173,9 +1193,9 @@ xpcall(function()
         if name == "wings" then applyWings()
         elseif name == "circle" then applyCircle()
         elseif name == "halo" then applyHalo()
-        elseif name == "aura" then applyEmitter("aura", "rbxasset://textures/particles/sparkles_main.dds", Color3.fromRGB(255,45,65), Color3.fromRGB(255,140,70), 55, 4, 180, 0.45, Vector3.new(0,-0.5,0), nil)
-        elseif name == "fire" then applyEmitter("fire", "rbxasset://textures/particles/fire_main.dds", Color3.fromRGB(255,70,40), Color3.fromRGB(140,0,0), 45, 5, 22, 1.1, Vector3.new(0,-2.6,0), Enum.NormalId.Top)
-        elseif name == "smoke" then applyEmitter("smoke", "rbxasset://textures/particles/smoke_main.dds", Color3.fromRGB(90,5,15), Color3.fromRGB(30,0,5), 30, 2.5, 30, 1.5, Vector3.new(0,-2.2,0), Enum.NormalId.Top)
+        elseif name == "aura" then applyEmitter("aura", "rbxasset://textures/particles/sparkles_main.dds", Color3.fromRGB(255,60,75), Color3.fromRGB(255,150,90), 55, 4, 180, 0.45, Vector3.new(0,-0.5,0), nil)
+        elseif name == "fire" then applyEmitter("fire", "rbxasset://textures/particles/fire_main.dds", Color3.fromRGB(255,80,50), Color3.fromRGB(150,0,0), 45, 5, 22, 1.1, Vector3.new(0,-2.6,0), Enum.NormalId.Top)
+        elseif name == "smoke" then applyEmitter("smoke", "rbxasset://textures/particles/smoke_main.dds", Color3.fromRGB(100,8,18), Color3.fromRGB(35,0,6), 30, 2.5, 30, 1.5, Vector3.new(0,-2.2,0), Enum.NormalId.Top)
         elseif name == "trails" then applyTrails()
         elseif name == "eyes" then applyEyes()
         elseif name == "light" then applyLight()
@@ -1216,6 +1236,7 @@ xpcall(function()
                             baseCF = hrp.CFrame * CFrame.new(side * (0.28 + i * 0.1), 0.75 - i * 0.1 + bob, 0.55) * CFrame.Angles(0, math.rad(side * spread), 0)
                         end
                         f.base.CFrame = baseCF * CFrame.new(0, f.len1 / 2, 0)
+                        if f.glow and f.glow.Parent then f.glow.CFrame = f.base.CFrame end
                         if f.tip then
                             f.tip.CFrame = baseCF * CFrame.new(0, f.len1 + f.len2 / 2, f.curve) * CFrame.Angles(math.rad(20), 0, 0)
                         end
@@ -1224,11 +1245,15 @@ xpcall(function()
                 for _, m in ipairs(wingMembranes) do
                     if m.part.Parent then
                         local spread = 28 + flap * 12
-                        m.part.CFrame = hrp.CFrame * CFrame.new(m.side * 1.0, 1.2 + bob, 1.12) * CFrame.Angles(0, math.rad(m.side * spread), math.rad(m.side * -10))
+                        local cf = hrp.CFrame * CFrame.new(m.side * 1.0, 1.2 + bob, 1.12) * CFrame.Angles(0, math.rad(m.side * spread), math.rad(m.side * -10))
+                        m.part.CFrame = cf
+                        if m.glow and m.glow.Parent then m.glow.CFrame = cf end
                     end
                 end
                 if wingSpine and wingSpine.Parent then
-                    wingSpine.CFrame = hrp.CFrame * CFrame.new(0, 1.2 + bob, 0.92)
+                    local cf = hrp.CFrame * CFrame.new(0, 1.2 + bob, 0.92)
+                    wingSpine.CFrame = cf
+                    if wingSpineGlow and wingSpineGlow.Parent then wingSpineGlow.CFrame = cf end
                 end
             end
             if visualState.circle and hrp then
@@ -1237,14 +1262,16 @@ xpcall(function()
                 local cx, cz = hrp.Position.X, hrp.Position.Z
                 if circleGlow and circleGlow.Parent then
                     circleGlow.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90))
-                    circleGlow.Transparency = 0.72 + pulse * 0.12
+                    circleGlow.Transparency = 0.7 + pulse * 0.12
                 end
                 if circleInnerDisc and circleInnerDisc.Parent then
                     circleInnerDisc.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(t * 1.5, 0, 0)
                 end
                 if circleCore and circleCore.Parent then
-                    circleCore.CFrame = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(-t * 2.5, 0, 0)
-                    circleCore.Transparency = 0.3 + pulse * 0.2
+                    local cf = CFrame.new(cx, centerY, cz) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(-t * 2.5, 0, 0)
+                    circleCore.CFrame = cf
+                    circleCore.Transparency = 0.18 + pulse * 0.2
+                    if circleCoreGlow and circleCoreGlow.Parent then circleCoreGlow.CFrame = cf end
                 end
                 for _, s in ipairs(circleOuterSegs) do
                     if s.part.Parent then
@@ -1281,7 +1308,7 @@ xpcall(function()
                         local ang = (p.k / 6) * math.pi * 2 + t * 0.8
                         local pos = Vector3.new(cx + math.cos(ang) * 4.5, centerY + 3.5, cz + math.sin(ang) * 4.5)
                         p.part.CFrame = CFrame.new(pos)
-                        p.part.Transparency = 0.45 + pulse * 0.25
+                        p.part.Transparency = 0.42 + pulse * 0.25
                     end
                 end
                 for _, g in ipairs(gyroRing1) do
@@ -1304,24 +1331,26 @@ xpcall(function()
                 end
                 if circleColumn and circleColumn.Parent then
                     circleColumn.CFrame = CFrame.new(cx, hrp.Position.Y + 0.9, cz) * CFrame.Angles(0, 0, math.rad(90))
-                    circleColumn.Transparency = 0.62 + pulse * 0.15
+                    circleColumn.Transparency = 0.58 + pulse * 0.15
                 end
                 if circleColumnInner and circleColumnInner.Parent then
                     circleColumnInner.CFrame = CFrame.new(cx, hrp.Position.Y + 0.9, cz) * CFrame.Angles(0, 0, math.rad(90))
                 end
                 if circleLight then
-                    circleLight.Brightness = 1.5 + pulse * 1.2
+                    circleLight.Brightness = 2.0 + pulse * 1.4
                 end
             end
             if visualState.halo and haloDisc and haloDisc.Parent then
                 local head = char:FindFirstChild("Head")
                 if head then
                     local bob = math.sin(t * 2.2) * 0.12
-                    haloDisc.CFrame = head.CFrame * CFrame.new(0, 1.8 + bob, 0) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(t * 2.5, 0, 0)
+                    local cf = head.CFrame * CFrame.new(0, 1.9 + bob, 0) * CFrame.Angles(math.rad(68), t * 1.3, math.rad(12))
+                    haloDisc.CFrame = cf
+                    if haloDiscGlow and haloDiscGlow.Parent then haloDiscGlow.CFrame = cf end
                     for _, m in ipairs(haloMotes) do
                         if m.part.Parent then
                             local ang = t * 2 + (m.k / 6) * math.pi * 2
-                            m.part.CFrame = CFrame.new(head.Position + Vector3.new(math.cos(ang) * 1.4, 1.8 + bob + math.sin(t * 4 + m.k) * 0.1, math.sin(ang) * 1.4))
+                            m.part.CFrame = CFrame.new(head.Position + Vector3.new(math.cos(ang) * 1.5, 1.9 + bob + math.sin(t * 4 + m.k) * 0.12, math.sin(ang) * 1.5))
                         end
                     end
                 end
@@ -1340,8 +1369,8 @@ xpcall(function()
     local viewport = Vector2.new(1000, 700)
     pcall(function() viewport = workspace.CurrentCamera.ViewportSize end)
     local function clamp(n, min, max) return math.min(max, math.max(min, n)) end
-    local guiW = clamp(viewport.X * 0.92, 340, 840)
-    local guiH = clamp(viewport.Y * 0.84, 300, 580)
+    local guiW = clamp(viewport.X * 0.62, 460, 680)
+    local guiH = clamp(viewport.Y * 0.7, 340, 480)
 
     pcall(function()
         local pg = player:FindFirstChild("PlayerGui")
@@ -1369,32 +1398,9 @@ xpcall(function()
     bgLayer.BorderSizePixel = 0
     bgLayer.ZIndex = 0
     bgLayer.Active = false
+    bgLayer.Visible = false
     pcall(function() bgLayer.InputTransparent = true end)
-    bgLayer.Visible = true
     bgLayer.Parent = guiUI
-    for i = 1, 45 do
-        local p = Instance.new("Frame")
-        local sz = math.random(2, 7)
-        p.Size = UDim2.new(0, sz, 0, sz)
-        p.Position = UDim2.new(math.random(), 0, math.random(), 0)
-        local grayTone = math.random(140, 235)
-        p.BackgroundColor3 = Color3.fromRGB(grayTone, grayTone, grayTone + 8)
-        p.BackgroundTransparency = math.random(25, 65) / 100
-        p.BorderSizePixel = 0
-        p.ZIndex = 0
-        p.Parent = bgLayer
-        corner(p, sz)
-        xdSpawn(function()
-            while p.Parent do
-                local dur = math.random(8, 20)
-                local startX = p.Position.X.Scale
-                tween(p, {Position = UDim2.new(startX + math.random(-15, 15) / 100, 0, -0.06, 0), BackgroundTransparency = 0.92}, dur, Enum.EasingStyle.Linear)
-                xdWait(dur)
-                p.Position = UDim2.new(math.random(), 0, 1.06, 0)
-                p.BackgroundTransparency = math.random(25, 65) / 100
-            end
-        end)
-    end
 
     toastHolder = Instance.new("Frame")
     toastHolder.Size = UDim2.new(0, 300, 1, -20)
@@ -1435,177 +1441,75 @@ xpcall(function()
     frame.BorderSizePixel = 0; frame.Visible = true; frame.Active = true; frame.ClipsDescendants = true
     frame.ZIndex = 5
     frame.Parent = guiUI
-    corner(frame, 16)
-    stroke(frame, COL.accent, 1.5, 0.3)
-    local frameGrad = gradient(frame, {
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(26, 26, 30)),
-        ColorSequenceKeypoint.new(0.45, Color3.fromRGB(18, 18, 21)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(28, 28, 32)),
-    }, 100)
-    if frameGrad then
-        xdSpawn(function()
-            local rot = 100
-            while frameGrad.Parent do rot = rot + 0.035; frameGrad.Rotation = rot; xdWait(0.08) end
-        end)
-    end
-    local function softGlow(posX, posY, size, color)
-        for i = 1, 3 do
-            local s = size * (i / 3)
-            local b = Instance.new("Frame")
-            b.Size = UDim2.new(0, s, 0, s)
-            b.Position = UDim2.new(posX, -s/2, posY, -s/2)
-            b.BackgroundColor3 = color
-            b.BackgroundTransparency = 0.86 + (i * 0.035)
-            b.BorderSizePixel = 0; b.ZIndex = 5
-            b.Parent = frame
-            corner(b, s/2)
-        end
-    end
-    softGlow(0.12, 0.08, 340, COL.accent)
-    softGlow(0.92, 0.95, 300, COL.ember)
-    softGlow(0.85, 0.1, 220, COL.gold)
-    for i = 1, 24 do
-        local ember = Instance.new("Frame")
-        local sz = math.random(2, 6)
-        ember.Size = UDim2.new(0, sz, 0, sz)
-        ember.Position = UDim2.new(math.random(), 0, 1, 0)
-        ember.BackgroundColor3 = ({COL.accent, COL.ember, COL.gold})[math.random(1, 3)]
-        ember.BackgroundTransparency = math.random(40, 75) / 100
-        ember.BorderSizePixel = 0; ember.ZIndex = 5
-        ember.Parent = frame
-        corner(ember, sz)
-        xdSpawn(function()
-            while ember.Parent do
-                local dur = math.random(6, 14)
-                tween(ember, {Position = UDim2.new(ember.Position.X.Scale + math.random(-20,20)/100, 0, -0.1, 0), BackgroundTransparency = 1}, dur, Enum.EasingStyle.Linear)
-                xdWait(dur)
-                ember.Position = UDim2.new(math.random(), 0, 1.05, 0)
-                ember.BackgroundTransparency = math.random(40, 75) / 100
-            end
-        end)
-    end
-    for _, isTop in ipairs({true, false}) do
-        local shade = Instance.new("Frame")
-        shade.Size = UDim2.new(1, 0, 0, 70)
-        shade.Position = isTop and UDim2.new(0,0,0,0) or UDim2.new(0,0,1,-70)
-        shade.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        shade.BorderSizePixel = 0; shade.ZIndex = 6
-        shade.Parent = frame
-        pcall(function()
-            local g = Instance.new("UIGradient", shade)
-            g.Color = ColorSequence.new(Color3.fromRGB(0, 0, 0))
-            g.Transparency = isTop and NumberSequence.new({NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 1)})
-                or NumberSequence.new({NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0.55)})
-        end)
-    end
+    corner(frame, 12)
+    stroke(frame, COL.line, 1, 0)
 
     local topBar = Instance.new("Frame")
-    topBar.Size = UDim2.new(1, 0, 0, 60)
+    topBar.Size = UDim2.new(1, 0, 0, 46)
     topBar.BackgroundColor3 = COL.panel
-    topBar.BackgroundTransparency = 0.2
     topBar.BorderSizePixel = 0; topBar.Active = true; topBar.ZIndex = 7
     topBar.Parent = frame
-    gradient(topBar, {ColorSequenceKeypoint.new(0, Color3.fromRGB(34,34,40)), ColorSequenceKeypoint.new(1, Color3.fromRGB(22,22,27))}, 0)
-    local accentLine = Instance.new("Frame")
-    accentLine.Size = UDim2.new(1, 0, 0, 2)
-    accentLine.Position = UDim2.new(0, 0, 1, -2)
-    accentLine.BackgroundColor3 = COL.accent
-    accentLine.BorderSizePixel = 0; accentLine.ZIndex = 8
-    accentLine.Parent = topBar
-    local lineGrad = gradient(accentLine, {ColorSequenceKeypoint.new(0, COL.accentDim), ColorSequenceKeypoint.new(0.35, COL.accentHot), ColorSequenceKeypoint.new(0.65, COL.ember), ColorSequenceKeypoint.new(1, COL.accentDim)}, 0)
-    if lineGrad then
-        xdSpawn(function()
-            while lineGrad.Parent do
-                tween(lineGrad, {Offset = Vector2.new(0.6, 0)}, 2.4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-                xdWait(2.4); lineGrad.Offset = Vector2.new(-0.6, 0)
-            end
-        end)
-    end
-    local logoRing = Instance.new("Frame")
-    logoRing.Size = UDim2.new(0, 44, 0, 44)
-    logoRing.Position = UDim2.new(0, 13, 0.5, -22)
-    logoRing.BackgroundColor3 = COL.accentDim
-    logoRing.BorderSizePixel = 0; logoRing.ZIndex = 9
-    logoRing.Parent = topBar
-    corner(logoRing, 22)
-    local ringGrad = gradient(logoRing, {ColorSequenceKeypoint.new(0, COL.accentHot), ColorSequenceKeypoint.new(0.5, COL.ember), ColorSequenceKeypoint.new(1, COL.accentDim)}, 0)
-    if ringGrad then
-        xdSpawn(function()
-            local rot = 0
-            while ringGrad.Parent do rot = rot + 2.2; ringGrad.Rotation = rot; xdWait(0.03) end
-        end)
-    end
-    local logo = Instance.new("Frame")
-    logo.Size = UDim2.new(0, 36, 0, 36)
-    logo.Position = UDim2.new(0, 4, 0, 4)
-    logo.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-    logo.BorderSizePixel = 0; logo.ZIndex = 10
-    logo.Parent = logoRing
-    corner(logo, 18)
-    local logoX = Instance.new("TextLabel")
-    logoX.Size = UDim2.new(1, 0, 1, 0)
-    logoX.BackgroundTransparency = 1
-    logoX.Text = "X"
-    logoX.Font = Enum.Font.GothamBlack
-    logoX.TextSize = 22
-    logoX.TextColor3 = COL.accentHot
-    logoX.ZIndex = 11
-    logoX.Parent = logo
+    local topLine = Instance.new("Frame")
+    topLine.Size = UDim2.new(1, 0, 0, 1)
+    topLine.Position = UDim2.new(0, 0, 1, -1)
+    topLine.BackgroundColor3 = COL.line
+    topLine.BorderSizePixel = 0; topLine.ZIndex = 8
+    topLine.Parent = topBar
+    local logoBox = Instance.new("Frame")
+    logoBox.Size = UDim2.new(0, 24, 0, 24)
+    logoBox.Position = UDim2.new(0, 12, 0.5, -12)
+    logoBox.BackgroundColor3 = COL.accent
+    logoBox.BorderSizePixel = 0; logoBox.ZIndex = 9
+    logoBox.Parent = topBar
+    corner(logoBox, 6)
+    local logoTxt = Instance.new("TextLabel")
+    logoTxt.Size = UDim2.new(1, 0, 1, 0)
+    logoTxt.BackgroundTransparency = 1
+    logoTxt.Text = "X"
+    logoTxt.Font = Enum.Font.GothamBlack
+    logoTxt.TextSize = 15
+    logoTxt.TextColor3 = COL.knob
+    logoTxt.ZIndex = 10
+    logoTxt.Parent = logoBox
     local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(0, 200, 1, 0)
-    titleText.Position = UDim2.new(0, 68, 0, 0)
+    titleText.Size = UDim2.new(0, 220, 1, 0)
+    titleText.Position = UDim2.new(0, 44, 0, 0)
     titleText.BackgroundTransparency = 1
     titleText.Text = HUB_NAME
     titleText.Font = Enum.Font.GothamBlack
-    titleText.TextSize = 22
+    titleText.TextSize = 16
     titleText.TextColor3 = COL.text
     titleText.TextXAlignment = Enum.TextXAlignment.Left
     titleText.ZIndex = 9
     titleText.Parent = topBar
-    local verBadge = Instance.new("TextLabel")
-    verBadge.Size = UDim2.new(0, 44, 0, 18)
-    verBadge.Position = UDim2.new(0, 232, 0.5, -9)
-    verBadge.BackgroundColor3 = COL.accentDim
-    verBadge.BorderSizePixel = 0
-    verBadge.Text = "v42"
-    verBadge.Font = Enum.Font.GothamBold
-    verBadge.TextSize = 11
-    verBadge.TextColor3 = COL.accentHot
-    verBadge.ZIndex = 9
-    verBadge.Parent = topBar
-    corner(verBadge, 9)
     local perfChip = Instance.new("TextLabel")
-    perfChip.Size = UDim2.new(0, 110, 0, 22)
-    perfChip.Position = UDim2.new(1, -122, 0.5, -11)
+    perfChip.Size = UDim2.new(0, 100, 0, 22)
+    perfChip.Position = UDim2.new(1, -108, 0.5, -11)
     perfChip.BackgroundColor3 = COL.card
     perfChip.BorderSizePixel = 0
     perfChip.Text = "— FPS · — ms"
     perfChip.Font = Enum.Font.Code
-    perfChip.TextSize = 11
+    perfChip.TextSize = 10
     perfChip.TextColor3 = COL.textDim
     perfChip.ZIndex = 9
     perfChip.Parent = topBar
-    corner(perfChip, 11)
-    stroke(perfChip, COL.border, 1, 0.5)
+    corner(perfChip, 6)
     makeDraggable(topBar, frame)
 
     local sidebar = Instance.new("Frame")
-    sidebar.Size = UDim2.new(0, 168, 1, -60)
-    sidebar.Position = UDim2.new(0, 0, 0, 60)
+    sidebar.Size = UDim2.new(0, 150, 1, -46)
+    sidebar.Position = UDim2.new(0, 0, 0, 46)
     sidebar.BackgroundColor3 = COL.panel
-    sidebar.BackgroundTransparency = 0.3
     sidebar.BorderSizePixel = 0; sidebar.ZIndex = 7
     sidebar.Parent = frame
     local sideLine = Instance.new("Frame")
     sideLine.Size = UDim2.new(0, 1, 1, 0)
     sideLine.Position = UDim2.new(1, -1, 0, 0)
-    sideLine.BackgroundColor3 = COL.border
-    sideLine.BackgroundTransparency = 0.4
+    sideLine.BackgroundColor3 = COL.line
     sideLine.BorderSizePixel = 0; sideLine.ZIndex = 8
     sideLine.Parent = sidebar
     local tabScroll = Instance.new("ScrollingFrame")
-    tabScroll.Size = UDim2.new(1, 0, 1, -52)
-    tabScroll.Position = UDim2.new(0, 0, 0, 10)
+    tabScroll.Size = UDim2.new(1, 0, 1, -38)
     tabScroll.BackgroundTransparency = 1
     tabScroll.BorderSizePixel = 0
     tabScroll.ScrollBarThickness = 0
@@ -1614,26 +1518,24 @@ xpcall(function()
     tabScroll.Parent = sidebar
     pcall(function() tabScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y end)
     local sideLayout = Instance.new("UIListLayout", tabScroll)
-    sideLayout.Padding = UDim.new(0, 7)
+    sideLayout.Padding = UDim.new(0, 3)
     sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
     local sidePad = Instance.new("UIPadding", tabScroll)
-    sidePad.PaddingTop = UDim.new(0, 2); sidePad.PaddingLeft = UDim.new(0, 10); sidePad.PaddingRight = UDim.new(0, 10)
+    sidePad.PaddingTop = UDim.new(0, 8); sidePad.PaddingLeft = UDim.new(0, 6); sidePad.PaddingRight = UDim.new(0, 6)
     local roleStatus = Instance.new("TextLabel")
-    roleStatus.Size = UDim2.new(1, -20, 0, 32)
-    roleStatus.Position = UDim2.new(0, 10, 1, -42)
-    roleStatus.BackgroundColor3 = COL.card
-    roleStatus.BorderSizePixel = 0
+    roleStatus.Size = UDim2.new(1, -12, 0, 30)
+    roleStatus.Position = UDim2.new(0, 6, 1, -36)
+    roleStatus.BackgroundTransparency = 1
     roleStatus.Text = "Роль: —"
     roleStatus.Font = Enum.Font.GothamBold
     roleStatus.TextSize = 12
     roleStatus.TextColor3 = COL.textDim
+    roleStatus.TextXAlignment = Enum.TextXAlignment.Left
     roleStatus.ZIndex = 9
     roleStatus.Parent = sidebar
-    corner(roleStatus, 9)
-    stroke(roleStatus, COL.border, 1, 0.45)
     local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -168, 1, -60)
-    content.Position = UDim2.new(0, 168, 0, 60)
+    content.Size = UDim2.new(1, -150, 1, -46)
+    content.Position = UDim2.new(0, 150, 0, 46)
     content.BackgroundTransparency = 1
     content.ZIndex = 7
     content.Parent = frame
@@ -1641,57 +1543,49 @@ xpcall(function()
     local tabs = {}; local contents = {}; local currentTab = nil
     local function switchTab(name)
         for n, d in pairs(tabs) do
-            tween(d.btn, {BackgroundColor3 = COL.card}, 0.18)
-            tween(d.icon, {TextColor3 = COL.textDim}, 0.18)
-            tween(d.label, {TextColor3 = COL.textDim}, 0.18)
-            tween(d.indicator, {BackgroundTransparency = 1}, 0.18)
+            d.btn.BackgroundColor3 = COL.accent; d.btn.BackgroundTransparency = 1
+            d.icon.TextColor3 = COL.textDim; d.label.TextColor3 = COL.textDim
+            d.indicator.BackgroundTransparency = 1
         end
         for n, c in pairs(contents) do c.Visible = false end
         if tabs[name] then
             local d = tabs[name]
-            tween(d.btn, {BackgroundColor3 = COL.accentDim}, 0.2)
-            tween(d.icon, {TextColor3 = COL.accentHot}, 0.2)
-            tween(d.label, {TextColor3 = COL.text}, 0.2)
-            tween(d.indicator, {BackgroundTransparency = 0}, 0.2)
+            d.btn.BackgroundColor3 = COL.accent; d.btn.BackgroundTransparency = 0
+            d.icon.TextColor3 = COL.knob; d.label.TextColor3 = COL.knob
+            d.indicator.BackgroundTransparency = 0
         end
-        if contents[name] then
-            contents[name].Visible = true
-            contents[name].Position = UDim2.new(0, 34, 0, 0)
-            tween(contents[name], {Position = UDim2.new(0, 0, 0, 0)}, 0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        end
+        if contents[name] then contents[name].Visible = true end
         currentTab = name
     end
     local function addTab(name, icon, order)
         local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 46)
-        b.BackgroundColor3 = COL.card
-        b.BackgroundTransparency = 0
+        b.Size = UDim2.new(1, 0, 0, 40)
+        b.BackgroundTransparency = 1
         b.Text = ""; b.BorderSizePixel = 0; b.AutoButtonColor = false
         b.LayoutOrder = order; b.ZIndex = 9
         b.Parent = tabScroll
-        corner(b, 10)
-        stroke(b, COL.border, 1, 0.5)
+        corner(b, 8)
         local indicator = Instance.new("Frame")
-        indicator.Size = UDim2.new(0, 3, 0, 26)
-        indicator.Position = UDim2.new(0, 0, 0.5, -13)
-        indicator.BackgroundColor3 = COL.accentHot
+        indicator.Size = UDim2.new(0, 3, 0, 20)
+        indicator.Position = UDim2.new(0, 0, 0.5, -10)
+        indicator.BackgroundColor3 = COL.knob
         indicator.BackgroundTransparency = 1
         indicator.BorderSizePixel = 0; indicator.ZIndex = 10
         indicator.Parent = b
         corner(indicator, 2)
         local iconLbl = Instance.new("TextLabel")
-        iconLbl.Size = UDim2.new(0, 28, 1, 0)
+        iconLbl.Size = UDim2.new(0, 26, 1, 0)
         iconLbl.Position = UDim2.new(0, 10, 0, 0)
         iconLbl.BackgroundTransparency = 1
         iconLbl.Text = icon
         iconLbl.Font = Enum.Font.GothamBold
-        iconLbl.TextSize = 18
+        iconLbl.TextSize = 15
         iconLbl.TextColor3 = COL.textDim
         iconLbl.ZIndex = 10
         iconLbl.Parent = b
         local nameLbl = Instance.new("TextLabel")
-        nameLbl.Size = UDim2.new(1, -44, 1, 0)
-        nameLbl.Position = UDim2.new(0, 42, 0, 0)
+        nameLbl.Size = UDim2.new(1, -40, 1, 0)
+        nameLbl.Position = UDim2.new(0, 38, 0, 0)
         nameLbl.BackgroundTransparency = 1
         nameLbl.Text = name
         nameLbl.Font = Enum.Font.GothamBold
@@ -1702,34 +1596,28 @@ xpcall(function()
         nameLbl.Parent = b
         tabs[name] = {btn = b, icon = iconLbl, label = nameLbl, indicator = indicator}
         b.MouseEnter:Connect(function()
-            if currentTab ~= name then
-                tween(b, {BackgroundColor3 = COL.cardHover}, 0.15)
-                tween(iconLbl, {TextColor3 = COL.text}, 0.15)
-            end
+            if currentTab ~= name then tween(b, {BackgroundColor3 = COL.cardHover, BackgroundTransparency = 0.5}, 0.12) end
         end)
         b.MouseLeave:Connect(function()
-            if currentTab ~= name then
-                tween(b, {BackgroundColor3 = COL.card}, 0.15)
-                tween(iconLbl, {TextColor3 = COL.textDim}, 0.15)
-            end
+            if currentTab ~= name then tween(b, {BackgroundTransparency = 1}, 0.12) end
         end)
         b.MouseButton1Click:Connect(function() playClick(); switchTab(name) end)
         local c = Instance.new("ScrollingFrame")
         c.Size = UDim2.new(1, 0, 1, 0)
         c.BackgroundTransparency = 1
         c.BorderSizePixel = 0
-        c.ScrollBarThickness = 4
+        c.ScrollBarThickness = 3
         c.ScrollBarImageColor3 = COL.accent
         c.CanvasSize = UDim2.new(0, 0, 0, 0)
         c.Visible = false; c.ZIndex = 8
         c.Parent = content
         pcall(function() c.AutomaticCanvasSize = Enum.AutomaticSize.Y end)
         local l = Instance.new("UIListLayout", c)
-        l.Padding = UDim.new(0, 9)
+        l.Padding = UDim.new(0, 0)
         l.SortOrder = Enum.SortOrder.LayoutOrder
         local p = Instance.new("UIPadding", c)
-        p.PaddingTop = UDim.new(0, 12); p.PaddingBottom = UDim.new(0, 24)
-        p.PaddingLeft = UDim.new(0, 12); p.PaddingRight = UDim.new(0, 12)
+        p.PaddingTop = UDim.new(0, 6); p.PaddingBottom = UDim.new(0, 16)
+        p.PaddingLeft = UDim.new(0, 8); p.PaddingRight = UDim.new(0, 8)
         contents[name] = c
     end
     addTab("Шериф", "⭐", 1)
@@ -1741,120 +1629,131 @@ xpcall(function()
 
     local function makeSection(parent, order, text)
         local holder = Instance.new("Frame")
-        holder.Size = UDim2.new(1, 0, 0, 26)
+        holder.Size = UDim2.new(1, 0, 0, 30)
         holder.BackgroundTransparency = 1
         holder.LayoutOrder = order
         holder.ZIndex = 8
         holder.Parent = parent
         local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -8, 1, 0)
+        lbl.Position = UDim2.new(0, 4, 0, 0)
         lbl.BackgroundTransparency = 1
         lbl.Text = text
-        lbl.Font = Enum.Font.GothamBlack
-        lbl.TextSize = 12
-        lbl.TextColor3 = COL.accentHot
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextSize = 11
+        lbl.TextColor3 = COL.textDim
         lbl.TextXAlignment = Enum.TextXAlignment.Left
         lbl.ZIndex = 8
         lbl.Parent = holder
-        pcall(function()
-            local len = #text * 7.5 + 4
-            lbl.Size = UDim2.new(0, len, 1, 0)
-            local line = Instance.new("Frame")
-            line.Size = UDim2.new(1, -len - 8, 0, 1)
-            line.Position = UDim2.new(0, len + 8, 0.5, 0)
-            line.BorderSizePixel = 0
-            line.ZIndex = 8
-            line.Parent = holder
-            gradient(line, {ColorSequenceKeypoint.new(0, COL.accent), ColorSequenceKeypoint.new(1, COL.bg)}, 0)
-        end)
+        return holder
     end
     local function makeButton(parent, order, text, color, callback)
-        local base = color or COL.accent
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.new(1, 0, 0, 46)
-        b.BackgroundColor3 = base
-        b.Text = text
-        b.TextColor3 = Color3.fromRGB(255, 255, 255)
-        b.Font = Enum.Font.GothamBlack
-        b.TextSize = 14
-        b.BorderSizePixel = 0
-        b.LayoutOrder = order
-        b.AutoButtonColor = false
-        b.ZIndex = 8
-        b.ClipsDescendants = true
-        b.Parent = parent
-        corner(b, 10)
-        gradient(b, {ColorSequenceKeypoint.new(0, Color3.fromRGB(math.min(255, base.R*255+45), math.min(255, base.G*255+28), math.min(255, base.B*255+32))), ColorSequenceKeypoint.new(1, base)}, 90)
-        stroke(b, COL.accentHot, 1, 0.5)
-        local sheen = Instance.new("Frame")
-        sheen.Size = UDim2.new(0, 30, 1, 0)
-        sheen.Position = UDim2.new(0, -40, 0, 0)
-        sheen.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        sheen.BackgroundTransparency = 0.75
-        sheen.BorderSizePixel = 0
-        sheen.ZIndex = 9
-        sheen.Parent = b
-        b.MouseEnter:Connect(function()
-            tween(b, {BackgroundColor3 = COL.accentHot}, 0.15)
-            sheen.Position = UDim2.new(0, -40, 0, 0)
-            tween(sheen, {Position = UDim2.new(1, 10, 0, 0)}, 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 44)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = order
+        row.ZIndex = 8
+        row.Parent = parent
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(1, -4, 0, 1)
+        line.Position = UDim2.new(0, 2, 1, -1)
+        line.BackgroundColor3 = COL.line
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0; line.ZIndex = 8
+        line.Parent = row
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -70, 1, 0)
+        lbl.Position = UDim2.new(0, 4, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = text
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextSize = 13
+        lbl.TextColor3 = COL.text
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.ZIndex = 9
+        lbl.Parent = row
+        local badge = Instance.new("Frame")
+        badge.Size = UDim2.new(0, 46, 0, 24)
+        badge.Position = UDim2.new(1, -50, 0.5, -12)
+        badge.BackgroundColor3 = COL.card
+        badge.BorderSizePixel = 0; badge.ZIndex = 9
+        badge.Parent = row
+        corner(badge, 6)
+        local btxt = Instance.new("TextLabel")
+        btxt.Size = UDim2.new(1, 0, 1, 0)
+        btxt.BackgroundTransparency = 1
+        btxt.Text = "GO"
+        btxt.Font = Enum.Font.GothamBold
+        btxt.TextSize = 11
+        btxt.TextColor3 = COL.textDim
+        btxt.ZIndex = 10
+        btxt.Parent = badge
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 1, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = ""; btn.AutoButtonColor = false
+        btn.ZIndex = 11
+        btn.Parent = row
+        btn.MouseEnter:Connect(function() tween(row, {BackgroundTransparency = 0.6}, 0.12) end)
+        btn.MouseLeave:Connect(function() tween(row, {BackgroundTransparency = 1}, 0.12) end)
+        btn.MouseButton1Click:Connect(function()
+            playClick()
+            tween(badge, {BackgroundColor3 = COL.accent}, 0.08)
+            xdDelay(0.12, function() tween(badge, {BackgroundColor3 = COL.card}, 0.12) end)
+            pcall(callback)
         end)
-        b.MouseLeave:Connect(function() tween(b, {BackgroundColor3 = base}, 0.15) end)
-        b.MouseButton1Down:Connect(function() tween(b, {BackgroundTransparency = 0.25}, 0.07) end)
-        b.MouseButton1Up:Connect(function() tween(b, {BackgroundTransparency = 0}, 0.07) end)
-        b.MouseButton1Click:Connect(function() playClick(); pcall(callback) end)
-        return b
+        return btn
     end
     local function makeToggle(parent, order, text, callback)
-        local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, 0, 0, 48)
-        card.BackgroundColor3 = COL.card
-        card.BorderSizePixel = 0
-        card.LayoutOrder = order
-        card.ZIndex = 8
-        card.Parent = parent
-        corner(card, 10)
-        local cardStroke = stroke(card, COL.border, 1, 0.5)
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -92, 1, 0)
-        label.Position = UDim2.new(0, 14, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 13
-        label.TextColor3 = COL.text
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.ZIndex = 9
-        label.Parent = card
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 44)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = order
+        row.ZIndex = 8
+        row.Parent = parent
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(1, -4, 0, 1)
+        line.Position = UDim2.new(0, 2, 1, -1)
+        line.BackgroundColor3 = COL.line
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0; line.ZIndex = 8
+        line.Parent = row
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -60, 1, 0)
+        lbl.Position = UDim2.new(0, 4, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = text
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextSize = 13
+        lbl.TextColor3 = COL.text
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.ZIndex = 9
+        lbl.Parent = row
         local switch = Instance.new("TextButton")
-        switch.Size = UDim2.new(0, 54, 0, 27)
-        switch.Position = UDim2.new(1, -68, 0.5, -13)
-        switch.BackgroundColor3 = COL.border
+        switch.Size = UDim2.new(0, 40, 0, 22)
+        switch.Position = UDim2.new(1, -44, 0.5, -11)
+        switch.BackgroundColor3 = COL.track
         switch.BorderSizePixel = 0
         switch.Text = ""; switch.AutoButtonColor = false
-        switch.ZIndex = 9
-        switch.Parent = card
-        corner(switch, 14)
+        switch.ZIndex = 10
+        switch.Parent = row
+        corner(switch, 11)
         local knob = Instance.new("Frame")
-        knob.Size = UDim2.new(0, 21, 0, 21)
-        knob.Position = UDim2.new(0, 3, 0.5, -10)
-        knob.BackgroundColor3 = COL.textDim
-        knob.BorderSizePixel = 0
-        knob.ZIndex = 10
+        knob.Size = UDim2.new(0, 16, 0, 16)
+        knob.Position = UDim2.new(0, 3, 0.5, -8)
+        knob.BackgroundColor3 = COL.knob
+        knob.BorderSizePixel = 0; knob.ZIndex = 11
         knob.Parent = switch
-        corner(knob, 11)
+        corner(knob, 8)
         local state = false
         local function update(v)
             state = v
             if state then
-                tween(switch, {BackgroundColor3 = COL.accentDim}, 0.2)
-                tween(knob, {Position = UDim2.new(0, 30, 0.5, -10), BackgroundColor3 = COL.accentHot}, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-                tween(card, {BackgroundColor3 = Color3.fromRGB(44, 30, 34)}, 0.2)
-                if cardStroke then tween(cardStroke, {Color = COL.accent}, 0.2) end
+                tween(switch, {BackgroundColor3 = COL.accent}, 0.18)
+                tween(knob, {Position = UDim2.new(1, -19, 0.5, -8)}, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
             else
-                tween(switch, {BackgroundColor3 = COL.border}, 0.2)
-                tween(knob, {Position = UDim2.new(0, 3, 0.5, -10), BackgroundColor3 = COL.textDim}, 0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-                tween(card, {BackgroundColor3 = COL.card}, 0.2)
-                if cardStroke then tween(cardStroke, {Color = COL.border}, 0.2) end
+                tween(switch, {BackgroundColor3 = COL.track}, 0.18)
+                tween(knob, {Position = UDim2.new(0, 3, 0.5, -8)}, 0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
             end
             pcall(function() callback(state) end)
         end
@@ -1862,39 +1761,42 @@ xpcall(function()
         return {Set = function(_, v) if state ~= v then update(v) end end}
     end
     local function makeInput(parent, order, label, default, callback)
-        local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, 0, 0, 46)
-        card.BackgroundColor3 = COL.card
-        card.BorderSizePixel = 0
-        card.LayoutOrder = order
-        card.ZIndex = 8
-        card.Parent = parent
-        corner(card, 10)
-        stroke(card, COL.border, 1, 0.5)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 44)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = order
+        row.ZIndex = 8
+        row.Parent = parent
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(1, -4, 0, 1)
+        line.Position = UDim2.new(0, 2, 1, -1)
+        line.BackgroundColor3 = COL.line
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0; line.ZIndex = 8
+        line.Parent = row
         local l = Instance.new("TextLabel")
-        l.Size = UDim2.new(0.55, -8, 1, 0)
-        l.Position = UDim2.new(0, 14, 0, 0)
+        l.Size = UDim2.new(0.6, -8, 1, 0)
+        l.Position = UDim2.new(0, 4, 0, 0)
         l.BackgroundTransparency = 1
         l.Text = label
-        l.Font = Enum.Font.GothamBold
+        l.Font = Enum.Font.GothamMedium
         l.TextSize = 13
         l.TextColor3 = COL.text
         l.TextXAlignment = Enum.TextXAlignment.Left
         l.ZIndex = 9
-        l.Parent = card
+        l.Parent = row
         local box = Instance.new("TextBox")
-        box.Size = UDim2.new(0.38, -8, 0, 30)
-        box.Position = UDim2.new(0.6, 0, 0.5, -15)
-        box.BackgroundColor3 = COL.bgDeep
+        box.Size = UDim2.new(0.38, -8, 0, 28)
+        box.Position = UDim2.new(0.6, 0, 0.5, -14)
+        box.BackgroundColor3 = COL.card
         box.BorderSizePixel = 0
         box.Text = tostring(default)
         box.TextColor3 = COL.accentHot
         box.Font = Enum.Font.GothamBold
-        box.TextSize = 13
+        box.TextSize = 12
         box.ZIndex = 9
-        box.Parent = card
-        corner(box, 8)
-        stroke(box, COL.border, 1, 0.5)
+        box.Parent = row
+        corner(box, 6)
         box.FocusLost:Connect(function()
             local v = tonumber(box.Text)
             if v then pcall(function() callback(v) end) else box.Text = tostring(default) end
@@ -1902,37 +1804,41 @@ xpcall(function()
         return box
     end
     local function makeStat(parent, order, label)
-        local card = Instance.new("Frame")
-        card.Size = UDim2.new(1, 0, 0, 38)
-        card.BackgroundColor3 = COL.card
-        card.BorderSizePixel = 0
-        card.LayoutOrder = order
-        card.ZIndex = 8
-        card.Parent = parent
-        corner(card, 10)
-        stroke(card, COL.border, 1, 0.55)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 40)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = order
+        row.ZIndex = 8
+        row.Parent = parent
+        local line = Instance.new("Frame")
+        line.Size = UDim2.new(1, -4, 0, 1)
+        line.Position = UDim2.new(0, 2, 1, -1)
+        line.BackgroundColor3 = COL.line
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0; line.ZIndex = 8
+        line.Parent = row
         local l = Instance.new("TextLabel")
         l.Size = UDim2.new(0.6, -8, 1, 0)
-        l.Position = UDim2.new(0, 14, 0, 0)
+        l.Position = UDim2.new(0, 4, 0, 0)
         l.BackgroundTransparency = 1
         l.Text = label
-        l.Font = Enum.Font.GothamBold
+        l.Font = Enum.Font.GothamMedium
         l.TextSize = 12
         l.TextColor3 = COL.textDim
         l.TextXAlignment = Enum.TextXAlignment.Left
         l.ZIndex = 9
-        l.Parent = card
+        l.Parent = row
         local v = Instance.new("TextLabel")
-        v.Size = UDim2.new(0.4, -14, 1, 0)
+        v.Size = UDim2.new(0.4, -12, 1, 0)
         v.Position = UDim2.new(0.6, 0, 0, 0)
         v.BackgroundTransparency = 1
         v.Text = "0"
-        v.Font = Enum.Font.GothamBlack
-        v.TextSize = 14
+        v.Font = Enum.Font.GothamBold
+        v.TextSize = 13
         v.TextColor3 = COL.accentHot
         v.TextXAlignment = Enum.TextXAlignment.Right
         v.ZIndex = 9
-        v.Parent = card
+        v.Parent = row
         return v
     end
 
@@ -2210,15 +2116,15 @@ xpcall(function()
     local visC = contents["Визуал"]
     local visualToggles = {}
     makeSection(visC, 0, "ВИЗУАЛЬНЫЕ ЭФФЕКТЫ")
-    visualToggles.wings = makeToggle(visC, 1, "🪽 Гладкие 3D крылья", function(s)
+    visualToggles.wings = makeToggle(visC, 1, "🪽 Светящиеся крылья", function(s)
         visualState.wings = s
         if s then applyVisualSafe("wings") else clearVisual("wings") end
     end)
-    visualToggles.circle = makeToggle(visC, 2, "🌀 3D Печать (гироскоп + столб)", function(s)
+    visualToggles.circle = makeToggle(visC, 2, "🌀 Круг-печать под ногами", function(s)
         visualState.circle = s
         if s then applyVisualSafe("circle") else clearVisual("circle") end
     end)
-    visualToggles.halo = makeToggle(visC, 3, "😇 Нимб + орбиты", function(s)
+    visualToggles.halo = makeToggle(visC, 3, "😇 Орб / нимб над головой", function(s)
         visualState.halo = s
         if s then applyVisualSafe("halo") else clearVisual("halo") end
     end)
@@ -2251,7 +2157,7 @@ xpcall(function()
         if s then applyVisualSafe("light") else clearVisual("light") end
     end)
     makeSection(visC, 11, "ФОН МЕНЮ")
-    makeToggle(visC, 12, "🌫 Частицы фона и на экране игры", function(s)
+    makeToggle(visC, 12, "🌫 Частицы фона на экране игры", function(s)
         bgParticlesOn = s
         bgLayer.Visible = frame.Visible or bgParticlesOn
         notify(HUB_NAME, s and "Фон включён и в игре" or "Фон только в меню")
@@ -2266,28 +2172,18 @@ xpcall(function()
     end)
 
     local mBtn = Instance.new("TextButton")
-    mBtn.Size = UDim2.new(0, 62, 0, 62)
-    mBtn.Position = UDim2.new(0, 16, 1, -78)
+    mBtn.Size = UDim2.new(0, 50, 0, 50)
+    mBtn.Position = UDim2.new(0, 14, 1, -64)
     mBtn.BackgroundColor3 = COL.accent
     mBtn.Text = "X"
-    mBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mBtn.TextColor3 = COL.knob
     mBtn.Font = Enum.Font.GothamBlack
-    mBtn.TextSize = 26
+    mBtn.TextSize = 20
     mBtn.BorderSizePixel = 0
     mBtn.AutoButtonColor = false
     mBtn.ZIndex = 50
     mBtn.Parent = guiUI
-    corner(mBtn, 31)
-    gradient(mBtn, {ColorSequenceKeypoint.new(0, COL.accentHot), ColorSequenceKeypoint.new(1, COL.accentDim)}, 45)
-    stroke(mBtn, COL.accentHot, 1.5, 0.3)
-    xdSpawn(function()
-        while mBtn.Parent do
-            tween(mBtn, {Size = UDim2.new(0, 67, 0, 67)}, 1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-            xdWait(1.3)
-            tween(mBtn, {Size = UDim2.new(0, 62, 0, 62)}, 1.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-            xdWait(1.3)
-        end
-    end)
+    corner(mBtn, 25)
     mBtn.MouseButton1Click:Connect(function()
         playClick()
         frame.Visible = not frame.Visible
@@ -2306,11 +2202,6 @@ xpcall(function()
             fpsCount = 0
         end
     end)
-
-    frame.Size = UDim2.new(0, 0, 0, 0)
-    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    frame.BackgroundTransparency = 1
-    tween(frame, {Size = UDim2.new(0, guiW, 0, guiH), Position = UDim2.new(0.5, -guiW/2, 0.5, -guiH/2), BackgroundTransparency = 0}, 0.55, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
     player.CharacterAdded:Connect(function(ch)
         character = ch
@@ -2344,10 +2235,11 @@ xpcall(function()
     pcall(function() updateRoleUI() end)
     pcall(function() updateBagUI() end)
     switchTab("Шериф")
+    reapplyVisuals()
 
     notify(HUB_NAME, "v42 загружен!")
-    notify(HUB_NAME, "Красная тема + крылья/нимб/круг!")
-    ban("[" .. HUB_NAME .. "] ГОТОВО ✓ меню на экране", Color3.fromRGB(90, 255, 130))
+    notify(HUB_NAME, "Плоский GUI + крылья/орб/круг горят!")
+    ban("[" .. HUB_NAME .. "] ГОТОВО ✓ плоское меню + визуалы как на фото", Color3.fromRGB(90, 255, 130))
 
     xdStatus(HUB_NAME .. " v42: меню готово", Color3.fromRGB(80, 255, 120))
     xdDelay(4, function() pcall(function() if statusLabel then statusLabel.Visible = false end end) end)
