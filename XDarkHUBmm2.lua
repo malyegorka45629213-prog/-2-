@@ -1,4 +1,4 @@
-local function safeParentGui(obj)
+ъlocal function safeParentGui(obj)
     local attempts = {}
     if gethui and type(gethui) == "function" then table.insert(attempts, function() return gethui() end) end
     if get_hidden_gui and type(get_hidden_gui) == "function" then table.insert(attempts, function() return get_hidden_gui() end) end
@@ -82,6 +82,7 @@ xpcall(function()
     local visitedPositions = {}
     local isActive = false
     local flySpeed = 16
+    local bagSize = 40
     local initialCoins = 0
     local startTime = 0
     local antiAFK = false
@@ -92,7 +93,7 @@ xpcall(function()
     local farmRunning = false
     local flingOnFullBag = false
     local alreadyFlungOnFull = false
-    local MAX_BAG = 40
+    local bagFullNotified = false
 
     local playerESP = false
     local autoShooting = false
@@ -931,6 +932,22 @@ xpcall(function()
         return p
     end
 
+    local function makeSmoothPart(props, meshScale)
+        local p = Instance.new("Part")
+        p.Material = Enum.Material.Neon
+        p.Anchored = true; p.CanCollide = false; p.CastShadow = false
+        p.TopSurface = Enum.SurfaceType.Smooth; p.BottomSurface = Enum.SurfaceType.Smooth
+        for k, v in pairs(props) do p[k] = v end
+        p.Size = Vector3.new(1, 1, 1)
+        pcall(function()
+            local m = Instance.new("SpecialMesh")
+            m.MeshType = Enum.MeshType.Sphere
+            m.Scale = meshScale
+            m.Parent = p
+        end)
+        return p
+    end
+
     local function applyWings()
         clearVisual("wings")
         local char = player.Character
@@ -943,39 +960,39 @@ xpcall(function()
         local gold = Color3.fromRGB(255, 205, 105)
 
         for side = -1, 1, 2 do
-            local membrane = makeNeonPart({Name="XDarkMembrane", Size=Vector3.new(0.08, 3.5, 2.9), Color=Color3.fromRGB(115, 7, 22), Transparency=0.58, Parent=char})
+            local membrane = makeSmoothPart({Name="XDarkMembrane", Color=Color3.fromRGB(120, 8, 24), Transparency=0.62, Parent=char}, Vector3.new(0.22, 3.6, 3.0))
             registerVisual("wings", membrane)
             table.insert(wingMembranes, {part=membrane, side=side})
 
-            for i = 1, 8 do
-                local t = i / 8
-                local len1 = 2.3 - t * 0.95
-                local len2 = 1.7 - t * 0.75
-                local width = 1.1 - t * 0.48
-                local base = makeNeonPart({Name="XDarkPrimB", Size=Vector3.new(0.16, len1, width), Color=darkRed:lerp(midRed, t*0.55), Transparency=0.03, Parent=char})
-                local tip = makeNeonPart({Name="XDarkPrimT", Size=Vector3.new(0.16, len2, width*0.72), Color=midRed:lerp(gold, t*t), Transparency=0.02 + t*0.1, Parent=char})
+            for i = 1, 9 do
+                local t = i / 9
+                local len1 = 2.4 - t * 1.0
+                local len2 = 1.8 - t * 0.8
+                local width = 1.15 - t * 0.5
+                local base = makeSmoothPart({Name="XDarkPrimB", Color=darkRed:lerp(midRed, t*0.55), Transparency=0.04, Parent=char}, Vector3.new(0.42, len1, width))
+                local tip = makeSmoothPart({Name="XDarkPrimT", Color=midRed:lerp(gold, t*t), Transparency=0.03 + t*0.1, Parent=char}, Vector3.new(0.36, len2, width*0.7))
                 registerVisual("wings", base); registerVisual("wings", tip)
-                table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="prim", curve=0.18 + t*0.22})
+                table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="prim", curve=0.18 + t*0.24})
             end
 
-            for i = 1, 5 do
-                local t = i / 5
-                local len1 = 1.55 - t * 0.5
-                local len2 = 0.95 - t * 0.3
-                local base = makeNeonPart({Name="XDarkSecB", Size=Vector3.new(0.14, len1, 0.72 - t*0.2), Color=midRed:lerp(emberC, t*0.5), Transparency=0.05, Parent=char})
-                local tip = makeNeonPart({Name="XDarkSecT", Size=Vector3.new(0.14, len2, 0.55 - t*0.15), Color=emberC, Transparency=0.05, Parent=char})
+            for i = 1, 6 do
+                local t = i / 6
+                local len1 = 1.6 - t * 0.5
+                local len2 = 1.0 - t * 0.3
+                local base = makeSmoothPart({Name="XDarkSecB", Color=midRed:lerp(emberC, t*0.5), Transparency=0.06, Parent=char}, Vector3.new(0.36, len1, 0.75 - t*0.2))
+                local tip = makeSmoothPart({Name="XDarkSecT", Color=emberC, Transparency=0.06, Parent=char}, Vector3.new(0.3, len2, 0.58 - t*0.15))
                 registerVisual("wings", base); registerVisual("wings", tip)
                 table.insert(wingFeathers, {base=base, tip=tip, len1=len1, len2=len2, side=side, i=i, layer="sec", curve=0.12})
             end
 
-            for i = 1, 3 do
-                local cov = makeNeonPart({Name="XDarkCovert", Size=Vector3.new(0.14, 0.72 - i*0.12, 0.5), Color=gold, Transparency=0.07, Parent=char})
+            for i = 1, 4 do
+                local cov = makeSmoothPart({Name="XDarkCovert", Color=gold, Transparency=0.08, Parent=char}, Vector3.new(0.32, 0.75 - i*0.1, 0.5))
                 registerVisual("wings", cov)
-                table.insert(wingFeathers, {base=cov, tip=nil, len1=0.72 - i*0.12, len2=0, side=side, i=i, layer="cov", curve=0})
+                table.insert(wingFeathers, {base=cov, tip=nil, len1=0.75 - i*0.1, len2=0, side=side, i=i, layer="cov", curve=0})
             end
         end
 
-        wingSpine = makeNeonPart({Name="XDarkSpine", Size=Vector3.new(0.28, 1.95, 0.28), Color=Color3.fromRGB(255, 50, 70), Transparency=0.04, Parent=char})
+        wingSpine = makeSmoothPart({Name="XDarkSpine", Color=Color3.fromRGB(255, 50, 70), Transparency=0.05, Parent=char}, Vector3.new(0.42, 2.0, 0.42))
         registerVisual("wings", wingSpine)
 
         local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.2, 1)
@@ -1598,7 +1615,7 @@ xpcall(function()
     verBadge.Position = UDim2.new(0, 200, 0.5, -9)
     verBadge.BackgroundColor3 = COL.accentDim
     verBadge.BorderSizePixel = 0
-    verBadge.Text = "v41"
+    verBadge.Text = "v42"
     verBadge.Font = Enum.Font.GothamBold
     verBadge.TextSize = 11
     verBadge.TextColor3 = COL.accentHot
@@ -2117,8 +2134,8 @@ xpcall(function()
     function updateBagUI()
         local cc = getCollectedCoins()
         if farmStopped then bagVal.Text = "Стоп"; bagVal.TextColor3 = Color3.fromRGB(255, 80, 80)
-        elseif cc >= MAX_BAG then bagVal.Text = "Полная"; bagVal.TextColor3 = Color3.fromRGB(255, 200, 0)
-        else bagVal.Text = cc .. "/" .. MAX_BAG; bagVal.TextColor3 = COL.accentHot end
+        elseif cc >= bagSize then bagVal.Text = "Полная"; bagVal.TextColor3 = Color3.fromRGB(255, 200, 0)
+        else bagVal.Text = cc .. "/" .. bagSize; bagVal.TextColor3 = COL.accentHot end
     end
 
     function stopFarming()
@@ -2147,9 +2164,11 @@ xpcall(function()
         visitedPositions = {}
         farmStopped = false
         alreadyFlungOnFull = false
+        bagFullNotified = false
         counterV.Text = "0"; timerV.Text = "0s"; rateV.Text = "0"
         updateRoleUI(); updateBagUI()
         notify("XDarkHUB", "Фарм включён")
+
         xdSpawn(function()
             while isActive do
                 local e = tick() - startTime
@@ -2159,25 +2178,10 @@ xpcall(function()
                 rateV.Text = tostring(e > 0 and math.floor(cc / e * 3600) or 0)
                 pCoinV.Text = tostring(getPlayerCoins(player))
                 updateRoleUI(); updateBagUI()
-
-                if cc >= MAX_BAG then
-                    if flingOnFullBag and not alreadyFlungOnFull then
-                        alreadyFlungOnFull = true
-                        local murderer = findMurderer()
-                        if murderer then
-                            notify("XDarkHUB", "Мешок полный — флингаю убийцу!")
-                            xdSpawn(function()
-                                pcall(function() miniFling(murderer) end)
-                            end)
-                        end
-                    end
-                else
-                    alreadyFlungOnFull = false
-                end
-
                 xdWait(0.25)
             end
         end)
+
         xdSpawn(function()
             while isActive do
                 if farmStopped then xdWait(1); continue end
@@ -2185,6 +2189,28 @@ xpcall(function()
                 if not character then xdWait(0.5); continue end
                 rootPart = character:FindFirstChild("HumanoidRootPart")
                 if not rootPart then xdWait(0.5); continue end
+
+                local cc = getCollectedCoins()
+                if cc >= bagSize then
+                    if flingOnFullBag and not alreadyFlungOnFull then
+                        alreadyFlungOnFull = true
+                        local murderer = findMurderer()
+                        if murderer then
+                            notify("XDarkHUB", "Мешок полный — флингаю убийцу!")
+                            xdSpawn(function() pcall(function() miniFling(murderer) end) end)
+                        end
+                    end
+                    if not bagFullNotified then
+                        bagFullNotified = true
+                        notify("XDarkHUB", "Мешок полный (" .. cc .. "/" .. bagSize .. ") — к монетам не лечу")
+                    end
+                    updateBagUI()
+                    xdWait(1)
+                    continue
+                end
+                bagFullNotified = false
+                alreadyFlungOnFull = false
+
                 checkRole()
                 local cl, sh = nil, math.huge
                 for _, o in ipairs(workspace:GetDescendants()) do
@@ -2201,7 +2227,6 @@ xpcall(function()
                 end
                 if cl then
                     local cp = cl.Position; local cr = cl
-                    if farmStopped then continue end
                     if flyTo(cp, flySpeed) and not farmStopped then
                         xdWait(0.3)
                         if cr.Parent and cr:IsDescendantOf(workspace) then
@@ -2246,13 +2271,17 @@ xpcall(function()
         flySpeed = clamp(v, 4, 60)
         notify("XDarkHUB", "Скорость полёта: " .. flySpeed)
     end)
-    makeToggle(farmC, 13, "🔪 Флинг убийцы при полном мешке", function(s) flingOnFullBag = s end)
-    makeToggle(farmC, 14, "Анти-АФК", function(s) antiAFK = s end)
+    makeInput(farmC, 13, "🎒 Размер мешка (монет)", bagSize, function(v)
+        bagSize = clamp(math.floor(v), 1, 999)
+        notify("XDarkHUB", "Размер мешка: " .. bagSize)
+    end)
+    makeToggle(farmC, 14, "🔪 Флинг убийцы при полном мешке", function(s) flingOnFullBag = s end)
+    makeToggle(farmC, 15, "Анти-АФК", function(s) antiAFK = s end)
 
     local visC = contents["Визуал"]
     local visualToggles = {}
     makeSection(visC, 0, "ВИЗУАЛЬНЫЕ ЭФФЕКТЫ")
-    visualToggles.wings = makeToggle(visC, 1, "🪽 3D Крылья (изгиб + золото)", function(s)
+    visualToggles.wings = makeToggle(visC, 1, "🪽 Гладкие 3D крылья", function(s)
         visualState.wings = s
         if s then applyVisualSafe("wings") else clearVisual("wings") end
     end)
@@ -2360,6 +2389,7 @@ xpcall(function()
         visitedPositions = {}
         farmStopped = false
         alreadyFlungOnFull = false
+        bagFullNotified = false
         xdWait(1.25)
         checkRole()
         pcall(function() updateRoleUI() end)
@@ -2388,10 +2418,10 @@ xpcall(function()
     pcall(function() updateBagUI() end)
     switchTab("Шериф")
 
-    notify("XDarkHUB", "v41 загружен!")
-    notify("XDarkHUB", "Ошибка InputTransparent исправлена!")
+    notify("XDarkHUB", "v42 загружен!")
+    notify("XDarkHUB", "Умный мешок + гладкие крылья!")
 
-    xdStatus("XDarkHUB v41: меню готово", Color3.fromRGB(80, 255, 120))
+    xdStatus("XDarkHUB v42: меню готово", Color3.fromRGB(80, 255, 120))
     xdDelay(4, function() pcall(function() if statusLabel then statusLabel.Visible = false end end) end)
 end, function(err)
     xdError(err)
