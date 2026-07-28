@@ -334,17 +334,19 @@ xpcall(function()
     pcall(function() local connected = {}; local function hookRemote(inst) if connected[inst] then return end; if inst:IsA("RemoteEvent") then connected[inst] = true; pcall(function() inst.OnClientEvent:Connect(function(...) for _, arg in ipairs({...}) do applyRolePayload(arg, inst.Name) end end) end) end end; for _, inst in ipairs(ReplicatedStorage:GetDescendants()) do hookRemote(inst) end; ReplicatedStorage.DescendantAdded:Connect(hookRemote) end)
     pcall(function() local hookedPlayers = {}; local function hookPlayerRoleEvents(pl) if hookedPlayers[pl] then return end; hookedPlayers[pl] = true; pcall(function() pl.CharacterAdded:Connect(function(char) xdWait(0.1); if onRolesChanged then onRolesChanged() end; pcall(function() char.ChildAdded:Connect(function() xdWait(0.05); if onRolesChanged then onRolesChanged() end end); char.ChildRemoved:Connect(function() xdWait(0.05); if onRolesChanged then onRolesChanged() end end) end) end) end); pcall(function() if pl.Backpack then pl.Backpack.ChildAdded:Connect(function() if onRolesChanged then onRolesChanged() end end); pl.Backpack.ChildRemoved:Connect(function() if onRolesChanged then onRolesChanged() end end) end end) end; for _, pl in ipairs(Players:GetPlayers()) do hookPlayerRoleEvents(pl) end; Players.PlayerAdded:Connect(hookPlayerRoleEvents); Players.PlayerRemoving:Connect(function(pl) hookedPlayers[pl] = nil; playerData[pl] = nil; playerData[pl.Name] = nil; playerData[pl.UserId] = nil; if clearPlayerHighlight then clearPlayerHighlight(pl) end end) end)
 
-    -- ================= ВИЗУАЛЫ: ФОРМА КРЫЛА (дуга+бахрома) + НИМБ-ВОРОНКА + ЛУЖА-ВОЛНЫ =================
-    -- >>> РЫЧАГИ ФОРМЫ: крути эти 5 чисел, если силуэт не тот <<<
-    local WING_FEATHERS = 15    -- перьев в крыле (больше = плотнее, без дыр)
-    local WING_SPREAD   = 138   -- разлёт веера в градусах (больше = шире раскрыто)
-    local WING_WIDTH    = 1.30  -- ширина пера (больше = перекрываются в сплошное крыло)
-    local WING_LEN      = 3.5   -- длина самого длинного пера
-    local HALO_TILT     = 22    -- наклон воронки нимба (0 = ровно торчком, больше = конуснее)
+    -- ================= ВИЗУАЛЫ: ФОРМА КРЫЛА (опущенный веер) + НИМБ-ОВАЛ + ЛУЖА + СЛАЙДЕРЫ В РЕАЛЬНОМ ВРЕМЕНИ =================
+    -- >>> ТЮН-РЫЧАГИ: их крутят слайдеры в вкладке "Визуал" — результат виден СРАЗУ, без перезаливки <<<
+    local TUNE_TOP        = 78    -- угол верхнего пера (78 = горизонтально-наружу; меньше = торчит вверх)
+    local TUNE_SPREAD     = 82    -- разлёт веера вниз (82 = опущенное крыло; больше = ромашка)
+    local TUNE_LEN        = 0.85  -- множитель длины перьев
+    local TUNE_WIDTH      = 1.15  -- множитель ширины перьев (больше = перекрываются в сплошное)
+    local TUNE_HALO_H     = 2.3   -- высота нимба над головой
+    local TUNE_HALO_TILT  = 78    -- наклон нимба (78 = овал лежит над головой; 0 = стоит ребром)
+    local TUNE_HALO_SIZE  = 1.0   -- размер нимба
 
     local visualState = {wings = true, circle = true, halo = true, bloom = true, aura = false, fire = false, smoke = false, trails = false, eyes = false, light = false, lightning = false}
     local visualObjects = {}
-    local wingFeathers = {}   -- {part, glow, side, phi, len, wid, rootY, rootZ}
+    local wingFeathers = {}   -- {part, glow, side, t, len0, wid0, thick0, glowMul, rootY, rootZ}
     local wingMass = {}       -- {part, glow, side}
     local haloCoils = {}      -- {beads=[{part,glow,a}], yaw, roll, spin, rad}
     local floorDisc = nil; local floorDiscGlow = nil; local floorWaves = {}
@@ -392,42 +394,34 @@ xpcall(function()
         end)
         return g
     end
+    local function setMeshScale(part, sx, sy, sz) pcall(function() local m = part:FindFirstChildOfClass("SpecialMesh"); if m then m.Scale = Vector3.new(sx, sy, sz) end end) end
 
-    -- КРЫЛЬЯ: форма крыла = веер ШИРОКИХ перекрывающихся перьев (верхняя дуга + зубчатый низ) + масса-ореол
+    -- КРЫЛЬЯ: опущенный веер широких перьев (верх горизонтально, низ вниз-наружу) + боковая масса-капля
     local function applyWings()
         clearVisual("wings")
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+        local count = 13
         for side = -1, 1, 2 do
-            -- масса-ореол позади (мягкое красное свечение формы крыла)
-            local mass = blob(char, GLOW, 0.66, 0.95, 2.7, 3.3)
-            local massG = glowClone(mass, 1.25, 0.82, GLOW)
+            -- боковая масса-капля, вытянутая вниз-наружу (повторяет форму опущенного крыла, НЕ центральная клякса)
+            local mass = blob(char, GLOW, 0.62, 0.85, 2.5, 1.7)
+            local massG = glowClone(mass, 1.25, 0.8, GLOW)
             registerVisual("wings", mass); if massG then registerVisual("wings", massG) end
             table.insert(wingMass, {part = mass, glow = massG, side = side})
-            -- перья по контуру крыла
-            for i = 1, WING_FEATHERS do
-                local t = (i - 1) / (WING_FEATHERS - 1)
-                local phi = 25 + t * WING_SPREAD                       -- угол от верхне-наружного до вниз-наружного
-                local len = WING_LEN * (0.5 + 0.5 * math.sin(t * math.pi * 0.95))   -- середина длиннее
-                len = len + 0.22 * math.sin(i * 2.1)                    -- рваный зубчатый низ
-                local wid = WING_WIDTH * (1.0 - t * 0.28)
-                local thick = 0.5 - t * 0.12
+            -- перья по контуру опущенного крыла
+            for i = 1, count do
+                local t = (i - 1) / (count - 1)
+                local len0 = 3.2 * (0.55 + 0.45 * math.sin(t * math.pi * 0.95)) + 0.18 * math.sin(i * 2.1)  -- середина длиннее + рваный низ
+                local wid0 = 1.25 * (1.0 - t * 0.26)
+                local thick0 = 0.5 - t * 0.12
                 local col = CORE:lerp(MID, 0.12 + t * 0.5)
-                local feather = blob(char, col, 0.0, thick, len, wid)
+                local feather = blob(char, col, 0.0, thick0, len0, wid0)
                 local fG = glowClone(feather, 1.32, 0.58, GLOW)
                 registerVisual("wings", feather); if fG then registerVisual("wings", fG) end
-                table.insert(wingFeathers, {part = feather, glow = fG, side = side, phi = phi, len = len, wid = wid, rootY = 0.95 - t * 0.5, rootZ = -0.2 - (1 - t) * 0.25})
+                table.insert(wingFeathers, {part = feather, glow = fG, side = side, t = t, len0 = len0, wid0 = wid0, thick0 = thick0, glowMul = 1.32, rootY = 0.85 - t * 0.45, rootZ = -0.15 - (1 - t) * 0.2})
             end
         end
-        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.1, 0.3); registerVisual("wings", att)
-        local em = Instance.new("ParticleEmitter", att)
-        em.Texture = "rbxasset://textures/particles/sparkles_main.dds"; em.Color = ColorSequence.new(CORE, GLOW)
-        em.Rate = 50; em.Lifetime = NumberRange.new(0.8, 1.6); em.Speed = NumberRange.new(0.5, 1.8)
-        em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1; em.LightInfluence = 0
-        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 0.2)})
-        em.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1)})
-        registerVisual("wings", em)
         local wl = Instance.new("PointLight"); wl.Color = Color3.fromRGB(255, 95, 110); wl.Brightness = 4.0; wl.Range = 34; wl.Parent = hrp; registerVisual("wings", wl)
     end
 
@@ -519,7 +513,7 @@ xpcall(function()
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local t = tick()
-            -- КРЫЛЬЯ: плавный взмах (малая амплитуда) + дыхание
+            -- КРЫЛЬЯ: углы/размеры читаются из TUNE_* в реальном времени (слайдеры работают мгновенно)
             if visualState.wings and hrp then
                 local flap = math.sin(t * 1.6) * 4
                 local sway = math.sin(t * 1.0) * 2
@@ -527,30 +521,34 @@ xpcall(function()
                 local breathe = 1 + math.sin(t * 1.6) * 0.04
                 for _, m in ipairs(wingMass) do
                     if m.part.Parent then
-                        local cf = hrp.CFrame * CFrame.new(m.side * 0.95, 1.0 + bob, -0.35) * CFrame.Angles(0, 0, math.rad(-m.side * (70 + sway + flap * 0.5))) * CFrame.Angles(0, math.rad(m.side * -10), 0)
+                        local cf = hrp.CFrame * CFrame.new(m.side * 0.9, 0.35 + bob, -0.3) * CFrame.Angles(0, 0, math.rad(-m.side * (108 + sway + flap * 0.5))) * CFrame.Angles(0, math.rad(m.side * -8), 0)
                         m.part.CFrame = cf; if m.glow and m.glow.Parent then m.glow.CFrame = cf end
                     end
                 end
                 for _, f in ipairs(wingFeathers) do
                     if f.part.Parent then
-                        local phi = f.phi + sway + flap
-                        local len = f.len * breathe
+                        local phi = TUNE_TOP + f.t * TUNE_SPREAD + sway + flap
+                        local len = f.len0 * TUNE_LEN * breathe
+                        local wid = f.wid0 * TUNE_WIDTH
+                        setMeshScale(f.part, f.thick0, len, wid)
+                        if f.glow and f.glow.Parent then setMeshScale(f.glow, f.thick0 * f.glowMul, len * f.glowMul, wid * f.glowMul) end
                         local cf = hrp.CFrame * CFrame.new(f.side * 0.4, f.rootY + bob, f.rootZ) * CFrame.Angles(0, 0, math.rad(-f.side * phi)) * CFrame.new(0, len / 2, 0)
                         f.part.CFrame = cf; if f.glow and f.glow.Parent then f.glow.CFrame = cf end
                     end
                 end
             end
-            -- НИМБ: воронка крутится
+            -- НИМБ: высота/наклон/размер из TUNE_* в реальном времени
             if visualState.halo and #haloCoils > 0 then
                 local head = char:FindFirstChild("Head")
                 if head then
                     local bob = math.sin(t * 2.0) * 0.1
-                    local baseCF = head.CFrame * CFrame.new(0, 1.95 + bob, 0) * CFrame.Angles(math.rad(HALO_TILT), t * 0.4, 0)
+                    local baseCF = head.CFrame * CFrame.new(0, TUNE_HALO_H + bob, 0) * CFrame.Angles(math.rad(TUNE_HALO_TILT), t * 0.4, 0)
                     for _, coil in ipairs(haloCoils) do
                         local coilCF = baseCF * CFrame.Angles(0, math.rad(coil.yaw + t * coil.spin * 30), math.rad(coil.roll))
+                        local rr = coil.rad * TUNE_HALO_SIZE
                         for _, bd in ipairs(coil.beads) do
                             if bd.part.Parent then
-                                local cf = coilCF * CFrame.new(math.cos(bd.a) * coil.rad, math.sin(bd.a) * coil.rad, 0)
+                                local cf = coilCF * CFrame.new(math.cos(bd.a) * rr, math.sin(bd.a) * rr, 0)
                                 bd.part.CFrame = cf; if bd.glow and bd.glow.Parent then bd.glow.CFrame = cf end
                             end
                         end
@@ -700,6 +698,28 @@ xpcall(function()
             box.FocusLost:Connect(function() tween(box, {BackgroundColor3 = COL.card}, 0.1); local v = tonumber(box.Text); if v then pcall(function() cb(v) end) else box.Text = tostring(default) end end)
             return box
         end
+        -- СЛАЙДЕР в реальном времени (меняет TUNE_* -> Heartbeat подхватывает мгновенно)
+        local function makeSlider(col, order, label, min, max, default, cb)
+            local r = Instance.new("Frame"); r.Size = UDim2.new(1, 0, 0, 50); r.BackgroundColor3 = COL.cardHover; r.BackgroundTransparency = 1; r.LayoutOrder = order; r.ZIndex = 8; r.ClipsDescendants = true; r.Parent = col; corner(r, 6)
+            hoverRow(r)
+            local l = Instance.new("TextLabel"); l.Size = UDim2.new(0.62, -8, 0, 22); l.Position = UDim2.new(0, 8, 0, 5); l.BackgroundTransparency = 1; l.Text = label; l.Font = Enum.Font.GothamMedium; l.TextSize = 12; l.TextColor3 = COL.text; l.TextXAlignment = Enum.TextXAlignment.Left; l.ZIndex = 9; l.Parent = r
+            local val = Instance.new("TextLabel"); val.Size = UDim2.new(0.38, -10, 0, 22); val.Position = UDim2.new(0.62, 0, 0, 5); val.BackgroundTransparency = 1; val.Font = Enum.Font.Code; val.TextSize = 12; val.TextColor3 = COL.accentHot; val.TextXAlignment = Enum.TextXAlignment.Right; val.ZIndex = 9; val.Parent = r
+            local track = Instance.new("TextButton"); track.Size = UDim2.new(1, -16, 0, 5); track.Position = UDim2.new(0, 8, 0, 33); track.BackgroundColor3 = COL.track; track.BorderSizePixel = 0; track.Text = ""; track.AutoButtonColor = false; track.ZIndex = 9; track.Parent = r; corner(track, 2)
+            local fill = Instance.new("Frame"); fill.Size = UDim2.new(0, 0, 1, 0); fill.BackgroundColor3 = COL.accent; fill.BorderSizePixel = 0; fill.ZIndex = 10; fill.Parent = r; corner(fill, 2)
+            local knob = Instance.new("Frame"); knob.Size = UDim2.new(0, 12, 0, 12); knob.BackgroundColor3 = COL.knob; knob.BorderSizePixel = 0; knob.ZIndex = 11; knob.Parent = track; corner(knob, 6); stroke(knob, COL.accentHot, 1.5, 0)
+            local function fmt(v) return string.format("%.2f", v) end
+            local function setV(v, fire)
+                v = math.max(min, math.min(max, v)); fill.Size = UDim2.new((v - min) / (max - min), 0, 1, 0); knob.Position = UDim2.new((v - min) / (max - min), -6, 0.5, -6); val.Text = fmt(v)
+                if fire then pcall(function() cb(v) end) end
+            end
+            setV(default, false)
+            local drag = false
+            local function fromX(x) local rel = math.max(0, math.min(1, (x - track.AbsolutePosition.X) / math.max(1, track.AbsoluteSize.X))); setV(min + rel * (max - min), true) end
+            track.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = true; playClick(); fromX(i.Position.X) end end)
+            UserInputService.InputChanged:Connect(function(i) if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then fromX(i.Position.X) end end)
+            UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end end)
+            return {Set = function(_, v) setV(v, true) end}
+        end
         local function makeStat(col, order, label)
             local r = rowFrame(col, order, 34)
             local l = Instance.new("TextLabel"); l.Size = UDim2.new(0.55, -8, 1, 0); l.Position = UDim2.new(0, 8, 0, 0); l.BackgroundTransparency = 1; l.Text = label; l.Font = Enum.Font.GothamMedium; l.TextSize = 12; l.TextColor3 = COL.textDim; l.TextXAlignment = Enum.TextXAlignment.Left; l.ZIndex = 9; l.Parent = r
@@ -799,8 +819,8 @@ xpcall(function()
         local vL, vR = addTab("Визуал", "✦", 6)
         headRow(vL, 0, "ЭФФЕКТЫ"); headRow(vR, 0, "СВЕТ / АУРА")
         local visualToggles = {}
-        visualToggles.wings = makeToggle(vL, 1, "Крылья (форма+бахрома)", true, function(s) visualState.wings = s; if s then applyVisualSafe("wings") else clearVisual("wings") end end)
-        visualToggles.halo = makeToggle(vL, 2, "Нимб-воронка", true, function(s) visualState.halo = s; if s then applyVisualSafe("halo") else clearVisual("halo") end end)
+        visualToggles.wings = makeToggle(vL, 1, "Крылья (опущенный веер)", true, function(s) visualState.wings = s; if s then applyVisualSafe("wings") else clearVisual("wings") end end)
+        visualToggles.halo = makeToggle(vL, 2, "Нимб-овал над головой", true, function(s) visualState.halo = s; if s then applyVisualSafe("halo") else clearVisual("halo") end end)
         visualToggles.circle = makeToggle(vL, 3, "Лужа-волны под ногами", true, function(s) visualState.circle = s; if s then applyVisualSafe("circle") else clearVisual("circle") end end)
         visualToggles.bloom = makeToggle(vL, 4, "Bloom (свечение)", true, function(s) visualState.bloom = s; if s then applyVisualSafe("bloom") else clearVisual("bloom") end end)
         visualToggles.trails = makeToggle(vL, 5, "Неоновые трейлы", false, function(s) visualState.trails = s; if s then applyVisualSafe("trails") else clearVisual("trails") end end)
@@ -812,6 +832,16 @@ xpcall(function()
         visualToggles.light = makeToggle(vR, 5, "Красная подсветка", false, function(s) visualState.light = s; if s then applyVisualSafe("light") else clearVisual("light") end end)
         makeButton(vR, 6, "Включить всё", function() for _, t in pairs(visualToggles) do t:Set(true) end; notify(HUB_NAME, "Все эффекты включены!") end)
         makeButton(vR, 7, "Выключить всё", function() for _, t in pairs(visualToggles) do t:Set(false) end; notify(HUB_NAME, "Все эффекты выключены!") end)
+        -- >>> ПОДГОНКА ФОРМЫ В РЕАЛЬНОМ ВРЕМЕНИ: крутишь — видишь сразу на персонаже <<<
+        headRow(vL, 50, "ПОДГОНКА КРЫЛА (live)")
+        makeSlider(vL, 51, "Наклон веера", 40, 110, TUNE_TOP, function(v) TUNE_TOP = v end)
+        makeSlider(vL, 52, "Разлёт вниз", 40, 140, TUNE_SPREAD, function(v) TUNE_SPREAD = v end)
+        makeSlider(vL, 53, "Длина перьев", 0.4, 1.6, TUNE_LEN, function(v) TUNE_LEN = v end)
+        makeSlider(vL, 54, "Ширина перьев", 0.6, 1.8, TUNE_WIDTH, function(v) TUNE_WIDTH = v end)
+        headRow(vR, 50, "ПОДГОНКА НИМБА (live)")
+        makeSlider(vR, 51, "Высота над головой", 1.4, 3.4, TUNE_HALO_H, function(v) TUNE_HALO_H = v end)
+        makeSlider(vR, 52, "Наклон (овал)", 0, 90, TUNE_HALO_TILT, function(v) TUNE_HALO_TILT = v end)
+        makeSlider(vR, 53, "Размер нимба", 0.6, 1.6, TUNE_HALO_SIZE, function(v) TUNE_HALO_SIZE = v end)
 
         local function checkRole() local r = getPlayerRole(player); isMurderer = (r == "Murderer"); isSheriff = (r == "Sheriff"); isHero = (r == "Hero") end
         local function getPlayerCoins(p) local ls = p:FindFirstChild("leaderstats"); if ls then for _, v in ipairs(ls:GetChildren()) do if v:IsA("IntValue") or v:IsA("NumberValue") then local n = v.Name:lower(); if n:find("coin") or n:find("money") or n:find("cash") or n:find("gold") then return v.Value end end end; for _, v in ipairs(ls:GetChildren()) do if v:IsA("IntValue") or v:IsA("NumberValue") then return v.Value end end end; return 0 end
@@ -854,7 +884,7 @@ xpcall(function()
 
         pcall(function() updateRoleUI() end); pcall(function() updateBagUI() end); switchTab("Шериф"); reapplyVisuals()
         tween(guiScale, {Scale = 1}, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        notify(HUB_NAME, "v42 loaded"); notify(HUB_NAME, "крыло-форма + нимб-воронка + лужа")
+        notify(HUB_NAME, "v42 loaded"); notify(HUB_NAME, "крути слайдеры в Визуал для подгонки")
     end)
 
     if not guiOK then
