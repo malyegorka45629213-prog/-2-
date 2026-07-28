@@ -334,28 +334,28 @@ xpcall(function()
     pcall(function() local connected = {}; local function hookRemote(inst) if connected[inst] then return end; if inst:IsA("RemoteEvent") then connected[inst] = true; pcall(function() inst.OnClientEvent:Connect(function(...) for _, arg in ipairs({...}) do applyRolePayload(arg, inst.Name) end end) end) end end; for _, inst in ipairs(ReplicatedStorage:GetDescendants()) do hookRemote(inst) end; ReplicatedStorage.DescendantAdded:Connect(hookRemote) end)
     pcall(function() local hookedPlayers = {}; local function hookPlayerRoleEvents(pl) if hookedPlayers[pl] then return end; hookedPlayers[pl] = true; pcall(function() pl.CharacterAdded:Connect(function(char) xdWait(0.1); if onRolesChanged then onRolesChanged() end; pcall(function() char.ChildAdded:Connect(function() xdWait(0.05); if onRolesChanged then onRolesChanged() end end); char.ChildRemoved:Connect(function() xdWait(0.05); if onRolesChanged then onRolesChanged() end end) end) end) end); pcall(function() if pl.Backpack then pl.Backpack.ChildAdded:Connect(function() if onRolesChanged then onRolesChanged() end end); pl.Backpack.ChildRemoved:Connect(function() if onRolesChanged then onRolesChanged() end end) end end) end; for _, pl in ipairs(Players:GetPlayers()) do hookPlayerRoleEvents(pl) end; Players.PlayerAdded:Connect(hookPlayerRoleEvents); Players.PlayerRemoving:Connect(function(pl) hookedPlayers[pl] = nil; playerData[pl] = nil; playerData[pl.Name] = nil; playerData[pl.UserId] = nil; if clearPlayerHighlight then clearPlayerHighlight(pl) end end) end)
 
-    -- ================= ВИЗУАЛЫ: ПЛОТНЫЕ КРЫЛЬЯ + КОЛЬЦА-НАМОТКА (WELD) + ЛУЖА + BLOOM =================
+    -- ================= ВИЗУАЛЫ: BEAM-ЛЕНТЫ (без граней) + МЯГКИЕ ЧАСТИЦЫ + BLOOM =================
     local visualState = {wings = true, circle = true, halo = true, bloom = true, aura = false, fire = false, smoke = false, trails = false, eyes = false, light = false, lightning = false}
     local visualObjects = {}
-    local wingParts = {}     -- перья (двигаются напрямую)
-    local wingMass = {}      -- красная glow-подложка формы крыла
-    local haloRings = {}     -- якоря колец (двигаются; бисеры приварены)
+    local wingBeams = {}     -- {tip=Attachment, side, t, len, baseSpread}
+    local haloRings = {}     -- {anchor=Part, tiltX, tiltZ, spin}
     local floorWaves = {}
     local floorPool = nil; local floorPoolGlow = nil
     local floorPillar = nil; local floorPillarGlow = nil
     local eyeParts = {}
     local bloomEffect = nil
 
-    local CORE = Color3.fromRGB(255, 234, 230)   -- раскалённо-белое ядро
-    local MID  = Color3.fromRGB(255, 120, 132)   -- светлый красный (нимб, кончики)
-    local GLOW = Color3.fromRGB(240, 45, 60)     -- насыщенный красный ореол
+    local CORE = Color3.fromRGB(255, 238, 234)
+    local MID  = Color3.fromRGB(255, 130, 142)
+    local GLOW = Color3.fromRGB(240, 45, 60)
+    local DEEP = Color3.fromRGB(170, 18, 38)
 
     local function setBloom(on)
         if on then
             if not bloomEffect then
                 pcall(function()
                     local b = Instance.new("BloomEffect", Lighting)
-                    b.Intensity = 1.0; b.Size = 36; b.Threshold = 0.7
+                    b.Intensity = 1.15; b.Size = 42; b.Threshold = 0.62
                     bloomEffect = b
                 end)
             end
@@ -368,7 +368,7 @@ xpcall(function()
     local function registerVisual(name, obj) visualObjects[name] = visualObjects[name] or {}; table.insert(visualObjects[name], obj) end
     local function clearVisual(name)
         if visualObjects[name] then for _, obj in ipairs(visualObjects[name]) do pcall(function() obj:Destroy() end) end; visualObjects[name] = nil end
-        if name == "wings" then wingParts = {}; wingMass = {} end
+        if name == "wings" then wingBeams = {} end
         if name == "halo" then haloRings = {} end
         if name == "circle" then floorWaves = {}; floorPool = nil; floorPoolGlow = nil; floorPillar = nil; floorPillarGlow = nil end
         if name == "eyes" then eyeParts = {} end
@@ -382,91 +382,129 @@ xpcall(function()
         if meshScale then p.Size = Vector3.new(1, 1, 1); pcall(function() local m = Instance.new("SpecialMesh"); m.MeshType = Enum.MeshType.Sphere; m.Scale = meshScale; m.Parent = p end) end
         return p
     end
+    -- сплошная светящаяся лента без граней (именно то, что на фото)
+    local function makeBeam(a0, a1, w0, w1, colorSeq, transSeq)
+        local b = Instance.new("Beam")
+        b.Attachment0 = a0; b.Attachment1 = a1
+        b.Width0 = w0; b.Width1 = w1
+        b.Color = colorSeq; b.Transparency = transSeq
+        b.LightEmission = 1; b.LightInfluence = 0
+        b.FaceCamera = true; b.Texture = ""; b.Segments = 10
+        b.ZOffset = 0
+        return b
+    end
 
-    -- КРЫЛО: плотный веер перьев (малый шаг, смещённые корни) + красная масса-ореол
+    -- КРЫЛЬЯ: веер из Beam-лент (широкий мягкий ореол + узкое яркое ядро на каждое перо)
     local function applyWings()
         clearVisual("wings")
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        local count = 12
+        local count = 11
+        local softTrans = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(0.5, 0.4), NumberSequenceKeypoint.new(1, 0.95)})
+        local coreTrans = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(0.55, 0.0), NumberSequenceKeypoint.new(1, 0.85)})
         for side = -1, 1, 2 do
-            -- красная glow-подложка формы крыла (3 эллипсоида позади перьев)
-            for mi = 1, 3 do
-                local mt = (mi - 1) / 2
-                local mass = neon({Name = "XWingMass", Color = GLOW, Transparency = 0.72, Parent = char}, Vector3.new(0.75, 2.7, 3.5))
-                registerVisual("wings", mass)
-                table.insert(wingMass, {part = mass, side = side, mt = mt})
-            end
-            -- перья: веер 28°..152°, широкие, перекрываются => сплошной силуэт крыла
             for i = 1, count do
                 local t = (i - 1) / (count - 1)
-                local len = 2.1 + math.sin(t * math.pi) * 1.5
-                local wid = 1.45 - t * 0.45
-                local baseSpread = 28 + t * 124
-                local col = CORE:lerp(MID, 0.2 + t * 0.6)
-                local feather = neon({Name = "XWingF", Color = col, Transparency = 0.0, Parent = char}, Vector3.new(0.5, len, wid))
-                registerVisual("wings", feather)
-                table.insert(wingParts, {part = feather, side = side, t = t, len = len, wid = wid, baseSpread = baseSpread})
+                local len = 2.0 + math.sin(t * math.pi) * 1.4
+                local baseSpread = 12 + t * 112
+                local rootAtt = Instance.new("Attachment", hrp)
+                rootAtt.Position = Vector3.new(side * 0.42, 0.95 - t * 0.55, 0.55)
+                registerVisual("wings", rootAtt)
+                local tipAtt = Instance.new("Attachment", hrp)
+                tipAtt.Position = rootAtt.Position
+                registerVisual("wings", tipAtt)
+                -- широкий мягкий ореол пера
+                local bSoft = makeBeam(rootAtt, tipAtt, 1.7 - t * 0.5, 0.12, ColorSequence.new(GLOW, DEEP), softTrans)
+                registerVisual("wings", bSoft)
+                -- узкое раскалённое ядро пера
+                local bCore = makeBeam(rootAtt, tipAtt, 0.75 - t * 0.2, 0.04, ColorSequence.new(CORE, MID), coreTrans)
+                registerVisual("wings", bCore)
+                table.insert(wingBeams, {tip = tipAtt, side = side, t = t, len = len, baseSpread = baseSpread})
             end
         end
-        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.1, 0.2); registerVisual("wings", att)
+        -- мягкая дымка-ореол позади крыльев (частицы, не парты)
+        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, 1.1, 0.5); registerVisual("wings", att)
         local em = Instance.new("ParticleEmitter", att)
         em.Texture = "rbxasset://textures/particles/sparkles_main.dds"
         em.Color = ColorSequence.new(CORE, GLOW)
-        em.Rate = 55; em.Lifetime = NumberRange.new(0.7, 1.4); em.Speed = NumberRange.new(0.8, 2.4)
-        em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1
-        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 0)})
+        em.Rate = 60; em.Lifetime = NumberRange.new(0.8, 1.6); em.Speed = NumberRange.new(0.6, 2.0)
+        em.SpreadAngle = Vector2.new(180, 180); em.LightEmission = 1; em.LightInfluence = 0
+        em.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 1.6), NumberSequenceKeypoint.new(1, 0.2)})
+        em.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 1)})
         registerVisual("wings", em)
-        local wl = Instance.new("PointLight"); wl.Color = Color3.fromRGB(255, 95, 110); wl.Brightness = 3.6; wl.Range = 30; wl.Parent = hrp; registerVisual("wings", wl)
+        local wl = Instance.new("PointLight"); wl.Color = Color3.fromRGB(255, 100, 115); wl.Brightness = 3.8; wl.Range = 32; wl.Parent = hrp; registerVisual("wings", wl)
     end
 
-    -- КОЛЬЦО-НАМОТКА: сплошной обруч из плотно уложенных сфер, приваренных к якорю
-    local function buildRing(char, rad, beadR, beadCount, tiltX, tiltZ, spin)
-        local root = Instance.new("Part")
-        root.Name = "XHaloRingRoot"; root.Transparency = 1; root.Anchored = true; root.CanCollide = false
-        root.Size = Vector3.new(0.1, 0.1, 0.1); root.Parent = char
-        registerVisual("halo", root)
-        for k = 1, beadCount do
-            local a = (k / beadCount) * math.pi * 2
-            local bead = neon({Name = "XHaloBead", Color = MID, Transparency = 0.0, Parent = char}, Vector3.new(beadR, beadR, beadR))
-            bead.CFrame = root.CFrame * CFrame.new(math.cos(a) * rad, math.sin(a) * rad, 0)
-            registerVisual("halo", bead)
-            pcall(function()
-                local wc = Instance.new("WeldConstraint")
-                wc.Part0 = root; wc.Part1 = bead; wc.Parent = root
-                registerVisual("halo", wc)
-            end)
+    -- НИМБ: сплошные Beam-обручи (замкнутая лента по кругу), 3 шт разного наклона => намотка
+    local function buildRing(char, rad, width, count, tiltX, tiltZ, spin)
+        local anchor = Instance.new("Part")
+        anchor.Name = "XHaloAnchor"; anchor.Transparency = 1; anchor.Anchored = true; anchor.CanCollide = false
+        anchor.Size = Vector3.new(0.1, 0.1, 0.1); anchor.Parent = char
+        registerVisual("halo", anchor)
+        local atts = {}
+        for k = 1, count do
+            local a = (k / count) * math.pi * 2
+            local at = Instance.new("Attachment", anchor)
+            at.Position = Vector3.new(math.cos(a) * rad, math.sin(a) * rad, 0)
+            registerVisual("halo", at)
+            atts[k] = at
         end
-        table.insert(haloRings, {root = root, tiltX = tiltX, tiltZ = tiltZ, spin = spin})
+        local colSeq = ColorSequence.new(CORE, MID)
+        local trSeq = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.18), NumberSequenceKeypoint.new(0.5, 0.02), NumberSequenceKeypoint.new(1, 0.18)})
+        for k = 1, count do
+            local b = makeBeam(atts[k], atts[(k % count) + 1], width, width, colSeq, trSeq)
+            registerVisual("halo", b)
+        end
+        -- тонкая дымка вдоль обруча
+        local haze = Instance.new("Attachment", anchor); haze.Position = Vector3.new(0, 0, 0); registerVisual("halo", haze)
+        local pe = Instance.new("ParticleEmitter", haze)
+        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        pe.Color = ColorSequence.new(CORE, GLOW)
+        pe.Rate = 26; pe.Lifetime = NumberRange.new(0.5, 1.1); pe.Speed = NumberRange.new(0.3, 1.2)
+        pe.SpreadAngle = Vector2.new(180, 180); pe.LightEmission = 1; pe.LightInfluence = 0
+        pe.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0.1)})
+        pe.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1)})
+        registerVisual("halo", pe)
+        table.insert(haloRings, {anchor = anchor, tiltX = tiltX, tiltZ = tiltZ, spin = spin})
     end
     local function applyHalo()
         clearVisual("halo")
         local char = player.Character
         local head = char and char:FindFirstChild("Head")
         if not head then return end
-        buildRing(char, 2.6, 0.20, 40, 0, 0, 1.0)
-        buildRing(char, 2.35, 0.16, 36, 16, 12, -1.4)
-        buildRing(char, 2.85, 0.14, 36, -12, 20, 0.7)
-        local hl = Instance.new("PointLight"); hl.Color = Color3.fromRGB(255, 95, 110); hl.Brightness = 3.0; hl.Range = 16; hl.Parent = head; registerVisual("halo", hl)
+        buildRing(char, 2.6, 0.34, 28, 0, 0, 1.0)
+        buildRing(char, 2.35, 0.26, 26, 16, 12, -1.4)
+        buildRing(char, 2.85, 0.22, 26, -12, 20, 0.7)
+        local hl = Instance.new("PointLight"); hl.Color = Color3.fromRGB(255, 100, 115); hl.Brightness = 3.0; hl.Range = 16; hl.Parent = head; registerVisual("halo", hl)
     end
 
-    -- ЛУЖА: мягкий пул + расходящиеся волны + световой столб вниз
+    -- ЛУЖА: мягкое световое пятно + расходящиеся волны + дымка в пол + столб
     local function applyCircle()
         clearVisual("circle")
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         floorPool = neon({Name = "XPool", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.1, 11, 11), Color = GLOW, Transparency = 0.86, Parent = char}); registerVisual("circle", floorPool)
-        floorPoolGlow = neon({Name = "XPoolG", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 12.2, 12.2), Color = GLOW, Transparency = 0.92, Parent = char}); registerVisual("circle", floorPoolGlow)
+        floorPoolGlow = neon({Name = "XPoolG", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 12.4, 12.4), Color = GLOW, Transparency = 0.92, Parent = char}); registerVisual("circle", floorPoolGlow)
         floorPillar = neon({Name = "XPillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.4, 0.5, 0.5), Color = GLOW, Transparency = 0.8, Parent = char}); registerVisual("circle", floorPillar)
-        floorPillarGlow = neon({Name = "XPillarG", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.4, 1.1, 1.1), Color = GLOW, Transparency = 0.9, Parent = char}); registerVisual("circle", floorPillarGlow)
+        floorPillarGlow = neon({Name = "XPillarG", Shape = Enum.PartType.Cylinder, Size = Vector3.new(3.4, 1.2, 1.2), Color = GLOW, Transparency = 0.9, Parent = char}); registerVisual("circle", floorPillarGlow)
         for i = 1, 4 do
-            local disc = neon({Name = "XWave", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.06, 2.4, 2.4), Color = CORE, Transparency = 0.45, Parent = char})
+            local disc = neon({Name = "XWave", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.05, 2.4, 2.4), Color = CORE, Transparency = 0.5, Parent = char})
             registerVisual("circle", disc)
             table.insert(floorWaves, {part = disc, phase = (i - 1) / 4})
         end
-        local cl = Instance.new("PointLight"); cl.Color = Color3.fromRGB(255, 85, 100); cl.Brightness = 3.2; cl.Range = 26; cl.Parent = hrp; registerVisual("circle", cl)
+        -- дымка свечения в пол (частицы)
+        local att = Instance.new("Attachment", hrp); att.Position = Vector3.new(0, -2.9, 0); registerVisual("circle", att)
+        local pe = Instance.new("ParticleEmitter", att)
+        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        pe.Color = ColorSequence.new(CORE, GLOW)
+        pe.Rate = 40; pe.Lifetime = NumberRange.new(0.8, 1.6); pe.Speed = NumberRange.new(0.4, 1.4)
+        pe.SpreadAngle = Vector2.new(180, 30); pe.LightEmission = 1; pe.LightInfluence = 0
+        pe.Size = NumberSequence.new({NumberSequenceKeypoint.new(0, 2.2), NumberSequenceKeypoint.new(1, 0.4)})
+        pe.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 1)})
+        registerVisual("circle", pe)
+        local cl = Instance.new("PointLight"); cl.Color = Color3.fromRGB(255, 90, 105); cl.Brightness = 3.2; cl.Range = 26; cl.Parent = hrp; registerVisual("circle", cl)
     end
 
     local function applyEmitter(name, texture, c1, c2, rate, speed, spread, sizeStart, attPos, emissionDir)
@@ -512,44 +550,30 @@ xpcall(function()
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local t = tick()
-            -- КРЫЛЬЯ: плавный малый взмах + покачивание + дыхание
+            -- КРЫЛЬЯ: двигаю кончики Beam-лент (ленты сами тянутся, FaceCamera держит их к камере)
             if visualState.wings and hrp then
                 local flap = math.sin(t * 1.8) * 5
                 local sway = math.sin(t * 1.1) * 3
-                local bob = math.sin(t * 1.8 + 0.5) * 0.08
-                local breathe = 1 + math.sin(t * 1.8) * 0.04
-                for _, f in ipairs(wingParts) do
-                    if f.part.Parent then
+                local bob = math.sin(t * 1.8 + 0.5) * 0.1
+                local breathe = 1 + math.sin(t * 1.8) * 0.05
+                for _, f in ipairs(wingBeams) do
+                    if f.tip.Parent then
                         local spread = f.baseSpread + sway + flap
-                        local cf = hrp.CFrame
-                            * CFrame.new(f.side * 0.45, 1.1 - f.t * 0.35, 0.3)
-                            * CFrame.Angles(0, 0, math.rad(f.side * spread))
-                            * CFrame.Angles(0, math.rad(f.side * -8), 0)
-                            * CFrame.new(0, f.len / 2 * breathe, 0.18 + f.t * 0.25)
-                        f.part.CFrame = cf
-                    end
-                end
-                for _, m in ipairs(wingMass) do
-                    if m.part.Parent then
-                        local spread = 78 + (m.mt - 0.5) * 60 + sway + flap
-                        local cf = hrp.CFrame
-                            * CFrame.new(m.side * 0.95, 1.0, 0.45)
-                            * CFrame.Angles(0, 0, math.rad(m.side * spread))
-                            * CFrame.Angles(0, math.rad(m.side * -10), 0)
-                        m.part.CFrame = cf
-                        m.part.Transparency = 0.7 + math.sin(t * 1.8 + m.mt) * 0.06
+                        local dir = CFrame.Angles(0, 0, math.rad(f.side * spread)) * Vector3.new(0, 1, 0)
+                        local tipLocal = dir * (f.len * breathe) + Vector3.new(0, bob, -0.35)
+                        f.tip.Position = Vector3.new(f.side * 0.42, 0.95 - f.t * 0.55, 0.55) + tipLocal
                     end
                 end
             end
-            -- НИМБ: вращение 3 якорей (бисеры следуют через weld) => объёмная намотка
+            -- НИМБ: кручу якоря обручей (Beam-кольца вращаются целиком)
             if visualState.halo and #haloRings > 0 then
                 local head = char:FindFirstChild("Head")
                 if head then
                     local bob = math.sin(t * 2.0) * 0.1
                     local baseCF = head.CFrame * CFrame.new(0, 1.95 + bob, 0) * CFrame.Angles(math.rad(70), t * 0.5, math.rad(8))
                     for _, r in ipairs(haloRings) do
-                        if r.root.Parent then
-                            r.root.CFrame = baseCF * CFrame.Angles(math.rad(r.tiltX), t * r.spin, math.rad(r.tiltZ))
+                        if r.anchor.Parent then
+                            r.anchor.CFrame = baseCF * CFrame.Angles(math.rad(r.tiltX), t * r.spin, math.rad(r.tiltZ))
                         end
                     end
                 end
@@ -570,7 +594,7 @@ xpcall(function()
                         local r = 1.2 + ph * 5.0
                         local tr = 0.3 + ph * 0.62
                         local cf = CFrame.new(cx, cy + 0.01, cz) * CFrame.Angles(math.rad(90), 0, t * 0.3)
-                        w.part.CFrame = cf; w.part.Size = Vector3.new(0.06, r * 2, r * 2); w.part.Transparency = tr
+                        w.part.CFrame = cf; w.part.Size = Vector3.new(0.05, r * 2, r * 2); w.part.Transparency = tr
                     end
                 end
             end
@@ -803,8 +827,8 @@ xpcall(function()
         local vL, vR = addTab("Визуал", "✦", 6)
         headRow(vL, 0, "ЭФФЕКТЫ"); headRow(vR, 0, "СВЕТ / АУРА")
         local visualToggles = {}
-        visualToggles.wings = makeToggle(vL, 1, "Пушистые крылья", true, function(s) visualState.wings = s; if s then applyVisualSafe("wings") else clearVisual("wings") end end)
-        visualToggles.halo = makeToggle(vL, 2, "Нимб-намотка", true, function(s) visualState.halo = s; if s then applyVisualSafe("halo") else clearVisual("halo") end end)
+        visualToggles.wings = makeToggle(vL, 1, "Крылья-ленты (Beam)", true, function(s) visualState.wings = s; if s then applyVisualSafe("wings") else clearVisual("wings") end end)
+        visualToggles.halo = makeToggle(vL, 2, "Нимб-намотка (Beam)", true, function(s) visualState.halo = s; if s then applyVisualSafe("halo") else clearVisual("halo") end end)
         visualToggles.circle = makeToggle(vL, 3, "Лужа-рябь под ногами", true, function(s) visualState.circle = s; if s then applyVisualSafe("circle") else clearVisual("circle") end end)
         visualToggles.bloom = makeToggle(vL, 4, "Bloom (свечение)", true, function(s) visualState.bloom = s; if s then applyVisualSafe("bloom") else clearVisual("bloom") end end)
         visualToggles.trails = makeToggle(vL, 5, "Неоновые трейлы", false, function(s) visualState.trails = s; if s then applyVisualSafe("trails") else clearVisual("trails") end end)
@@ -858,7 +882,7 @@ xpcall(function()
 
         pcall(function() updateRoleUI() end); pcall(function() updateBagUI() end); switchTab("Шериф"); reapplyVisuals()
         tween(guiScale, {Scale = 1}, 0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        notify(HUB_NAME, "v42 loaded"); notify(HUB_NAME, "плотные крылья + нимб-намотка + bloom")
+        notify(HUB_NAME, "v42 loaded"); notify(HUB_NAME, "Beam-крылья + нимб-намотка + bloom")
     end)
 
     if not guiOK then
